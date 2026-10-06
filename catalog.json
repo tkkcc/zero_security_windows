@@ -5392,28 +5392,5 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": ""
-  },
-  {
-    "Id": "startup-uniget",
-    "Zh": "UniGetUI 自启",
-    "En": "UniGetUI startup",
-    "PurposeZh": "登录后自动打开 UniGetUI。",
-    "PurposeEn": "Opens UniGetUI automatically at sign-in.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
-    "Ops": [
-      {
-        "Name": "UniGetUI",
-        "Value": false,
-        "Kind": "StartupEntries"
-      }
-    ],
-    "Probe": "",
-    "Safe": false,
-    "Manual": false,
-    "Restart": false,
-    "Page": "System",
-    "Intent": "Disable",
-    "Refresh": ""
   }
 ]

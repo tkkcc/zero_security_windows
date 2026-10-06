@@ -12,7 +12,11 @@ impl Engine {
         let mut check = match self.check_inner(f) {
             Ok(v) => v,
             Err(e) => Check {
-                state: Status::Unknown,
+                state: if f.page == "Install" {
+                    Status::Failed
+                } else {
+                    Status::Unknown
+                },
                 detail: format!("{e:#}"),
             },
         };
@@ -42,16 +46,12 @@ impl Engine {
                 }
             }
         }
-        if let Some(p) = self.store.pending.lock().unwrap().as_ref() {
-            if p.phase == Phase::AwaitSafe && p.safe_ids.contains(&f.id) {
-                check = Check::new(Status::SafeQueued)
-            } else if p.continue_all
-                && !f.security()
-                && !crate::workflow::QUIET.contains(&f.id.as_str())
-                && matches!(check.state, Status::Ready | Status::Checking)
-            {
-                check = Check::new(Status::Deferred)
-            }
+        if let Some(p) = self.store.pending.lock().unwrap().as_ref()
+            && !self.safe
+            && p.phase == Phase::AwaitSafe
+            && p.safe_ids.contains(&f.id)
+        {
+            check = Check::new(Status::SafeQueued)
         }
         check
     }
@@ -68,7 +68,11 @@ impl Engine {
         {
             return Ok(Check::new(Status::Absent));
         }
-        if let Some(check) = self.probe(f)? {
+        if let Some(check) = if self.safe && f.can_run_safe() {
+            None
+        } else {
+            self.probe(f)?
+        } {
             if check.state != Status::Done {
                 return Ok(check);
             }
@@ -88,13 +92,7 @@ impl Engine {
         }
         let ops = self.expand(f)?;
         if ops.is_empty() {
-            return Ok(Check::new(
-                if f.ops.iter().any(|op| op.kind == "StartupEntries") {
-                    Status::Done
-                } else {
-                    Status::Absent
-                },
-            ));
+            return Ok(Check::new(Status::Absent));
         }
         let mut done = true;
         for op in ops {

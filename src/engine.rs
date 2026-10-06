@@ -98,6 +98,9 @@ impl Engine {
             .find(|f| f.id == id)
             .ok_or_else(|| anyhow::anyhow!("Unknown item: {id}"))
     }
+    pub fn begin_batch(&self) {
+        self.facts.lock().unwrap().clear();
+    }
     pub fn needs_safe(&self, f: &Feature) -> Result<bool> {
         if self.safe {
             return Ok(false);
@@ -123,6 +126,9 @@ impl Engine {
     pub fn expand(&self, f: &Feature) -> Result<Vec<Operation>> {
         let mut out = vec![];
         for op in &f.ops {
+            if self.safe && matches!(op.kind.as_str(), "Task" | "TaskGroup") {
+                continue;
+            }
             match op.kind.as_str() {
                 "Service" => {
                     if reg::exists(&format!(
@@ -183,29 +189,6 @@ impl Engine {
                     scheme: prefs::scheme()?,
                     ..op.clone()
                 }),
-                "StartupEntries" => {
-                    for path in [
-                        r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
-                        r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
-                    ] {
-                        for name in reg::names(path)? {
-                            if matches(&name, &format!("*{}*", op.name))
-                                || matches(
-                                    &text_value(&reg::read(path, &name)?),
-                                    &format!("*{}*", op.name),
-                                )
-                            {
-                                out.push(Operation {
-                                    kind: "RegistryDelete".into(),
-                                    path: path.into(),
-                                    name,
-                                    value: Value::Null,
-                                    ..op.clone()
-                                })
-                            }
-                        }
-                    }
-                }
                 _ => {
                     let mut expanded = Operation {
                         path: native::expand(&op.path).replace("%UserSid%", &self.store.sid),
@@ -453,6 +436,9 @@ impl Engine {
         Ok(false)
     }
     pub fn refresh(&self, f: &Feature) -> Result<()> {
+        if self.safe {
+            return Ok(());
+        }
         match f.refresh.as_str() {
             "Mouse" => prefs::apply_mouse()?,
             "Keyboard" => prefs::apply_keyboard()?,
@@ -552,7 +538,7 @@ impl Engine {
             }
             if result.changed {
                 result.restart |= f.restart;
-                if matches!(f.refresh.as_str(), "Shell" | "Wallpaper") {
+                if !self.safe && matches!(f.refresh.as_str(), "Shell" | "Wallpaper") {
                     result.shell = native::shell_stamp()?
                 }
             }

@@ -414,21 +414,10 @@ pub fn apply_input() -> Result<()> {
     unsafe {
         let p: ITfInputProcessorProfiles =
             CoCreateInstance(&CLSID_TF_InputProcessorProfiles, None, CLSCTX_INPROC_SERVER)?;
-        native::ok(InstallLayoutOrTip(wide(tip).as_ptr(), 0))?;
-        for profile in layouts() {
-            if profile.clsid == WETYPE_CLASS && profile.profile == WETYPE_PROFILE {
-                continue;
-            }
-            let id = String::from_utf16_lossy(
-                &profile.id[..profile.id.iter().position(|v| *v == 0).unwrap_or(260)],
-            );
-            if !id.is_empty() {
-                native::ok(InstallLayoutOrTip(wide(&id).as_ptr(), 1))?;
-            }
-            if profile.kind == 1 {
-                p.EnableLanguageProfile(&profile.clsid, profile.language, &profile.profile, false)?;
-            }
-        }
+        // CLEANINSTALL replaces the whole list, including the US keyboard.
+        // EnumEnabledLayoutOrTip returns bare KLIDs for keyboards; passing those
+        // to InstallLayoutOrTip without a language prefix did not remove them.
+        native::ok(InstallLayoutOrTip(wide(tip).as_ptr(), 0x42))?;
         p.EnableLanguageProfile(&WETYPE_CLASS, 0x804, &WETYPE_PROFILE, true)?;
         p.SetDefaultLanguageProfile(0x804, &WETYPE_CLASS, &WETYPE_PROFILE)?;
         native::ok(SetDefaultLayoutOrTip(wide(tip).as_ptr(), 0))?;

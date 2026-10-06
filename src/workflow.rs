@@ -1,4 +1,4 @@
-use crate::{engine::Engine, model::*, native, registry as reg, store};
+use crate::{engine::Engine, native, registry as reg, store};
 use anyhow::{Result, ensure};
 use rust_fsm::{StateMachine, StateMachineImpl};
 use serde::{Deserialize, Serialize};
@@ -26,6 +26,8 @@ pub struct Pending {
     pub suspended: bool,
     pub continue_all: bool,
     pub safe_ids: Vec<String>,
+    #[serde(default)]
+    pub normal_ids: Vec<String>,
 }
 struct Flow;
 impl StateMachineImpl for Flow {
@@ -259,17 +261,16 @@ pub fn prepare_safe(engine: &Engine, ids: &[String], all: bool) -> Result<()> {
     }
     result
 }
-pub fn prepare_normal(engine: &Engine, all: bool) -> Result<()> {
+pub fn prepare_normal(engine: &Engine, all: bool, ids: &[String]) -> Result<()> {
     if engine.store.pending.lock().unwrap().is_some() {
         engine.store.copy_executable()?;
-        engine
-            .store
-            .pending
-            .lock()
-            .unwrap()
-            .as_mut()
-            .unwrap()
-            .continue_all |= all;
+        let mut pending = engine.store.pending.lock().unwrap();
+        let p = pending.as_mut().unwrap();
+        p.continue_all |= all;
+        p.normal_ids.extend_from_slice(ids);
+        p.normal_ids.sort();
+        p.normal_ids.dedup();
+        drop(pending);
         return engine.store.save();
     }
     engine.store.initialize()?;
@@ -278,13 +279,14 @@ pub fn prepare_normal(engine: &Engine, all: bool) -> Result<()> {
         normal_entry: current()?,
         suspended: *engine.store.suspended.lock().unwrap(),
         continue_all: all,
+        normal_ids: ids.to_vec(),
         ..Default::default()
     });
     register_return(engine)?;
     transition(engine, Trigger::QueueNormal)?;
     engine.store.save()
 }
-pub fn safe_resume(engine: &Engine, mut progress: impl FnMut(usize)) -> Result<()> {
+pub fn safe_resume(engine: &Engine) -> Result<bool> {
     let p = engine
         .store
         .pending
@@ -302,15 +304,13 @@ pub fn safe_resume(engine: &Engine, mut progress: impl FnMut(usize)) -> Result<(
     engine.store.initialize()?;
     *engine.boot_entry.lock().unwrap() = p.normal_entry;
     reg::delete(RUN_ONCE, "*ZeroSecurityWindows.SafeApply")?;
-    for id in p.safe_ids {
-        let index = engine.catalog.iter().position(|f| f.id == id).unwrap();
-        progress(index);
-        engine.execute(&engine.catalog[index], false, false, true)?;
-    }
+    Ok(p.continue_all)
+}
+pub fn safe_complete(engine: &Engine) -> Result<()> {
     transition(engine, Trigger::Return)?;
     engine.store.save()
 }
-pub fn normal_resume(engine: &Engine) -> Result<bool> {
+pub fn normal_resume(engine: &Engine) -> Result<(bool, Vec<String>)> {
     let p = engine
         .store
         .pending
@@ -333,7 +333,7 @@ pub fn normal_resume(engine: &Engine) -> Result<bool> {
             }
         }
     }
-    Ok(p.continue_all)
+    Ok((p.continue_all, p.normal_ids))
 }
 pub fn cleanup(engine: &Engine) -> Result<()> {
     let p = engine.store.pending.lock().unwrap().clone();
@@ -373,25 +373,6 @@ pub fn requires_restart(engine: &Engine) -> bool {
             .unwrap()
             .values()
             .any(|r| r.restart && r.boot == engine.boot && r.errors.is_empty())
-}
-pub fn assert_quiet(engine: &Engine) -> Result<()> {
-    for id in QUIET.iter().filter(|id| **id != "userchoice-protection") {
-        let f = engine.feature(id)?;
-        ensure!(
-            matches!(
-                engine.check(f).state,
-                Status::Done | Status::Absent | Status::SignIn
-            ),
-            "{}{}",
-            choose(engine.zh, "需先完成：", "Complete first: "),
-            f.name(engine.zh)
-        )
-    }
-    ensure!(
-        !native::service_running("WinDefend")?,
-        "Microsoft Defender is still running"
-    );
-    Ok(())
 }
 pub fn restart() -> Result<()> {
     native::command("shutdown.exe", &["/r", "/t", "0"])?;

@@ -49,6 +49,7 @@ pub fn remove(name: &str) -> Result<()> {
     Ok(())
 }
 pub struct Store {
+    saving: Mutex<()>,
     pub sid: String,
     pub results: Mutex<HashMap<String, ResultRecord>>,
     pub pending: Mutex<Option<Pending>>,
@@ -59,6 +60,7 @@ impl Store {
         let pending: Option<Pending> = read("rust-workflow.json")?;
         let suspended = pending.as_ref().is_some_and(|p| p.suspended);
         Ok(Self {
+            saving: Mutex::new(()),
             sid: native::sid()?,
             results: Mutex::new(read("rust-results.json")?.unwrap_or_default()),
             pending: Mutex::new(pending),
@@ -72,6 +74,7 @@ impl Store {
         Ok(())
     }
     pub fn save(&self) -> Result<()> {
+        let _saving = self.saving.lock().unwrap();
         write("rust-results.json", &*self.results.lock().unwrap())?;
         let pending = self.pending.lock().unwrap();
         if let Some(p) = pending.as_ref() {
@@ -85,6 +88,7 @@ impl Store {
         append("operations.jsonl",&json!({"Time":chrono::Local::now().to_rfc3339(),"Id":id,"Kind":op.kind,"Path":op.path,"Name":op.name,"Error":error}).to_string())
     }
     pub fn copy_executable(&self) -> Result<PathBuf> {
+        let _saving = self.saving.lock().unwrap();
         copy_to(root())
     }
 }

@@ -9,7 +9,7 @@ use std::sync::{
 #[derive(Clone, Debug)]
 pub enum Command {
     One(usize),
-    Category(String),
+    Items(Vec<usize>),
     All,
     Restart,
     Scan(Vec<usize>),
@@ -17,7 +17,7 @@ pub enum Command {
 pub enum Message {
     Ready(Arc<Engine>),
     State(usize, Check, usize),
-    Focus(usize),
+    Queued(Vec<usize>),
     Finished {
         processed: usize,
         restart: bool,
@@ -27,18 +27,18 @@ pub enum Message {
     Error(String),
 }
 pub fn order(catalog: &[Feature]) -> Vec<usize> {
-    catalog
-        .iter()
-        .enumerate()
-        .filter(|(_, f)| f.security() || workflow::QUIET.contains(&f.id.as_str()))
-        .chain(
-            catalog
-                .iter()
-                .enumerate()
-                .filter(|(_, f)| !f.security() && !workflow::QUIET.contains(&f.id.as_str())),
-        )
-        .map(|(i, _)| i)
-        .collect()
+    let mut indices: Vec<_> = (0..catalog.len()).collect();
+    indices.sort_by_key(|i| {
+        let f = &catalog[*i];
+        if f.page == "Install" {
+            2
+        } else if f.security() || workflow::QUIET.contains(&f.id.as_str()) {
+            0
+        } else {
+            1
+        }
+    });
+    indices
 }
 pub fn launch(
     tx: Sender<Message>,
@@ -53,20 +53,40 @@ pub fn launch(
             let automatic = !mode.is_empty();
             if mode == "--safe-resume" {
                 let version = epoch.fetch_add(1, Ordering::SeqCst) + 1;
-                workflow::safe_resume(&engine, |i| {
-                    let _ = tx.send(Message::Focus(i));
-                    let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
-                })?;
-                let _ = tx.send(Message::Finished {
-                    processed: engine.store.results.lock().unwrap().len(),
-                    restart: true,
-                    auto: true,
-                    refresh: vec![],
-                });
+                let all = workflow::safe_resume(&engine)?;
+                let command = if all {
+                    Command::All
+                } else {
+                    let pending = engine.store.pending.lock().unwrap();
+                    Command::Items(
+                        engine
+                            .catalog
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, f)| pending.as_ref().unwrap().safe_ids.contains(&f.id))
+                            .map(|(i, _)| i)
+                            .collect(),
+                    )
+                };
+                batch(&engine, &tx, version, &command, true)?;
             } else if mode == "--resume" {
-                if workflow::normal_resume(&engine)? {
+                let (all, ids) = workflow::normal_resume(&engine)?;
+                if all || !ids.is_empty() {
                     let version = epoch.fetch_add(1, Ordering::SeqCst) + 1;
-                    batch(&engine, &tx, version, &Command::All, true, automatic)?;
+                    let command = if all {
+                        Command::All
+                    } else {
+                        Command::Items(
+                            engine
+                                .catalog
+                                .iter()
+                                .enumerate()
+                                .filter(|(_, f)| ids.contains(&f.id))
+                                .map(|(i, _)| i)
+                                .collect(),
+                        )
+                    };
+                    batch(&engine, &tx, version, &command, automatic)?;
                 } else {
                     let _ = tx.send(Message::Finished {
                         processed: 0,
@@ -96,7 +116,7 @@ pub fn launch(
                     continue;
                 }
                 let version = epoch.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Err(e) = batch(&engine, &tx, version, &command, false, false) {
+                if let Err(e) = batch(&engine, &tx, version, &command, false) {
                     let _ = tx.send(Message::Error(format!("{e:#}")));
                 }
             }
@@ -133,6 +153,7 @@ fn checks(engine: Arc<Engine>, tx: Sender<Message>, epoch: Arc<AtomicUsize>, ind
                     break;
                 };
                 let f = &engine.catalog[i];
+                let _ = tx.send(Message::State(i, Check::new(Status::Checking), version));
                 let check = engine.check(f);
                 if epoch.load(Ordering::SeqCst) == version
                     && tx.send(Message::State(i, check, version)).is_err()
@@ -146,11 +167,6 @@ fn checks(engine: Arc<Engine>, tx: Sender<Message>, epoch: Arc<AtomicUsize>, ind
 fn affected(engine: &Engine, command: &Command) -> Vec<usize> {
     let touched: Vec<&Feature> = match command {
         Command::One(i) => vec![&engine.catalog[*i]],
-        Command::Category(c) => engine
-            .catalog
-            .iter()
-            .filter(|f| f.category(engine.zh) == c)
-            .collect(),
         _ => return vec![],
     };
     engine
@@ -174,6 +190,42 @@ fn affected(engine: &Engine, command: &Command) -> Vec<usize> {
 fn publish(engine: &Engine, tx: &Sender<Message>, i: usize, version: usize) {
     let _ = tx.send(Message::State(i, engine.check(&engine.catalog[i]), version));
 }
+fn failure(
+    engine: &Engine,
+    tx: &Sender<Message>,
+    i: usize,
+    version: usize,
+    error: anyhow::Error,
+) -> Result<()> {
+    let detail = format!("{error:#}");
+    let f = &engine.catalog[i];
+    engine.store.results.lock().unwrap().insert(
+        f.id.clone(),
+        ResultRecord {
+            errors: vec![detail.clone()],
+            boot: engine.boot,
+            ..Default::default()
+        },
+    );
+    engine.store.log(
+        &f.id,
+        &Operation {
+            kind: "Execute".into(),
+            ..Default::default()
+        },
+        &detail,
+    )?;
+    engine.store.save()?;
+    let _ = tx.send(Message::State(
+        i,
+        Check {
+            state: Status::Failed,
+            detail,
+        },
+        version,
+    ));
+    Ok(())
+}
 fn perform(
     engine: &Engine,
     tx: &Sender<Message>,
@@ -182,19 +234,22 @@ fn perform(
     toggle: bool,
 ) -> Result<()> {
     let f = &engine.catalog[i];
-    let _ = tx.send(Message::Focus(i));
     let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
     let win11 = toggle && f.toggle() && crate::registry::exists(&f.ops[0].path)?;
-    engine.execute(f, win11, false, false)?;
+    let settings_only = engine.safe;
+    if let Err(error) = engine.execute(f, win11, false, settings_only) {
+        return failure(engine, tx, i, version, error);
+    }
     publish(engine, tx, i, version);
     Ok(())
 }
+const PARALLELISM: usize = 6;
 fn parallel_jobs(indices: &[usize], run: impl Fn(usize) -> Result<bool> + Sync) -> Result<usize> {
     let next = AtomicUsize::new(0);
     let processed = AtomicUsize::new(0);
     let errors = std::sync::Mutex::new(Vec::new());
     std::thread::scope(|scope| {
-        for _ in 0..indices.len().min(2) {
+        for _ in 0..indices.len().min(PARALLELISM) {
             scope.spawn(|| {
                 loop {
                     let position = next.fetch_add(1, Ordering::Relaxed);
@@ -219,7 +274,6 @@ fn parallel_jobs(indices: &[usize], run: impl Fn(usize) -> Result<bool> + Sync) 
 fn prerequisite(engine: &Engine, tx: &Sender<Message>, f: &Feature, version: usize) -> Result<()> {
     let id = match f.id.as_str() {
         "input-method" => "install-tencent.wetype",
-        "startup-uniget" => "install-xpfftq032ptphf",
         _ => return Ok(()),
     };
     if let Some(i) = engine.catalog.iter().position(|f| f.id == id)
@@ -246,118 +300,165 @@ fn batch(
     tx: &Sender<Message>,
     version: usize,
     command: &Command,
-    resumed: bool,
     auto: bool,
 ) -> Result<()> {
+    engine.begin_batch();
     let all = matches!(command, Command::All);
+    let safe_ids = engine
+        .store
+        .pending
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|p| p.safe_ids.clone())
+        .unwrap_or_default();
     let indices = match command {
         Command::One(i) => vec![*i],
-        Command::Category(category) => order(&engine.catalog)
-            .into_iter()
-            .filter(|i| engine.catalog[*i].category(engine.zh) == category)
-            .collect(),
+        Command::Items(indices) => indices.clone(),
         _ => order(&engine.catalog),
     };
-    let mut safe = vec![];
-    let mut processed = 0;
-    // Stop the batch at a boot boundary before installers run under active protection.
-    if all {
-        for &i in indices.iter().filter(|i| {
-            engine.catalog[**i].security()
-                || workflow::QUIET.contains(&engine.catalog[**i].id.as_str())
-        }) {
-            let f = &engine.catalog[i];
-            let state = engine.check(f);
-            if !state.actionable() {
-                publish(engine, tx, i, version);
-                continue;
-            }
-            if engine.needs_safe(f)? {
-                safe.push(f.id.clone());
-                let _ = tx.send(Message::State(i, Check::new(Status::SafeQueued), version));
-            } else {
-                perform(engine, tx, i, version, false)?;
-                processed += 1
-            }
-        }
-        if !safe.is_empty() {
-            workflow::prepare_safe(engine, &safe, true)?;
-        } else if workflow::requires_restart(engine) || engine.safe {
-            workflow::prepare_normal(engine, true)?;
-        }
-        if engine.store.pending.lock().unwrap().is_some() {
-            let _ = tx.send(Message::Finished {
-                processed,
-                restart: true,
-                auto,
-                refresh: vec![],
-            });
-            return Ok(());
-        }
-        workflow::assert_quiet(engine)?;
-    }
-    let installers: Vec<usize> = indices
+    let _ = tx.send(Message::Queued(indices.clone()));
+    let safe = std::sync::Mutex::new(Vec::new());
+    let final_item = |f: &Feature| matches!(f.id.as_str(), "input-method" | "desktop-icons");
+    let mut local: Vec<_> = indices
         .iter()
         .copied()
         .filter(|i| {
-            !matches!(command, Command::One(_))
-                && !engine.safe
-                && engine.catalog[*i].page == "Install"
+            matches!(command, Command::One(_))
+                || (engine.catalog[*i].page != "Install" && !final_item(&engine.catalog[*i]))
         })
         .collect();
-    processed += parallel_jobs(&installers, |i| {
-        if !engine.check(&engine.catalog[i]).actionable() {
+    // Start fast settings before slow removals; jobs from different categories overlap.
+    local.sort_by_key(|i| engine.catalog[*i].page == "Remove");
+    let mut processed = parallel_jobs(&local, |i| {
+        let f = &engine.catalog[i];
+        if f.manual {
             publish(engine, tx, i, version);
             return Ok(false);
         }
-        if let Err(error) = perform(engine, tx, i, version, false) {
-            let _ = tx.send(Message::State(
-                i,
-                Check {
-                    state: Status::Failed,
-                    detail: format!("{error:#}"),
-                },
-                version,
-            ));
-            return Err(error);
-        }
-        Ok(true)
-    })?;
-    for i in indices {
-        let f = &engine.catalog[i];
-        if installers.contains(&i)
-            || (all && (f.security() || workflow::QUIET.contains(&f.id.as_str())))
-        {
-            continue;
+        if engine.safe && !f.can_run_safe() && !safe_ids.contains(&f.id) {
+            let _ = tx.send(Message::State(i, Check::new(Status::Deferred), version));
+            return Ok(false);
         }
         let check = engine.check(f);
-        if !check.actionable() && !(matches!(command, Command::One(_)) && f.toggle()) {
+        if !check.actionable()
+            && check.state != Status::SafeQueued
+            && !(matches!(command, Command::One(_)) && f.toggle())
+        {
             publish(engine, tx, i, version);
-            continue;
+            return Ok(false);
         }
-        if engine.needs_safe(f)? {
-            safe.push(f.id.clone());
+        let needs_safe = match engine.needs_safe(f) {
+            Ok(needs_safe) => needs_safe,
+            Err(error) => {
+                failure(engine, tx, i, version, error)?;
+                return Ok(false);
+            }
+        };
+        if needs_safe {
+            safe.lock().unwrap().push(f.id.clone());
             let _ = tx.send(Message::State(i, Check::new(Status::SafeQueued), version));
-            continue;
+            return Ok(false);
         }
-        prerequisite(engine, tx, f, version)?;
+        if !engine.safe
+            && let Err(error) = prerequisite(engine, tx, f, version)
+        {
+            failure(engine, tx, i, version, error)?;
+            return Ok(false);
+        }
         perform(engine, tx, i, version, matches!(command, Command::One(_)))?;
-        processed += 1;
-    }
-    if !safe.is_empty() {
-        workflow::prepare_safe(engine, &safe, false)?;
+        Ok(true)
+    })?;
+    let safe = safe.into_inner().unwrap();
+    if engine.safe {
+        if engine
+            .store
+            .pending
+            .lock()
+            .unwrap()
+            .as_ref()
+            .is_some_and(|p| p.phase == workflow::Phase::AwaitSafe)
+        {
+            workflow::safe_complete(engine)?;
+        }
+        let ids = if all {
+            vec![]
+        } else {
+            indices
+                .iter()
+                .map(|i| engine.catalog[*i].id.clone())
+                .collect()
+        };
+        workflow::prepare_normal(engine, all, &ids)?;
+    } else if !safe.is_empty() {
+        workflow::prepare_safe(engine, &safe, all)?;
     } else if workflow::requires_restart(engine) {
-        workflow::prepare_normal(engine, false)?;
+        workflow::prepare_normal(engine, all, &[])?;
     }
-    // A resumed batch is the only path that starts an automatic countdown.
+    // All local restart/sign-in settings have been applied before crossing the boot boundary.
+    let boot_pending = engine.store.pending.lock().unwrap().is_some();
+    if !boot_pending && !matches!(command, Command::One(_)) {
+        let installers: Vec<_> = indices
+            .iter()
+            .copied()
+            .filter(|i| engine.catalog[*i].page == "Install")
+            .collect();
+        processed += parallel_jobs(&installers, |i| {
+            if !engine.check(&engine.catalog[i]).actionable() {
+                publish(engine, tx, i, version);
+                return Ok(false);
+            }
+            perform(engine, tx, i, version, false)?;
+            Ok(true)
+        })?;
+        let finalizers: Vec<_> = indices
+            .iter()
+            .copied()
+            .filter(|i| final_item(&engine.catalog[*i]) || engine.catalog[*i].id == "start-menu")
+            .collect();
+        processed += parallel_jobs(&finalizers, |i| {
+            let f = &engine.catalog[i];
+            if !engine.check(f).actionable() {
+                publish(engine, tx, i, version);
+                return Ok(false);
+            }
+            // Failure of an installation only blocks the setting that depends on it.
+            if let Err(error) = prerequisite(engine, tx, f, version) {
+                failure(engine, tx, i, version, error)?;
+                return Ok(false);
+            }
+            perform(engine, tx, i, version, false)?;
+            Ok(true)
+        })?;
+        if workflow::requires_restart(engine) {
+            let ids = if all {
+                vec![]
+            } else {
+                indices
+                    .iter()
+                    .map(|i| engine.catalog[*i].id.clone())
+                    .collect()
+            };
+            workflow::prepare_normal(engine, all, &ids)?;
+        }
+    }
+    if boot_pending && !matches!(command, Command::One(_)) {
+        for &i in &indices {
+            let f = &engine.catalog[i];
+            if f.page == "Install" || final_item(f) {
+                let _ = tx.send(Message::State(i, Check::new(Status::Deferred), version));
+            }
+        }
+    }
     let _ = tx.send(Message::Finished {
         processed,
         restart: workflow::requires_restart(engine),
-        auto: auto && resumed,
+        auto,
         refresh: affected(engine, command),
     });
     Ok(())
 }
+
 pub fn failure_message(engine: &Engine, error: &str) -> String {
     let _ = store::append("errors.log", error);
     format!(
@@ -375,7 +476,7 @@ mod tests {
         let active = AtomicUsize::new(0);
         let peak = AtomicUsize::new(0);
         let seen = AtomicUsize::new(0);
-        let barrier = std::sync::Barrier::new(2);
+        let barrier = std::sync::Barrier::new(PARALLELISM);
         let result = parallel_jobs(&[0, 1, 2, 3, 4, 5], |i| {
             let now = active.fetch_add(1, Ordering::SeqCst) + 1;
             peak.fetch_max(now, Ordering::SeqCst);
@@ -388,7 +489,7 @@ mod tests {
             Ok(true)
         });
         assert!(result.is_err());
-        assert_eq!(peak.load(Ordering::SeqCst), 2);
+        assert_eq!(peak.load(Ordering::SeqCst), PARALLELISM);
         assert_eq!(seen.load(Ordering::SeqCst), 63);
         assert_eq!(active.load(Ordering::SeqCst), 0);
     }

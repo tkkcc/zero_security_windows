@@ -18,3 +18,5 @@ curl.exe -fL https://github.com/tkkcc/zero_security_windows/releases/latest/down
 ```
 
 No installation or separate runtime is needed. Only the context menu style switches between Windows 10 and 11.
+
+Keys are case insensitive: **Space** runs or retries the selected item, **A** runs all, **R** restarts, and **Q** exits. Rows keep their positions during checks and retries. Local settings run before installations, with up to six concurrent jobs. Restart and sign-in settings are applied before the Safe Mode round trip; installers that explicitly require a restart still show that requirement.

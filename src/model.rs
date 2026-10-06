@@ -76,6 +76,28 @@ impl Feature {
     pub fn toggle(&self) -> bool {
         self.id == "classic-menu"
     }
+    pub fn can_run_safe(&self) -> bool {
+        self.ops
+            .iter()
+            .any(|op| !matches!(op.kind.as_str(), "Task" | "TaskGroup"))
+            && self.ops.iter().all(|op| {
+                matches!(
+                    op.kind.as_str(),
+                    "Registry"
+                        | "RegistryDelete"
+                        | "RegistryKey"
+                        | "Service"
+                        | "UserServices"
+                        | "Asr"
+                        | "Bcd"
+                        | "UpdatePause"
+                        | "ProcessBlock"
+                        | "ResumeAccess"
+                        | "Task"
+                        | "TaskGroup"
+                )
+            })
+    }
 }
 #[derive(Clone, Default, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase", default)]
@@ -139,6 +161,7 @@ pub fn catalog() -> anyhow::Result<Vec<Feature>> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Status {
+    PendingCheck,
     Checking,
     Ready,
     Done,
@@ -168,12 +191,12 @@ impl Check {
         Self::new(if active { Status::Ready } else { Status::Done })
     }
     pub fn visible(&self, f: &Feature) -> bool {
-        !f.manual && !matches!(self.state, Status::Unknown | Status::Absent)
+        !f.manual && f.probe != "driver-signing"
     }
     pub fn actionable(&self) -> bool {
         matches!(
             self.state,
-            Status::Ready | Status::Failed | Status::Checking
+            Status::Ready | Status::Failed | Status::PendingCheck | Status::Checking
         )
     }
     pub fn label(&self, f: &Feature, zh: bool) -> String {
@@ -181,6 +204,7 @@ impl Check {
             return format!("{} · {}", self.detail, choose(zh, "重新登录", "Sign in"));
         }
         match self.state {
+            Status::PendingCheck => choose(zh, "待检测", "Awaiting check"),
             Status::Checking => choose(zh, "检测中", "Checking"),
             Status::Ready if f.toggle() => "Windows 11",
             Status::Done if f.toggle() => "Windows 10",
@@ -203,8 +227,9 @@ impl Check {
             Status::Restart => choose(zh, "重启生效", "Restart to apply"),
             Status::SignIn => choose(zh, "重新登录生效", "Sign in to apply"),
             Status::Failed => choose(zh, "未完成 · 可重试", "Incomplete · Retry"),
-            Status::Deferred => choose(zh, "重启后执行", "Run after restart"),
-            _ => "",
+            Status::Deferred => choose(zh, "返回正常模式执行", "Run in normal mode"),
+            Status::Unknown => choose(zh, "无法检测", "Check unavailable"),
+            Status::Absent => choose(zh, "不适用", "Not applicable"),
         }
         .into()
     }

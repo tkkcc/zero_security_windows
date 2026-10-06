@@ -232,7 +232,7 @@ fn frame_and_navigation_work_while_every_item_is_checking() -> anyhow::Result<()
     Ok(())
 }
 #[test]
-fn failed_and_actionable_items_precede_completed_items_and_focus_survives_updates()
+fn failed_and_actionable_items_keep_their_positions_and_focus_survives_updates()
 -> anyhow::Result<()> {
     let mut app = App::new(catalog()?, true)?;
     for state in &mut app.states {
@@ -242,6 +242,7 @@ fn failed_and_actionable_items_precede_completed_items_and_focus_survives_update
     let mut terminal = Terminal::new(TestBackend::new(100, 30))?;
     terminal.draw(|f| app.draw(f))?;
     app.focus(0);
+    let order = app.visible.clone();
     app.states[0] = Check::new(Status::Ready);
     app.reorder();
     app.states[0] = Check::new(Status::Done);
@@ -254,7 +255,7 @@ fn failed_and_actionable_items_precede_completed_items_and_focus_survives_update
     );
     app.states[last] = Check::new(Status::Failed);
     app.reorder();
-    assert_eq!(app.visible[0], last);
+    assert_eq!(app.visible, order);
     app.focus(last);
     app.states[0] = Check::new(Status::Ready);
     app.reorder();
@@ -262,16 +263,63 @@ fn failed_and_actionable_items_precede_completed_items_and_focus_survives_update
     Ok(())
 }
 #[test]
-fn installation_prerequisites_run_before_their_settings() -> anyhow::Result<()> {
+fn delivery_optimization_precedes_installation() -> anyhow::Result<()> {
     let catalog = catalog()?;
     let order = order(&catalog);
-    for (install, setting) in [
-        ("install-tencent.wetype", "input-method"),
-        ("install-xpfftq032ptphf", "startup-uniget"),
-    ] {
-        let position = |id: &str| order.iter().position(|i| catalog[*i].id == id);
-        assert!(position(install).is_some(), "missing {install}");
-        assert!(position(install) < position(setting));
+    let position = |id: &str| order.iter().position(|i| catalog[*i].id == id).unwrap();
+    assert!(position("delivery-optimization") < position("install-tencent.wetype"));
+    Ok(())
+}
+
+#[test]
+fn retry_reads_fresh_inventory_after_a_temporary_detection_failure() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    assert!(
+        engine
+            .fact("tools", || anyhow::bail!("network not ready"))
+            .is_err()
+    );
+    engine.begin_batch();
+    assert_eq!(
+        engine.fact("tools", || Ok(json!(["Tencent.WeType"])))?,
+        json!(["Tencent.WeType"])
+    );
+    Ok(())
+}
+
+#[test]
+fn safe_mode_expands_local_settings_without_opening_the_task_service() -> anyhow::Result<()> {
+    let mut engine = Engine::new()?;
+    engine.safe = true;
+    let f = Feature {
+        ops: vec![
+            Operation::reg(r"HKCU:\Software\ZeroSecurityWindowsTest", "Enabled", 0),
+            Operation {
+                kind: "Task".into(),
+                path: "task-service-unavailable".into(),
+                ..Default::default()
+            },
+            Operation {
+                kind: "TaskGroup".into(),
+                pattern: "*".into(),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+    assert!(f.can_run_safe());
+    let ops = engine.expand(&f)?;
+    assert_eq!(ops.len(), 1);
+    assert_eq!(ops[0].kind, "Registry");
+    for kind in ["Winget", "Apps", "OptionalFeature", "Firewall"] {
+        let f = Feature {
+            ops: vec![Operation {
+                kind: kind.into(),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        assert!(!f.can_run_safe());
     }
     Ok(())
 }

@@ -6,9 +6,7 @@ use crate::{
 };
 use anyhow::Result;
 use crossterm::{
-    event::{
-        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, KeyModifiers,
-    },
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
     execute,
 };
 use rat_widget::{
@@ -28,6 +26,8 @@ use ratatui::{
 };
 
 const THEME_KEY: &str = r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+#[cfg(test)]
+use crossterm::event::KeyModifiers;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct Palette {
@@ -105,7 +105,7 @@ pub struct App {
 impl App {
     pub fn new(catalog: Vec<Feature>, zh: bool) -> Result<Self> {
         let mut app = Self {
-            states: vec![Check::new(Status::Checking); catalog.len()],
+            states: vec![Check::new(Status::PendingCheck); catalog.len()],
             catalog,
             visible: vec![],
             table: TableState::default(),
@@ -135,17 +135,6 @@ impl App {
             .into_iter()
             .filter(|i| self.states[*i].visible(&self.catalog[*i]))
             .collect();
-        if !self.busy {
-            self.visible.sort_by_key(|i| match self.states[*i].state {
-                Status::Running
-                | Status::Failed
-                | Status::Ready
-                | Status::Checking
-                | Status::Queued => 0,
-                Status::SafeQueued | Status::Deferred | Status::Restart | Status::SignIn => 1,
-                _ => 2,
-            })
-        }
         if self.follow_top && !self.busy {
             self.table.select((!self.visible.is_empty()).then_some(0));
             self.table.set_row_offset(0);
@@ -161,6 +150,7 @@ impl App {
             self.table.scroll_to_selected();
         }
     }
+    #[cfg(test)]
     pub fn focus(&mut self, i: usize) {
         if let Some(row) = self.visible.iter().position(|v| *v == i) {
             self.follow_top = false;
@@ -175,7 +165,6 @@ impl App {
         for i in 0..self.catalog.len() {
             let chosen = match command {
                 Command::All => true,
-                Command::Category(c) => self.catalog[i].category(self.zh) == c,
                 Command::One(n) => i == *n,
                 _ => false,
             };
@@ -209,7 +198,6 @@ impl App {
         for (key, zh, en) in [
             ("Space", "执行当前项", "Run item"),
             ("A", "执行全部", "Run all"),
-            ("Shift+A", "执行此类别", "Run category"),
             ("R", "重启", "Restart"),
             ("Q", "退出", "Exit"),
         ] {
@@ -231,20 +219,21 @@ impl App {
         let keys = Line::from(spans);
         let mut message = self.message.clone();
         if self.busy {
-            let running: Vec<&str> = self
+            let running = self
                 .states
                 .iter()
-                .enumerate()
-                .filter(|(_, state)| state.state == Status::Running)
-                .map(|(i, _)| self.catalog[i].name(self.zh))
-                .collect();
-            if !running.is_empty() {
-                message = format!(
-                    "{}{}",
-                    choose(self.zh, "执行中：", "Running: "),
-                    running.join(" · ")
-                );
-            }
+                .filter(|s| s.state == Status::Running)
+                .count();
+            let queued = self
+                .states
+                .iter()
+                .filter(|s| s.state == Status::Queued)
+                .count();
+            message = format!(
+                "{} {running} · {} {queued}",
+                choose(self.zh, "执行中", "Running"),
+                choose(self.zh, "等待执行", "Queued")
+            );
         }
         if let Some((deadline, restart)) = self.countdown {
             let seconds = deadline.saturating_duration_since(Instant::now()).as_secs() + 1;
@@ -286,7 +275,15 @@ impl App {
         let top = header.line_count(area.width) as u16;
         let description = self.selected().map(|i| {
             let f = &self.catalog[i];
-            Paragraph::new(f.purpose(self.zh))
+            let state = &self.states[i];
+            let mut lines = vec![Line::from(f.purpose(self.zh))];
+            if matches!(state.state, Status::Failed | Status::Unknown) && !state.detail.is_empty() {
+                lines.push(Line::styled(
+                    state.detail.as_str(),
+                    Style::default().fg(p.red),
+                ));
+            }
+            Paragraph::new(lines)
                 .style(Style::default().fg(p.muted))
                 .wrap(Wrap { trim: true })
                 .block(
@@ -297,7 +294,7 @@ impl App {
         });
         let bottom = description
             .as_ref()
-            .map(|text| text.line_count(area.width) as u16)
+            .map(|text| (text.line_count(area.width) as u16).min(6))
             .unwrap_or(0);
         let layout = Layout::vertical([
             Constraint::Length(top),
@@ -353,7 +350,8 @@ impl App {
                 Scroll::vertical()
                     .policy(ScrollbarPolicy::Collapse)
                     .style(style.fg(p.border))
-                    .thumb_style(style.fg(p.blue)),
+                    .thumb_symbol(" ")
+                    .thumb_style(style.bg(p.blue)),
             );
         frame.render_stateful_widget(table, layout[1], &mut self.table);
         if let Some(text) = description {
@@ -372,19 +370,16 @@ impl App {
             Message::State(i, state, version) if version == epoch => {
                 self.states[i] = state;
                 self.reorder();
-                if self.busy
-                    && self
-                        .selected()
-                        .is_none_or(|i| self.states[i].state != Status::Running)
-                    && let Some(i) = self.states.iter().position(|s| s.state == Status::Running)
-                {
-                    self.focus(i);
-                }
             }
             Message::State(..) => {}
-            Message::Focus(i) => {
+            Message::Queued(indices) => {
                 self.busy = true;
-                self.focus(i)
+                self.countdown = None;
+                for i in indices {
+                    if self.states[i].actionable() {
+                        self.states[i] = Check::new(Status::Queued);
+                    }
+                }
             }
             Message::Finished {
                 processed,
@@ -402,15 +397,6 @@ impl App {
                             && pending.safe_ids.contains(&f.id)
                         {
                             self.states[i] = Check::new(Status::SafeQueued)
-                        } else if pending.continue_all
-                            && !f.security()
-                            && !crate::workflow::QUIET.contains(&f.id.as_str())
-                            && matches!(
-                                self.states[i].state,
-                                Status::Ready | Status::Checking | Status::Queued
-                            )
-                        {
-                            self.states[i] = Check::new(Status::Deferred)
                         }
                     }
                 }
@@ -448,19 +434,6 @@ impl App {
                     self.countdown = Some((Instant::now() + Duration::from_secs(10), restart))
                 }
                 self.reorder();
-                if let Some(&i) = self.visible.iter().find(|i| {
-                    matches!(
-                        self.states[**i].state,
-                        Status::Failed
-                            | Status::Ready
-                            | Status::SafeQueued
-                            | Status::Deferred
-                            | Status::Restart
-                            | Status::SignIn
-                    )
-                }) {
-                    self.focus(i);
-                }
             }
             Message::Error(error) => {
                 self.busy = false;
@@ -539,10 +512,10 @@ fn event_loop(
                         .filter(|(_, s)| {
                             matches!(
                                 s.state,
-                                Status::Checking
+                                Status::PendingCheck
+                                    | Status::Checking
                                     | Status::Queued
                                     | Status::Running
-                                    | Status::Deferred
                             )
                         })
                         .map(|(i, _)| i)
@@ -602,15 +575,7 @@ fn event_loop(
             let command = match key.code {
                 KeyCode::Char('q' | 'Q') | KeyCode::Esc if !app.busy => return Ok(()),
                 KeyCode::Char('r' | 'R') if !app.busy && app.restart => Some(Command::Restart),
-                KeyCode::Char('a' | 'A') if !app.busy => {
-                    if key.modifiers.contains(KeyModifiers::SHIFT) || key.code == KeyCode::Char('A')
-                    {
-                        app.selected()
-                            .map(|i| Command::Category(app.catalog[i].category(app.zh).into()))
-                    } else {
-                        Some(Command::All)
-                    }
-                }
+                KeyCode::Char('a' | 'A') if !app.busy => Some(Command::All),
                 KeyCode::Char(' ') if !app.busy => app
                     .selected()
                     .filter(|i| app.states[*i].actionable() || app.catalog[*i].toggle())
@@ -669,7 +634,7 @@ mod tests {
             assert_eq!(app.table.selected(), Some(0));
             assert_eq!(app.table.row_offset(), 0);
         }
-        assert_eq!(app.selected(), Some(1));
+        assert_eq!(app.selected(), Some(0));
         assert!(app.navigate(&Event::Key(crossterm::event::KeyEvent::new(
             KeyCode::End,
             KeyModifiers::NONE,
@@ -717,7 +682,11 @@ mod tests {
                 let bar = app.table.vscroll.area;
                 assert_eq!(
                     terminal.backend().buffer()[(bar.x, bar.y + 1)].symbol(),
-                    "█"
+                    " "
+                );
+                assert_eq!(
+                    terminal.backend().buffer()[(bar.x, bar.y + 1)].bg,
+                    palette.blue
                 );
                 app.focus(app.catalog.iter().position(|f| f.id == "power").unwrap());
                 terminal.backend_mut().resize(55, 24);
@@ -735,15 +704,16 @@ mod tests {
         Ok(())
     }
     #[test]
-    fn parallel_execution_follows_a_running_item_when_the_focused_item_finishes() -> Result<()> {
+    fn parallel_execution_keeps_selection_and_order_when_an_item_finishes() -> Result<()> {
         let mut app = App::new(catalog()?, true)?;
         app.command(&Command::All);
         app.receive(Message::State(0, Check::new(Status::Running), 0), 0);
         app.receive(Message::State(1, Check::new(Status::Running), 0), 0);
-        app.receive(Message::Focus(1), 0);
-        assert_eq!(app.selected(), Some(1));
+        app.focus(1);
+        let order = app.visible.clone();
         app.receive(Message::State(1, Check::new(Status::Done), 0), 0);
-        assert_eq!(app.selected(), Some(0));
+        assert_eq!(app.selected(), Some(1));
+        assert_eq!(app.visible, order);
         assert_eq!(app.states[0].state, Status::Running);
         Ok(())
     }
@@ -783,6 +753,52 @@ mod tests {
         assert_eq!(app.states[0].state, Status::Running);
         app.receive(Message::State(0, Check::new(Status::Ready), 0), 1);
         assert_eq!(app.states[0].state, Status::Running);
+        Ok(())
+    }
+    #[test]
+    fn retry_keeps_the_selected_row_and_viewport_through_completion() -> Result<()> {
+        use ratatui::{Terminal, backend::TestBackend};
+        let mut app = App::new(catalog()?, true)?;
+        let mut terminal = Terminal::new(TestBackend::new(100, 30))?;
+        app.receive(
+            Message::Finished {
+                processed: 1,
+                restart: false,
+                auto: false,
+                refresh: vec![],
+            },
+            0,
+        );
+        let i = *app.visible.last().unwrap();
+        app.states[i] = Check::new(Status::Failed);
+        terminal.draw(|frame| app.draw(frame))?;
+        app.focus(i);
+        terminal.draw(|frame| app.draw(frame))?;
+        let order = app.visible.clone();
+        let row = app.table.selected();
+        let offset = app.table.row_offset();
+        assert!(offset > 0);
+        app.command(&Command::One(i));
+        for state in [Status::Running, Status::Done] {
+            app.receive(Message::State(i, Check::new(state), 0), 0);
+            terminal.draw(|frame| app.draw(frame))?;
+            assert_eq!(app.visible, order);
+            assert_eq!(app.table.selected(), row);
+            assert_eq!(app.table.row_offset(), offset);
+        }
+        app.receive(
+            Message::Finished {
+                processed: 1,
+                restart: false,
+                auto: false,
+                refresh: vec![],
+            },
+            0,
+        );
+        terminal.draw(|frame| app.draw(frame))?;
+        assert_eq!(app.visible, order);
+        assert_eq!(app.table.selected(), row);
+        assert_eq!(app.table.row_offset(), offset);
         Ok(())
     }
 }
