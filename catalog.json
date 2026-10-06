@@ -1,0 +1,5419 @@
+[
+  {
+    "Id": "security-notifications",
+    "Zh": "安全通知与托盘图标",
+    "En": "Security notifications and tray icon",
+    "PurposeZh": "防护状态通知、保护关闭提醒和安全中心托盘图标。",
+    "PurposeEn": "Protection status notifications, protection-off alerts and the security tray icon.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Notifications",
+        "Name": "DisableNotifications",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\UX Configuration",
+        "Name": "Notification_Suppress",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Systray",
+        "Name": "HideSystray",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.Defender.SecurityCenter",
+        "Name": "Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.SecurityAndMaintenance",
+        "Name": "Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "Name": "SecurityHealth",
+        "Kind": "RegistryDelete"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "network-prompts",
+    "Zh": "网络安全提示",
+    "En": "Network security prompts",
+    "PurposeZh": "询问是否允许应用或服务接收连接，以及新网络是否为专用网络。",
+    "PurposeEn": "Asks whether to allow inbound app connections and whether a new network is private.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\DomainProfile",
+        "Name": "DisableNotifications",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\StandardProfile",
+        "Name": "DisableNotifications",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PublicProfile",
+        "Name": "DisableNotifications",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Property": "NotifyOnListen",
+        "Name": "Domain",
+        "Value": "False",
+        "Kind": "Firewall"
+      },
+      {
+        "Property": "NotifyOnListen",
+        "Name": "Private",
+        "Value": "False",
+        "Kind": "Firewall"
+      },
+      {
+        "Property": "NotifyOnListen",
+        "Name": "Public",
+        "Value": "False",
+        "Kind": "Firewall"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Network\\NewNetworkWindowOff",
+        "Value": true,
+        "Kind": "RegistryKey"
+      }
+    ],
+    "Probe": "network-prompts",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "firewall",
+    "Zh": "防火墙",
+    "En": "Firewall",
+    "PurposeZh": "按规则允许或阻止入站、出站网络连接。",
+    "PurposeEn": "Allows or blocks incoming and outgoing network connections.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\DomainProfile",
+        "Name": "EnableFirewall",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\StandardProfile",
+        "Name": "EnableFirewall",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PublicProfile",
+        "Name": "EnableFirewall",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Name": "Domain",
+        "Value": "False",
+        "Kind": "Firewall"
+      },
+      {
+        "Name": "Private",
+        "Value": "False",
+        "Kind": "Firewall"
+      },
+      {
+        "Name": "Public",
+        "Value": "False",
+        "Kind": "Firewall"
+      }
+    ],
+    "Probe": "firewall",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "uac",
+    "Zh": "用户账户控制（UAC）",
+    "En": "User Account Control (UAC)",
+    "PurposeZh": "控制应用获得管理员权限的方式。",
+    "PurposeEn": "Controls how applications obtain administrator privileges.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+        "Name": "ConsentPromptBehaviorAdmin",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+        "Name": "PromptOnSecureDesktop",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+        "Name": "EnableInstallerDetection",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+        "Name": "EnableLUA",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "uac",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "smartscreen",
+    "Zh": "应用与下载信誉检查",
+    "En": "App and download reputation",
+    "PurposeZh": "检查下载文件及应用的来源与信誉。",
+    "PurposeEn": "Checks the source and reputation of downloads and apps.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+        "Name": "EnableSmartScreen",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer",
+        "Name": "SmartScreenEnabled",
+        "Type": "String",
+        "Value": "Off",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppHost",
+        "Name": "EnableWebContentEvaluation",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Name": "smartscreen.exe",
+        "Value": true,
+        "Kind": "ProcessBlock"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "edge-smartscreen",
+    "Zh": "Edge 信誉检查",
+    "En": "Edge reputation checks",
+    "PurposeZh": "检查 Edge 中的网站和下载文件信誉。",
+    "PurposeEn": "Checks website and download reputation in Microsoft Edge.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+        "Name": "SmartScreenEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+        "Name": "SmartScreenPuaEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "open-file-warning",
+    "Zh": "下载文件安全提示",
+    "En": "Downloaded file warnings",
+    "PurposeZh": "标记下载文件来源并显示打开文件安全提示。",
+    "PurposeEn": "Marks downloaded file origins and displays security prompts.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Attachments",
+        "Name": "SaveZoneInformation",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Associations",
+        "Name": "LowRiskFileTypes",
+        "Type": "String",
+        "Value": ".exe;.msi;.bat;.cmd;.ps1;.vbs;.js;.reg;.com;.scr",
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "smart-app-control",
+    "Zh": "智能应用控制",
+    "En": "Smart App Control",
+    "PurposeZh": "阻止不可信或危险的应用执行。",
+    "PurposeEn": "Blocks untrusted or dangerous apps from running.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy",
+        "Name": "VerifiedAndReputablePolicyState",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "applocker",
+    "Zh": "AppLocker 应用限制",
+    "En": "AppLocker application restrictions",
+    "PurposeZh": "识别应用程序并执行 AppLocker 的运行限制。",
+    "PurposeEn": "Identifies applications and enforces AppLocker execution restrictions.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "AppIDSvc"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "userchoice-protection",
+    "Zh": "默认应用与任务栏保护",
+    "En": "Default app and taskbar protection",
+    "PurposeZh": "保护默认应用和部分任务栏设置，限制其他程序修改。",
+    "PurposeEn": "Protects default apps and some taskbar settings from changes by other programs.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "UCPD"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\AppxDeploymentClient\\UCPD velocity"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "defender",
+    "Zh": "服务与驱动",
+    "En": "Services and drivers",
+    "PurposeZh": "Defender 的恶意软件扫描、网络检查和端点防护服务。",
+    "PurposeEn": "Defender services for malware scanning, network inspection and endpoint protection.",
+    "GroupZh": "Defender",
+    "GroupEn": "Defender",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "WinDefend"
+      },
+      {
+        "Kind": "Service",
+        "Name": "MDCoreSvc"
+      },
+      {
+        "Kind": "Service",
+        "Name": "WdNisSvc"
+      },
+      {
+        "Kind": "Service",
+        "Name": "Sense"
+      },
+      {
+        "Kind": "Service",
+        "Name": "WdFilter"
+      },
+      {
+        "Kind": "Service",
+        "Name": "WdBoot"
+      },
+      {
+        "Kind": "Service",
+        "Name": "WdNisDrv"
+      },
+      {
+        "Kind": "Service",
+        "Name": "MsSecFlt"
+      },
+      {
+        "Kind": "Service",
+        "Name": "MsSecWfp"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Features",
+        "Name": "DisableCoreService1DSTelemetry",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Features",
+        "Name": "DisableCoreServiceECSIntegration",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "defender",
+    "Safe": true,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "tamper",
+    "Zh": "篡改防护",
+    "En": "Tamper protection",
+    "PurposeZh": "阻止其他程序修改 Defender 的防护配置。",
+    "PurposeEn": "Prevents programs from changing Defender settings.",
+    "GroupZh": "Defender",
+    "GroupEn": "Defender",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Features",
+        "Name": "TamperProtection",
+        "Type": "DWord",
+        "Value": 4,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "tamper",
+    "Safe": true,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "realtime",
+    "Zh": "实时扫描",
+    "En": "Real-time scanning",
+    "PurposeZh": "实时扫描文件、脚本和程序行为。",
+    "PurposeEn": "Scans files, scripts and program behavior in real time.",
+    "GroupZh": "Defender",
+    "GroupEn": "Defender",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection",
+        "Name": "DisableRealtimeMonitoring",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection",
+        "Name": "DisableBehaviorMonitoring",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection",
+        "Name": "DisableIOAVProtection",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection",
+        "Name": "DisableScriptScanning",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection",
+        "Name": "DisableOnAccessProtection",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "realtime",
+    "Safe": true,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "cloud-defense",
+    "Zh": "云保护",
+    "En": "Cloud protection",
+    "PurposeZh": "向云端查询威胁信息并提交可疑样本。",
+    "PurposeEn": "Checks cloud threat data and submits suspicious samples.",
+    "GroupZh": "Defender",
+    "GroupEn": "Defender",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Spynet",
+        "Name": "SpynetReporting",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Spynet",
+        "Name": "SubmitSamplesConsent",
+        "Type": "DWord",
+        "Value": 2,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Spynet",
+        "Name": "DisableBlockAtFirstSeen",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": true,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "pua",
+    "Zh": "不需要的应用拦截",
+    "En": "Unwanted app blocking",
+    "PurposeZh": "拦截捆绑软件及其他潜在不需要的应用。",
+    "PurposeEn": "Blocks bundled software and potentially unwanted apps.",
+    "GroupZh": "Defender",
+    "GroupEn": "Defender",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender",
+        "Name": "PUAProtection",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": true,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "network-protection",
+    "Zh": "恶意网址拦截",
+    "En": "Malicious website blocking",
+    "PurposeZh": "阻止程序访问恶意或危险网络地址。",
+    "PurposeEn": "Blocks apps from accessing malicious network addresses.",
+    "GroupZh": "Defender",
+    "GroupEn": "Defender",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\Network Protection",
+        "Name": "EnableNetworkProtection",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": true,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "controlled-folders",
+    "Zh": "受控文件夹访问",
+    "En": "Controlled folder access",
+    "PurposeZh": "限制应用修改受保护文件夹，防范勒索软件。",
+    "PurposeEn": "Restricts changes to protected folders to limit ransomware.",
+    "GroupZh": "Defender",
+    "GroupEn": "Defender",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\Controlled Folder Access",
+        "Name": "EnableControlledFolderAccess",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": true,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "asr",
+    "Zh": "攻击面减少规则",
+    "En": "Attack surface reduction",
+    "PurposeZh": "限制常见恶意行为和高风险程序操作。",
+    "PurposeEn": "Blocks common malicious behavior and risky program actions.",
+    "GroupZh": "Defender",
+    "GroupEn": "Defender",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules",
+        "Names": [
+          "01443614-cd74-433a-b99e-2ecdc07bfc25",
+          "26190899-1602-49e8-8b27-eb1d0a1ce869",
+          "33ddedf1-c6e0-47cb-833e-de6133960387",
+          "3b576869-a4ec-4529-8536-b80a7769e899",
+          "56a863a9-875e-4185-98a7-b882c64b5ce5",
+          "5beb7efe-fd9a-4556-801d-275e5ffc04cc",
+          "7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c",
+          "92e97fa1-2edf-4476-bdd6-9dd0b4dddc7b",
+          "9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2",
+          "a8f5898e-1a8a-4789-8698-0b02a24d5c60",
+          "b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4",
+          "be9ba2d9-53ea-4cdc-84e5-9b1eeee46550",
+          "c1db55ab-c21a-4637-bb3f-a12568109d35",
+          "d1e49aac-8f56-4280-b9ba-993a6d77406c",
+          "d3e037e1-3eb8-44c8-a917-57927947596d",
+          "d4f940ab-401b-4efc-aadc-ad5f3c50688a",
+          "e6db77e5-3df2-4cf1-b95a-636979351e5b",
+          "c0033c00-d16d-4114-a5a0-dc9b3a7d2ceb",
+          "a3b5c3e3-6d5a-4bca-bb43-aee76f972d10"
+        ],
+        "Kind": "Asr"
+      }
+    ],
+    "Probe": "",
+    "Safe": true,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "defender-tasks",
+    "Zh": "定时扫描",
+    "En": "Scheduled scans",
+    "PurposeZh": "定时扫描、维护 Defender 扫描缓存和清理记录。",
+    "PurposeEn": "Runs scheduled scans and maintains Defender scan data.",
+    "GroupZh": "Defender",
+    "GroupEn": "Defender",
+    "Ops": [
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Windows Defender\\*"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-tencent.wetype",
+    "Zh": "微信输入法",
+    "En": "WeType",
+    "PurposeZh": "中文输入与词库同步。",
+    "PurposeEn": "Chinese text input and dictionary sync.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Tencent.WeType",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-xpfftq032ptphf",
+    "Zh": "UniGetUI",
+    "En": "UniGetUI",
+    "PurposeZh": "管理、安装和更新软件包。",
+    "PurposeEn": "Manage, install and update software packages.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "XPFFTQ032PTPHF",
+        "Source": "msstore",
+        "UninstallKey": "{889610CC-4337-4BDB-AC3B-4F21806C0BDE}_is1",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-twpayne.chezmoi",
+    "Zh": "chezmoi",
+    "En": "chezmoi",
+    "PurposeZh": "管理并同步个人配置文件。",
+    "PurposeEn": "Manage and sync personal configuration files.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "twpayne.chezmoi",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-git.git",
+    "Zh": "Git",
+    "En": "Git",
+    "PurposeZh": "跟踪代码版本和管理代码仓库。",
+    "PurposeEn": "Track code versions and manage repositories.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Git.Git",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-astral-sh.uv",
+    "Zh": "uv",
+    "En": "uv",
+    "PurposeZh": "管理 Python 项目、环境与依赖。",
+    "PurposeEn": "Manage Python projects, environments and dependencies.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "astral-sh.uv",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-autohotkey.autohotkey",
+    "Zh": "AutoHotkey",
+    "En": "AutoHotkey",
+    "PurposeZh": "自定义快捷键和桌面自动化。",
+    "PurposeEn": "Custom keyboard shortcuts and desktop automation.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "AutoHotkey.AutoHotkey",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-rustlang.rustup",
+    "Zh": "rustup",
+    "En": "rustup",
+    "PurposeZh": "安装和管理 Rust 工具链。",
+    "PurposeEn": "Install and manage Rust toolchains.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Rustlang.Rustup",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-microsoft.visualstudiocode",
+    "Zh": "VS Code",
+    "En": "VS Code",
+    "PurposeZh": "代码编辑、调试与扩展工具。",
+    "PurposeEn": "Code editing, debugging and extensions.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Microsoft.VisualStudioCode",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-github.cli",
+    "Zh": "GitHub CLI",
+    "En": "GitHub CLI",
+    "PurposeZh": "在终端中管理 GitHub 仓库、Issue 和 PR。",
+    "PurposeEn": "Manage GitHub repositories, issues and pull requests from the terminal.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "GitHub.cli",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-9plm9xgg6vks",
+    "Zh": "ChatGPT",
+    "En": "ChatGPT",
+    "PurposeZh": "ChatGPT 桌面应用，用于对话、写作与代码辅助。",
+    "PurposeEn": "The ChatGPT desktop app for conversations, writing and coding assistance.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "9PLM9XGG6VKS",
+        "Source": "msstore",
+        "PackageFamily": "OpenAI.Codex_2p2nqsd0c76g0",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-openjs.nodejs",
+    "Zh": "Node.js",
+    "En": "Node.js",
+    "PurposeZh": "JavaScript 运行环境与 npm 包管理。",
+    "PurposeEn": "JavaScript runtime and npm package management.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "OpenJS.NodeJS",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-python.python.3.14",
+    "Zh": "Python 3.14",
+    "En": "Python 3.14",
+    "PurposeZh": "Python 语言运行环境。",
+    "PurposeEn": "The Python language runtime.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Python.Python.3.14",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-sharkdp.fd",
+    "Zh": "fd",
+    "En": "fd",
+    "PurposeZh": "在终端中快速查找文件。",
+    "PurposeEn": "Find files quickly from the terminal.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "sharkdp.fd",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-sxyazi.yazi",
+    "Zh": "Yazi",
+    "En": "Yazi",
+    "PurposeZh": "终端文件管理与文件预览。",
+    "PurposeEn": "Terminal file management and previews.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "sxyazi.yazi",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-microsoft.powershell",
+    "Zh": "PowerShell",
+    "En": "PowerShell",
+    "PurposeZh": "命令行脚本与系统管理。",
+    "PurposeEn": "Command-line scripting and system administration.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Microsoft.PowerShell",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-junegunn.fzf",
+    "Zh": "fzf",
+    "En": "fzf",
+    "PurposeZh": "在终端中交互式模糊查找。",
+    "PurposeEn": "Interactive fuzzy finding in the terminal.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "junegunn.fzf",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-ajeetdsouza.zoxide",
+    "Zh": "zoxide",
+    "En": "zoxide",
+    "PurposeZh": "根据使用记录快速跳转目录。",
+    "PurposeEn": "Jump to directories based on usage history.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "ajeetdsouza.zoxide",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-neovim.neovim",
+    "Zh": "Neovim",
+    "En": "Neovim",
+    "PurposeZh": "可扩展的终端文本编辑器。",
+    "PurposeEn": "An extensible terminal text editor.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Neovim.Neovim",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-google.androidcli",
+    "Zh": "Android SDK CLI",
+    "En": "Android SDK CLI",
+    "PurposeZh": "Android SDK 命令行工具与开发环境管理。",
+    "PurposeEn": "Android SDK command-line tools and environment management.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Google.AndroidCLI",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-netease.uuremote",
+    "Zh": "UU 远程",
+    "En": "UU Remote",
+    "PurposeZh": "远程访问和控制电脑。",
+    "PurposeEn": "Remote access and control for PCs.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "NetEase.UURemote",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "install-microsoft.windowsterminal",
+    "Zh": "Windows Terminal",
+    "En": "Windows Terminal",
+    "PurposeZh": "多标签终端窗口。",
+    "PurposeEn": "A terminal with multiple tabs.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Microsoft.WindowsTerminal",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-news",
+    "Zh": "资讯",
+    "En": "News",
+    "PurposeZh": "新闻资讯与内容推荐。",
+    "PurposeEn": "News feeds and content recommendations.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.BingNews"
+        ],
+        "Name": "news",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-weather",
+    "Zh": "天气",
+    "En": "Weather",
+    "PurposeZh": "天气预报与天气资讯。",
+    "PurposeEn": "Weather forecasts and information.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.BingWeather"
+        ],
+        "Name": "weather",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-xbox",
+    "Zh": "Xbox 应用与游戏栏",
+    "En": "Xbox apps and Game Bar",
+    "PurposeZh": "Xbox 应用、账户功能与游戏栏。",
+    "PurposeEn": "Xbox apps, account features and Game Bar.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.Xbox*",
+          "Microsoft.GamingApp",
+          "Microsoft.GamingServices"
+        ],
+        "Name": "xbox",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-security-ui",
+    "Zh": "安全中心应用",
+    "En": "Security app",
+    "PurposeZh": "查看和管理系统防护设置。",
+    "PurposeEn": "View and manage system protection settings.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.SecHealthUI",
+          "Microsoft.Windows.SecHealthUI"
+        ],
+        "Name": "security-ui",
+        "SystemApp": true,
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-widgets",
+    "Zh": "小组件运行库",
+    "En": "Widgets runtimes",
+    "PurposeZh": "小组件与资讯面板的运行组件。",
+    "PurposeEn": "Runtime components for Widgets and news feeds.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "MicrosoftWindows.Client.WebExperience",
+          "Microsoft.WidgetsPlatformRuntime",
+          "Microsoft.StartExperiencesApp"
+        ],
+        "Name": "widgets",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-games",
+    "Zh": "纸牌与微软游戏",
+    "En": "Solitaire and Microsoft games",
+    "PurposeZh": "纸牌和微软内置游戏。",
+    "PurposeEn": "Solitaire and Microsoft built-in games.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.MicrosoftSolitaireCollection",
+          "Microsoft.MicrosoftMinesweeper",
+          "Microsoft.MicrosoftMahjong",
+          "Microsoft.MicrosoftSudoku",
+          "Microsoft.MinecraftUWP",
+          "Microsoft.Edge.GameAssist"
+        ],
+        "Name": "games",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-compatibility",
+    "Zh": "额外兼容性组件",
+    "En": "Extra compatibility components",
+    "PurposeZh": "额外的应用兼容性增强与修复数据库。",
+    "PurposeEn": "Additional app compatibility enhancements and fix databases.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.ApplicationCompatibilityEnhancements"
+        ],
+        "Name": "compatibility",
+        "Value": false,
+        "Kind": "Apps"
+      },
+      {
+        "Name": "{22221111-1111-1111-1111-111111111111}",
+        "Value": false,
+        "Kind": "CompatibilityDatabase"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-clipchamp",
+    "Zh": "Clipchamp",
+    "En": "Clipchamp",
+    "PurposeZh": "视频剪辑与录制。",
+    "PurposeEn": "Video editing and recording.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Clipchamp.Clipchamp"
+        ],
+        "Name": "clipchamp",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-notes",
+    "Zh": "便签",
+    "En": "Sticky Notes",
+    "PurposeZh": "桌面便签与便签同步。",
+    "PurposeEn": "Desktop sticky notes and note sync.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.MicrosoftStickyNotes"
+        ],
+        "Name": "notes",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-todo",
+    "Zh": "待办",
+    "En": "To Do",
+    "PurposeZh": "待办事项与任务同步。",
+    "PurposeEn": "To-do lists and task sync.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.Todos"
+        ],
+        "Name": "todo",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-feedback",
+    "Zh": "反馈中心",
+    "En": "Feedback Hub",
+    "PurposeZh": "向微软提交系统反馈与问题报告。",
+    "PurposeEn": "Submit system feedback and issue reports to Microsoft.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.WindowsFeedbackHub"
+        ],
+        "Name": "feedback",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-help",
+    "Zh": "获取帮助",
+    "En": "Get Help",
+    "PurposeZh": "系统帮助与在线支持。",
+    "PurposeEn": "System help and online support.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.GetHelp"
+        ],
+        "Name": "help",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-pcmanager",
+    "Zh": "微软电脑管家",
+    "En": "Microsoft PC Manager",
+    "PurposeZh": "微软电脑管家与系统清理入口。",
+    "PurposeEn": "Microsoft PC Manager and system cleanup tools.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.MicrosoftPCManager"
+        ],
+        "Name": "pcmanager",
+        "Value": false,
+        "Kind": "Apps"
+      },
+      {
+        "Name": "Microsoft.PCManager",
+        "Value": false,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-quick-assist",
+    "Zh": "快速助手",
+    "En": "Quick Assist",
+    "PurposeZh": "通过微软远程协助连接共享桌面。",
+    "PurposeEn": "Share the desktop through Microsoft remote assistance.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "MicrosoftCorporationII.QuickAssist"
+        ],
+        "Name": "quick-assist",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-powerautomate",
+    "Zh": "Power Automate",
+    "En": "Power Automate",
+    "PurposeZh": "桌面操作与业务流程自动化。",
+    "PurposeEn": "Desktop task and workflow automation.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.PowerAutomateDesktop"
+        ],
+        "Name": "powerautomate",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-phone",
+    "Zh": "手机连接与跨设备应用",
+    "En": "Phone Link and cross-device apps",
+    "PurposeZh": "手机连接、跨设备同步与任务接续。",
+    "PurposeEn": "Phone Link, cross-device sync and task resumption.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.YourPhone",
+          "MicrosoftWindows.CrossDevice"
+        ],
+        "Name": "phone",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-family",
+    "Zh": "家庭安全",
+    "En": "Family Safety",
+    "PurposeZh": "家庭账户、家长控制与使用时间管理。",
+    "PurposeEn": "Family accounts, parental controls and screen time management.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "MicrosoftCorporationII.MicrosoftFamily"
+        ],
+        "Name": "family",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-outlook",
+    "Zh": "Outlook 与邮件",
+    "En": "Outlook and Mail",
+    "PurposeZh": "邮件、日历与账户同步。",
+    "PurposeEn": "Email, calendars and account sync.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.OutlookForWindows",
+          "microsoft.windowscommunicationsapps"
+        ],
+        "Name": "outlook",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-devhome",
+    "Zh": "Dev Home",
+    "En": "Dev Home",
+    "PurposeZh": "开发环境配置与开发项目管理。",
+    "PurposeEn": "Developer environment setup and project management.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.Windows.DevHome"
+        ],
+        "Name": "devhome",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-ai",
+    "Zh": "微软 AI 应用",
+    "En": "Microsoft AI apps",
+    "PurposeZh": "Copilot 与系统内置 AI 应用。",
+    "PurposeEn": "Copilot and built-in AI apps.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.Copilot",
+          "Microsoft.Windows.Ai.Copilot.Provider",
+          "Microsoft.BingSearch",
+          "Microsoft.MicrosoftOfficeHub"
+        ],
+        "Name": "ai",
+        "Value": false,
+        "Kind": "Apps"
+      },
+      {
+        "Name": "Microsoft Copilot",
+        "Value": false,
+        "Kind": "CopilotDesktop"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-onedrive",
+    "Zh": "OneDrive",
+    "En": "OneDrive",
+    "PurposeZh": "云端文件同步与备份。",
+    "PurposeEn": "Cloud file sync and backup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "OneDrive",
+        "Value": false,
+        "Kind": "OneDrive"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "mouse",
+    "Zh": "鼠标速度与滚轮",
+    "En": "Mouse speed and scrolling",
+    "PurposeZh": "关闭增强指针精度，速度 20，滚轮每次 6 行。",
+    "PurposeEn": "Turns off pointer acceleration; sets speed to 20 and scrolling to 6 lines.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\Control Panel\\Mouse",
+        "Name": "MouseSpeed",
+        "Type": "String",
+        "Value": "0",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Mouse",
+        "Name": "MouseThreshold1",
+        "Type": "String",
+        "Value": "0",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Mouse",
+        "Name": "MouseThreshold2",
+        "Type": "String",
+        "Value": "0",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Mouse",
+        "Name": "MouseSensitivity",
+        "Type": "String",
+        "Value": "20",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Desktop",
+        "Name": "WheelScrollLines",
+        "Type": "String",
+        "Value": "6",
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "mouse",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Mouse"
+  },
+  {
+    "Id": "keyboard",
+    "Zh": "键盘重复与辅助按键",
+    "En": "Keyboard repeat and accessibility",
+    "PurposeZh": "重复延迟 140 ms，间隔 16 ms；关闭粘滞键、慢速键、重复按键过滤及辅助按键提示。",
+    "PurposeEn": "Repeat delay 140 ms, interval 16 ms; turns off Sticky Keys, SlowKeys, BounceKeys and accessibility key alerts.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\Control Panel\\Accessibility\\StickyKeys",
+        "Name": "Flags",
+        "Type": "String",
+        "Value": "2",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Accessibility\\Keyboard Response",
+        "Name": "Flags",
+        "Type": "String",
+        "Value": "1",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Accessibility\\Keyboard Response",
+        "Name": "AutoRepeatDelay",
+        "Type": "String",
+        "Value": "140",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Accessibility\\Keyboard Response",
+        "Name": "AutoRepeatRate",
+        "Type": "String",
+        "Value": "16",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Accessibility\\Keyboard Response",
+        "Name": "DelayBeforeAcceptance",
+        "Type": "String",
+        "Value": "0",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Accessibility\\Keyboard Response",
+        "Name": "BounceTime",
+        "Type": "String",
+        "Value": "0",
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "keyboard",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Keyboard"
+  },
+  {
+    "Id": "cursor",
+    "Zh": "黑色指针，大小 3",
+    "En": "Black pointer, size 3",
+    "PurposeZh": "使用系统设置中的第二个黑色样式，大小设为 3。",
+    "PurposeEn": "Uses the second, black pointer style in Windows Settings at size 3.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "",
+        "Type": "String",
+        "Value": "Windows Black",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "CursorBaseSize",
+        "Type": "DWord",
+        "Value": 64,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "Scheme Source",
+        "Type": "DWord",
+        "Value": 2,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Accessibility",
+        "Name": "CursorSize",
+        "Type": "DWord",
+        "Value": 3,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Accessibility",
+        "Name": "CursorType",
+        "Type": "DWord",
+        "Value": 4,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "UpArrow",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\up_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "SizeNESW",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\nesw_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "Help",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\helpsel_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "SizeNWSE",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\nwse_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "Wait",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\wait_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "Person",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\person_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "Hand",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\link_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "Arrow",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\arrow_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "Crosshair",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\cross_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "IBeam",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\ibeam_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "SizeAll",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\move_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "SizeNS",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\ns_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "No",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\unavail_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "NWPen",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\pen_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "AppStarting",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\busy_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "SizeWE",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\ew_eoa.cur",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Cursors",
+        "Name": "Pin",
+        "Type": "ExpandString",
+        "Value": "%LOCALAPPDATA%\\Microsoft\\Windows\\Cursors\\pin_eoa.cur",
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "cursor",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Cursors"
+  },
+  {
+    "Id": "appearance",
+    "Zh": "浅色主题，无透明效果",
+    "En": "Light theme, no transparency",
+    "PurposeZh": "系统和应用使用浅色主题，关闭透明效果。",
+    "PurposeEn": "Uses light mode for Windows and apps, with transparency disabled.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        "Name": "SystemUsesLightTheme",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        "Name": "AppsUseLightTheme",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        "Name": "EnableTransparency",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Appearance"
+  },
+  {
+    "Id": "visual-effects",
+    "Zh": "视觉效果",
+    "En": "Visual effects",
+    "PurposeZh": "仅保留平滑字体边缘、拖动时显示窗口内容、显示缩略图。",
+    "PurposeEn": "Keeps font smoothing, window contents while dragging and thumbnails.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
+        "Name": "VisualFXSetting",
+        "Type": "DWord",
+        "Value": 3,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Desktop",
+        "Name": "UserPreferencesMask",
+        "Type": "Binary",
+        "Value": [
+          144,
+          18,
+          3,
+          128,
+          16,
+          0,
+          0,
+          0
+        ],
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Desktop",
+        "Name": "FontSmoothing",
+        "Type": "String",
+        "Value": "2",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Desktop",
+        "Name": "DragFullWindows",
+        "Type": "String",
+        "Value": "1",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\Control Panel\\Desktop\\WindowMetrics",
+        "Name": "MinAnimate",
+        "Type": "String",
+        "Value": "0",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "TaskbarAnimations",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "IconsOnly",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "ListviewAlphaSelect",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "ListviewShadow",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\DWM",
+        "Name": "EnableAeroPeek",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Visuals"
+  },
+  {
+    "Id": "utf8",
+    "Zh": "全局 UTF-8",
+    "En": "System UTF-8",
+    "PurposeZh": "启用“使用 Unicode UTF-8 提供全球语言支持”。",
+    "PurposeEn": "Enables Unicode UTF-8 for worldwide language support.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage",
+        "Name": "ACP",
+        "Type": "String",
+        "Value": "65001",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage",
+        "Name": "OEMCP",
+        "Type": "String",
+        "Value": "65001",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage",
+        "Name": "MACCP",
+        "Type": "String",
+        "Value": "65001",
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": ""
+  },
+  {
+    "Id": "input-method",
+    "Zh": "仅使用微信输入法",
+    "En": "Use only WeType",
+    "PurposeZh": "仅保留微信输入法，从输入列表移除微软拼音和其他输入方式。",
+    "PurposeEn": "Keeps WeType as the only input method, removing Microsoft Pinyin and other input methods.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "WeType",
+        "Value": "WeTypeOnly",
+        "Kind": "InputMethods"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": ""
+  },
+  {
+    "Id": "power",
+    "Zh": "电源按钮与自动休眠",
+    "En": "Power buttons and sleep",
+    "PurposeZh": "插电与电池均不自动息屏、睡眠或休眠；电源按钮、睡眠按钮与合盖均无操作。",
+    "PurposeEn": "No display timeout, sleep or hibernation on AC or battery; power button, sleep button and lid do nothing.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Group": "7516b95f-f776-4464-8c53-06167f40cc99",
+        "Name": "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e",
+        "Source": "AC",
+        "Value": 0,
+        "Kind": "Power"
+      },
+      {
+        "Group": "7516b95f-f776-4464-8c53-06167f40cc99",
+        "Name": "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e",
+        "Source": "DC",
+        "Value": 0,
+        "Kind": "Power"
+      },
+      {
+        "Group": "238c9fa8-0aad-41ed-83f4-97be242c8f20",
+        "Name": "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
+        "Source": "AC",
+        "Value": 0,
+        "Kind": "Power"
+      },
+      {
+        "Group": "238c9fa8-0aad-41ed-83f4-97be242c8f20",
+        "Name": "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
+        "Source": "DC",
+        "Value": 0,
+        "Kind": "Power"
+      },
+      {
+        "Group": "238c9fa8-0aad-41ed-83f4-97be242c8f20",
+        "Name": "9d7815a6-7ee4-497e-8888-515a05f02364",
+        "Source": "AC",
+        "Value": 0,
+        "Kind": "Power"
+      },
+      {
+        "Group": "238c9fa8-0aad-41ed-83f4-97be242c8f20",
+        "Name": "9d7815a6-7ee4-497e-8888-515a05f02364",
+        "Source": "DC",
+        "Value": 0,
+        "Kind": "Power"
+      },
+      {
+        "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
+        "Name": "7648efa3-dd9c-4e3e-b566-50f929386280",
+        "Source": "AC",
+        "Value": 0,
+        "Kind": "Power"
+      },
+      {
+        "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
+        "Name": "7648efa3-dd9c-4e3e-b566-50f929386280",
+        "Source": "DC",
+        "Value": 0,
+        "Kind": "Power"
+      },
+      {
+        "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
+        "Name": "5ca83367-6e45-459f-a27b-476b1d01c936",
+        "Source": "AC",
+        "Value": 0,
+        "Kind": "Power"
+      },
+      {
+        "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
+        "Name": "5ca83367-6e45-459f-a27b-476b1d01c936",
+        "Source": "DC",
+        "Value": 0,
+        "Kind": "Power"
+      },
+      {
+        "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
+        "Name": "96996bc0-ad50-47ec-923b-6f41874dd9eb",
+        "Source": "AC",
+        "Value": 0,
+        "Kind": "Power"
+      },
+      {
+        "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
+        "Name": "96996bc0-ad50-47ec-923b-6f41874dd9eb",
+        "Source": "DC",
+        "Value": 0,
+        "Kind": "Power"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Power"
+  },
+  {
+    "Id": "start-menu",
+    "Zh": "开始菜单布局",
+    "En": "Start menu layout",
+    "PurposeZh": "隐藏最近使用与推荐，全部应用使用列表，清空固定区。",
+    "PurposeEn": "Hides recent items and recommendations, uses an app list and clears pinned apps.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Start",
+        "Name": "ShowRecentList",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Start",
+        "Name": "ShowFrequentList",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Start",
+        "Name": "AllAppsViewMode",
+        "Type": "DWord",
+        "Value": 2,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Start",
+        "Name": "ShowAllPinsList",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "Start_TrackDocs",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "Start_TrackProgs",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "Start_IrisRecommendations",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+        "Name": "HideRecommendedSection",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Name": "Empty",
+        "Value": true,
+        "Kind": "StartPins"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Start"
+  },
+  {
+    "Id": "desktop-icons",
+    "Zh": "桌面图标与文件",
+    "En": "Desktop icons and files",
+    "PurposeZh": "桌面仅保留此电脑与回收站；其他文件和快捷方式移入回收站。",
+    "PurposeEn": "Keeps only This PC and Recycle Bin on the desktop; moves other files and shortcuts to Recycle Bin.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "DesktopIcons"
+      },
+      {
+        "Name": "Other items",
+        "Value": true,
+        "Kind": "DesktopFiles"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Explorer"
+  },
+  {
+    "Id": "taskbar-layout",
+    "Zh": "任务栏对齐与合并",
+    "En": "Taskbar alignment and grouping",
+    "PurposeZh": "开始菜单与任务栏靠左；主屏与其他屏幕仅在任务栏已满时合并按钮。",
+    "PurposeEn": "Aligns Start and taskbar left; combines buttons only when full on all displays.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "TaskbarAl",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "TaskbarGlomLevel",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "MMTaskbarGlomLevel",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Shell"
+  },
+  {
+    "Id": "taskbar-buttons",
+    "Zh": "任务栏搜索与任务视图",
+    "En": "Taskbar Search and Task View",
+    "PurposeZh": "隐藏任务栏搜索和桌面切换按钮。",
+    "PurposeEn": "Hides the taskbar Search and Task View buttons.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search",
+        "Name": "SearchboxTaskbarMode",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "ShowTaskViewButton",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Shell"
+  },
+  {
+    "Id": "taskbar-pins",
+    "Zh": "任务栏固定图标",
+    "En": "Pinned taskbar apps",
+    "PurposeZh": "隐藏固定图标，任务栏仅显示正在运行的应用。",
+    "PurposeEn": "Hides pinned icons so the taskbar shows only running apps.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+        "Name": "TaskbarNoPinnedList",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Shell"
+  },
+  {
+    "Id": "tray-icons",
+    "Zh": "展开托盘图标",
+    "En": "Show all tray icons",
+    "PurposeZh": "展开当前以及新增、更新后的应用托盘图标。",
+    "PurposeEn": "Shows all app tray icons, including newly added or updated icons.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "AppIcons",
+        "Value": true,
+        "Kind": "TrayIcons"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": ""
+  },
+  {
+    "Id": "bluetooth-icon",
+    "Zh": "蓝牙托盘图标",
+    "En": "Bluetooth tray icon",
+    "PurposeZh": "隐藏任务栏中的蓝牙图标。",
+    "PurposeEn": "Hides the Bluetooth icon from the system tray.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\Control Panel\\Bluetooth",
+        "Name": "Notification Area Icon",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Shell"
+  },
+  {
+    "Id": "language-bar",
+    "Zh": "语言栏与输入指示器",
+    "En": "Language bar and input indicator",
+    "PurposeZh": "隐藏浮动语言栏和任务栏输入指示器。",
+    "PurposeEn": "Hides the floating language bar and taskbar input indicator.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Floating",
+        "Value": "Hidden",
+        "Kind": "LanguageBar"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\CTF\\LangBar",
+        "Name": "ShowStatus",
+        "Type": "DWord",
+        "Value": 3,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\CTF\\MSUTB",
+        "Name": "ShowDeskBand",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": ""
+  },
+  {
+    "Id": "file-visibility",
+    "Zh": "文件扩展名与隐藏文件",
+    "En": "Extensions and hidden files",
+    "PurposeZh": "显示文件扩展名与普通隐藏文件；受保护的系统文件继续隐藏。",
+    "PurposeEn": "Shows file extensions and ordinary hidden files; keeps protected system files hidden.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "HideFileExt",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "Hidden",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "ShowSuperHidden",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Explorer"
+  },
+  {
+    "Id": "this-pc",
+    "Zh": "此电脑与驱动器",
+    "En": "This PC and drives",
+    "PurposeZh": "资源管理器打开此电脑，仅显示设备与驱动器。",
+    "PurposeEn": "Opens File Explorer to This PC, showing devices and drives.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "LaunchTo",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}\\PropertyBag",
+        "Name": "ThisPCPolicy",
+        "Type": "String",
+        "Value": "Hide",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{31C0DD25-9439-4F12-BF41-7FF4EDA38722}\\PropertyBag",
+        "Name": "ThisPCPolicy",
+        "Type": "String",
+        "Value": "Hide",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{fdd39ad0-238f-46af-adb4-6c85480369c7}\\PropertyBag",
+        "Name": "ThisPCPolicy",
+        "Type": "String",
+        "Value": "Hide",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{f42ee2d3-909f-4907-8871-4c22fc0bf756}\\PropertyBag",
+        "Name": "ThisPCPolicy",
+        "Type": "String",
+        "Value": "Hide",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{7d83ee9b-2244-4e70-b1f5-5393042af1e4}\\PropertyBag",
+        "Name": "ThisPCPolicy",
+        "Type": "String",
+        "Value": "Hide",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{0ddd015d-b06c-45d5-8c4c-f59713854639}\\PropertyBag",
+        "Name": "ThisPCPolicy",
+        "Type": "String",
+        "Value": "Hide",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{a0c69a99-21c8-4671-8703-7934162fcf1d}\\PropertyBag",
+        "Name": "ThisPCPolicy",
+        "Type": "String",
+        "Value": "Hide",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{35286a68-3c57-41a1-bbb1-0eae73d76c95}\\PropertyBag",
+        "Name": "ThisPCPolicy",
+        "Type": "String",
+        "Value": "Hide",
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "this-pc",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Explorer"
+  },
+  {
+    "Id": "shortcut-name",
+    "Zh": "快捷方式名称",
+    "En": "Shortcut names",
+    "PurposeZh": "创建快捷方式时不添加“快捷方式”后缀。",
+    "PurposeEn": "Creates shortcuts without the Shortcut suffix.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer",
+        "Name": "link",
+        "Type": "Binary",
+        "Value": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Shell"
+  },
+  {
+    "Id": "classic-menu",
+    "Zh": "右键菜单样式",
+    "En": "Context menu style",
+    "PurposeZh": "在 Windows 10 经典菜单与 Windows 11 菜单之间切换。",
+    "PurposeEn": "Switches between the Windows 10 classic menu and the Windows 11 menu.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32",
+        "Name": "",
+        "Type": "String",
+        "Value": "",
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Shell"
+  },
+  {
+    "Id": "desktop-picture",
+    "Zh": "桌面图片背景",
+    "En": "Desktop picture background",
+    "PurposeZh": "使用当前图片作为桌面背景，关闭聚焦和轮播。",
+    "PurposeEn": "Uses the current desktop picture, with Spotlight and slideshow off.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Wallpapers",
+        "Name": "BackgroundType",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\DesktopSpotlight\\Settings",
+        "Name": "EnabledState",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent",
+        "Name": "DisableSpotlightCollectionOnDesktop",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "desktop-picture",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": "Wallpaper"
+  },
+  {
+    "Id": "lockscreen-spotlight",
+    "Zh": "锁屏聚焦",
+    "En": "Lock screen Spotlight",
+    "PurposeZh": "在锁屏上显示轮换图片、提示和推荐内容。",
+    "PurposeEn": "Shows rotating pictures, tips and recommendations on the lock screen.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "RotatingLockScreenEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "RotatingLockScreenOverlayEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SubscribedContent-338387Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent",
+        "Name": "ConfigureWindowsSpotlight",
+        "Type": "DWord",
+        "Value": 2,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "lockscreen-spotlight",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Apply",
+    "Refresh": ""
+  },
+  {
+    "Id": "vbs",
+    "Zh": "虚拟化安全（VBS）",
+    "En": "Virtualization security (VBS)",
+    "PurposeZh": "通过虚拟化隔离敏感系统数据。",
+    "PurposeEn": "Isolates sensitive system data using virtualization.",
+    "GroupZh": "核心隔离",
+    "GroupEn": "Core isolation",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard",
+        "Name": "EnableVirtualizationBasedSecurity",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard",
+        "Name": "RequirePlatformSecurityFeatures",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard",
+        "Name": "Mandatory",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard",
+        "Name": "EnableVirtualizationBasedSecurity",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "vbs",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "hvci",
+    "Zh": "内存完整性（HVCI）",
+    "En": "Memory integrity (HVCI)",
+    "PurposeZh": "检查内核代码完整性，限制不可信驱动执行。",
+    "PurposeEn": "Checks kernel code integrity and blocks untrusted drivers.",
+    "GroupZh": "核心隔离",
+    "GroupEn": "Core isolation",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity",
+        "Name": "Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard",
+        "Name": "HypervisorEnforcedCodeIntegrity",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "hvci",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "credential-guard",
+    "Zh": "凭据保护",
+    "En": "Credential Guard",
+    "PurposeZh": "隔离登录凭据，降低凭据被窃取的风险。",
+    "PurposeEn": "Isolates sign-in credentials to reduce credential theft.",
+    "GroupZh": "核心隔离",
+    "GroupEn": "Core isolation",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa",
+        "Name": "LsaCfgFlags",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard",
+        "Name": "LsaCfgFlags",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\CredentialGuard",
+        "Name": "Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "credential",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "lsa",
+    "Zh": "LSA 进程保护",
+    "En": "LSA protection",
+    "PurposeZh": "保护处理登录和身份验证的系统进程。",
+    "PurposeEn": "Protects the process that handles sign-in and authentication.",
+    "GroupZh": "核心隔离",
+    "GroupEn": "Core isolation",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa",
+        "Name": "RunAsPPL",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa",
+        "Name": "RunAsPPLBoot",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "kernel-cet",
+    "Zh": "内核堆栈保护",
+    "En": "Kernel stack protection",
+    "PurposeZh": "保护内核调用栈，阻止返回地址被篡改。",
+    "PurposeEn": "Protects kernel return addresses against tampering.",
+    "GroupZh": "核心隔离",
+    "GroupEn": "Core isolation",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\KernelShadowStacks",
+        "Name": "Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\KernelShadowStacks",
+        "Name": "AuditModeEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "kernel-cet",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "secure-launch",
+    "Zh": "系统启动防护",
+    "En": "System launch protection",
+    "PurposeZh": "在启动时检查系统完整性，建立受保护的执行环境。",
+    "PurposeEn": "Checks system integrity at startup and establishes a protected environment.",
+    "GroupZh": "核心隔离",
+    "GroupEn": "Core isolation",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\SystemGuard",
+        "Name": "Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard",
+        "Name": "ConfigureSystemGuardLaunch",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "secure-launch",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "driver-blocklist",
+    "Zh": "易受攻击驱动拦截",
+    "En": "Vulnerable driver blocklist",
+    "PurposeZh": "阻止已知存在漏洞的驱动加载。",
+    "PurposeEn": "Blocks drivers with known security vulnerabilities.",
+    "GroupZh": "核心隔离",
+    "GroupEn": "Core isolation",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CI\\Config",
+        "Name": "VulnerableDriverBlocklistEnable",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "phishing-protection",
+    "Zh": "增强钓鱼防护",
+    "En": "Enhanced phishing protection",
+    "PurposeZh": "提醒危险的密码输入、密码重复使用及不安全的密码保存。",
+    "PurposeEn": "Warns about unsafe password entry, password reuse and unsafe password storage.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WTDS\\Components",
+        "Name": "ServiceEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WTDS\\Components",
+        "Name": "ServiceEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "phishing",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "security-center",
+    "Zh": "安全中心服务",
+    "En": "Security Center services",
+    "PurposeZh": "汇总杀毒、防火墙等防护状态，供安全中心显示。",
+    "PurposeEn": "Collects antivirus and firewall status for the security app.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "wscsvc"
+      },
+      {
+        "Kind": "Service",
+        "Name": "SecurityHealthService"
+      }
+    ],
+    "Probe": "",
+    "Safe": true,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "cpu-mitigations",
+    "Zh": "CPU 漏洞防护",
+    "En": "CPU vulnerability protection",
+    "PurposeZh": "缓解 Spectre、Meltdown 等推测执行漏洞。",
+    "PurposeEn": "Mitigates speculative execution flaws such as Spectre and Meltdown.",
+    "GroupZh": "缓解",
+    "GroupEn": "Mitigations",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management",
+        "Name": "FeatureSettingsOverride",
+        "Type": "DWord",
+        "Value": 3,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management",
+        "Name": "FeatureSettingsOverrideMask",
+        "Type": "DWord",
+        "Value": 3,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "cpu",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "process-mitigations",
+    "Zh": "程序漏洞防护",
+    "En": "Exploit Protection",
+    "PurposeZh": "限制程序利用内存漏洞执行恶意代码。",
+    "PurposeEn": "Limits exploitation of memory vulnerabilities in programs.",
+    "GroupZh": "缓解",
+    "GroupEn": "Mitigations",
+    "Ops": [
+      {
+        "Kind": "Mitigations"
+      }
+    ],
+    "Probe": "mitigations",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "dep",
+    "Zh": "DEP 数据执行保护",
+    "En": "Data execution prevention",
+    "PurposeZh": "阻止从数据内存页执行代码。",
+    "PurposeEn": "Prevents executable code from running in data memory pages.",
+    "GroupZh": "缓解",
+    "GroupEn": "Mitigations",
+    "Ops": [
+      {
+        "Name": "nx",
+        "Value": "AlwaysOff",
+        "Kind": "Bcd"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "sehop-kernel",
+    "Zh": "异常处理与服务进程保护",
+    "En": "Exception and service protection",
+    "PurposeZh": "保护异常处理链和系统服务进程。",
+    "PurposeEn": "Protects exception chains and system service processes.",
+    "GroupZh": "缓解",
+    "GroupEn": "Mitigations",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel",
+        "Name": "KernelSEHOPEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SCMConfig",
+        "Name": "EnableSvchostMitigationPolicy",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "driver-signing",
+    "Zh": "驱动签名检查",
+    "En": "Driver signature checks",
+    "PurposeZh": "限制不符合完整性和签名要求的驱动加载。",
+    "PurposeEn": "Restricts loading of drivers that fail integrity or signature checks.",
+    "GroupZh": "缓解",
+    "GroupEn": "Mitigations",
+    "Ops": [
+      {
+        "Name": "nointegritychecks",
+        "Value": "On",
+        "Kind": "Bcd"
+      }
+    ],
+    "Probe": "driver-signing",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "windows-update",
+    "Zh": "系统更新长期暂停",
+    "En": "Long-term update pause",
+    "PurposeZh": "将系统更新暂停期限设为 7000 天。",
+    "PurposeEn": "Sets the system update pause to 7000 days.",
+    "GroupZh": "更新与还原",
+    "GroupEn": "Updates & restore",
+    "Ops": [
+      {
+        "Kind": "UpdatePause"
+      }
+    ],
+    "Probe": "updates",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "driver-updates",
+    "Zh": "自动驱动更新",
+    "En": "Automatic driver updates",
+    "PurposeZh": "自动获取驱动及设备元数据。",
+    "PurposeEn": "Downloads device drivers and metadata automatically.",
+    "GroupZh": "更新与还原",
+    "GroupEn": "Updates & restore",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
+        "Name": "ExcludeWUDriversInQualityUpdate",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\DriverSearching",
+        "Name": "SearchOrderConfig",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DriverSearching",
+        "Name": "DontSearchWindowsUpdate",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Device Metadata",
+        "Name": "PreventDeviceMetadataFromNetwork",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "system-restore",
+    "Zh": "系统还原",
+    "En": "System Restore",
+    "PurposeZh": "保存还原点，用于恢复系统配置。",
+    "PurposeEn": "Saves restore points for recovering system configuration.",
+    "GroupZh": "更新与还原",
+    "GroupEn": "Updates & restore",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\SystemRestore",
+        "Name": "DisableSR",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\SystemRestore",
+        "Name": "DisableConfig",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer",
+        "Name": "LimitSystemRestoreCheckpointing",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceInstall\\Settings",
+        "Name": "DisableSystemRestore",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\SystemRestore\\*"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "automatic-encryption",
+    "Zh": "自动设备加密",
+    "En": "Automatic device encryption",
+    "PurposeZh": "在符合条件的设备上自动启用磁盘加密。",
+    "PurposeEn": "Encrypts drives automatically on eligible devices.",
+    "GroupZh": "更新与还原",
+    "GroupEn": "Updates & restore",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\BitLocker",
+        "Name": "PreventDeviceEncryption",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "telemetry",
+    "Zh": "诊断数据收集",
+    "En": "Diagnostic data collection",
+    "PurposeZh": "收集并上传系统使用和诊断数据。",
+    "PurposeEn": "Collects and uploads system usage and diagnostic data.",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+        "Name": "AllowTelemetry",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+        "Name": "DoNotShowFeedbackNotifications",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+        "Name": "DisableOneSettingsDownloads",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Kind": "Service",
+        "Name": "DiagTrack"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser Exp"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Sustainability\\SustainabilityTelemetry"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Application Experience\\ProgramDataUpdater"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Feedback\\Siuf\\*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Autochk\\Proxy"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "activity-history",
+    "Zh": "活动历史",
+    "En": "Activity history",
+    "PurposeZh": "记录活动历史并支持跨设备同步。",
+    "PurposeEn": "Records activity history and supports cross-device synchronization.",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+        "Name": "EnableActivityFeed",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+        "Name": "PublishUserActivities",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+        "Name": "UploadUserActivities",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "advertising",
+    "Zh": "广告与个性化推荐",
+    "En": "Ads and personalized content",
+    "PurposeZh": "使用活动和诊断数据提供个性化内容。",
+    "PurposeEn": "Uses activity and diagnostic data for personalized content.",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo",
+        "Name": "DisabledByGroupPolicy",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent",
+        "Name": "DisableTailoredExperiencesWithDiagnosticData",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
+        "Name": "Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Privacy",
+        "Name": "TailoredExperiencesWithDiagnosticDataEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "windows-suggestions",
+    "Zh": "系统推广与建议",
+    "En": "System promotions and suggestions",
+    "PurposeZh": "显示系统推广、欢迎页面、设置建议与账户提醒。",
+    "PurposeEn": "Shows promotions, welcome screens, Settings suggestions and account reminders.",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SubscribedContent-310093Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SubscribedContent-338388Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SubscribedContent-338389Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SoftLandingEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SubscribedContent-338393Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SubscribedContent-353694Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SubscribedContent-353696Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SubscribedContent-353698Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SystemPaneSuggestionsEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SilentInstalledAppsEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "Start_IrisRecommendations",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "Start_AccountNotifications",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "ShowSyncProviderNotifications",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
+        "Name": "ScoobeSystemSettingEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SystemSettings\\AccountNotifications",
+        "Name": "EnableAccountNotifications",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.Suggested",
+        "Name": "Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "app-launch-tracking",
+    "Zh": "应用启动跟踪",
+    "En": "App launch tracking",
+    "PurposeZh": "记录程序启动频率，个性化开始菜单与搜索排序。",
+    "PurposeEn": "Tracks app launch frequency to personalize Start and search ranking.",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "Start_TrackProgs",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "feedback-prompts",
+    "Zh": "体验反馈邀请",
+    "En": "Feedback invitations",
+    "PurposeZh": "邀请用户评价 Windows 体验并提交反馈。",
+    "PurposeEn": "Invites users to rate Windows experiences and submit feedback.",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
+    "Ops": [
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Siuf\\Rules",
+        "Name": "NumberOfSIUFInPeriod",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Siuf\\Rules",
+        "Name": "PeriodInNanoSeconds",
+        "Type": "QWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\PerformanceTrace\\ShowFeedbackToast"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "location",
+    "Zh": "位置服务",
+    "En": "Location services",
+    "PurposeZh": "供天气、地图等应用自动定位；禁用后无法自动获取位置。",
+    "PurposeEn": "Automatic location for weather, maps and other apps; unavailable when disabled.",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors",
+        "Name": "DisableLocation",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Kind": "Service",
+        "Name": "lfsvc"
+      },
+      {
+        "Kind": "SettingsPage",
+        "Name": "privacy-location",
+        "Value": true
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "recall",
+    "Zh": "Recall 屏幕快照",
+    "En": "Recall snapshots",
+    "PurposeZh": "保存屏幕快照，便于搜索和回顾之前的活动。",
+    "PurposeEn": "Saves screen snapshots for searching and reviewing past activity.",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
+        "Name": "DisableAIDataAnalysis",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "svc-whesvc",
+    "Zh": "性能诊断追踪",
+    "En": "Performance diagnostic tracing",
+    "PurposeZh": "监测系统卡顿等性能问题并记录诊断日志。",
+    "PurposeEn": "Monitors performance problems such as sluggishness and records diagnostic logs.",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "whesvc"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "svc-wuqisvc",
+    "Zh": "使用与质量数据",
+    "En": "Usage and quality data",
+    "PurposeZh": "收集使用情况与体验质量数据，用于体验改进和自愈。",
+    "PurposeEn": "Collects usage and experience quality data for improvements and self-healing.",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "wuqisvc"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "svc-scpolicysvc",
+    "Zh": "智能卡移除策略",
+    "En": "Smart card removal policy",
+    "PurposeZh": "在移除智能卡时执行锁定或注销策略。",
+    "PurposeEn": "Locks or signs out when a smart card is removed.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "SCPolicySvc"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "svc-wpcmonsvc",
+    "Zh": "家长控制监控",
+    "En": "Parental control monitoring",
+    "PurposeZh": "执行家庭和家长控制功能。",
+    "PurposeEn": "Provides family and parental control functions.",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "WpcMonSvc"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "update-background",
+    "Zh": "系统更新后台",
+    "En": "System update background",
+    "PurposeZh": "检查、下载和安排安装系统更新。",
+    "PurposeEn": "Checks for, downloads and schedules system updates.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "wuauserv",
+        "Value": false,
+        "Kind": "UpdateService"
+      },
+      {
+        "Name": "UsoSvc",
+        "Value": false,
+        "Kind": "UpdateService"
+      },
+      {
+        "Name": "WaaSMedicSvc",
+        "Value": false,
+        "Kind": "UpdateService"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\UpdateOrchestrator\\*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\WindowsUpdate\\*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\WaaSMedic\\*"
+      },
+      {
+        "Name": "MoUsoCoreWorker.exe",
+        "Value": true,
+        "Kind": "ProcessBlock"
+      },
+      {
+        "Name": "UsoClient.exe",
+        "Value": true,
+        "Kind": "ProcessBlock"
+      }
+    ],
+    "Probe": "update-background",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "search-highlights",
+    "Zh": "搜索热点与联网结果",
+    "En": "Search highlights and web results",
+    "PurposeZh": "在搜索中显示热点、推荐内容和联网结果。",
+    "PurposeEn": "Shows highlights, recommendations and web results in Search.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search",
+        "Name": "EnableDynamicContentInWSB",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search",
+        "Name": "DisableWebSearch",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+        "Name": "DisableSearchBoxSuggestions",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SearchSettings",
+        "Name": "IsDynamicSearchBoxEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "widgets",
+    "Zh": "小组件入口与后台",
+    "En": "Widgets entry and background",
+    "PurposeZh": "提供小组件、资讯与相关后台功能。",
+    "PurposeEn": "Provides Widgets, news feeds and related background activity.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Dsh",
+        "Name": "AllowNewsAndInterests",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Dsh",
+        "Name": "AllowWidgets",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "TaskbarDa",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "svc-wsearch",
+    "Zh": "文件搜索索引",
+    "En": "File search indexing",
+    "PurposeZh": "在后台建立文件索引，加快文件内容搜索。",
+    "PurposeEn": "Indexes files in the background for faster content searches.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "WSearch"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "svc-sysmain",
+    "Zh": "应用启动预读",
+    "En": "App launch preloading",
+    "PurposeZh": "预测应用使用并预加载到内存。",
+    "PurposeEn": "Predicts app use and preloads data into memory.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "SysMain"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "svc-pcasvc",
+    "Zh": "程序兼容性助手",
+    "En": "Program Compatibility Assistant",
+    "PurposeZh": "监测应用兼容性并显示兼容性提示。",
+    "PurposeEn": "Monitors app compatibility and displays compatibility prompts.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "PcaSvc"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "svc-dps",
+    "Zh": "诊断策略",
+    "En": "Diagnostic Policy Service",
+    "PurposeZh": "自动检测和排查系统问题。",
+    "PurposeEn": "Automatically detects and troubleshoots system problems.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "DPS"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "svc-wdiservicehost",
+    "Zh": "诊断服务主机",
+    "En": "Diagnostic Service Host",
+    "PurposeZh": "为自动诊断运行后台服务。",
+    "PurposeEn": "Hosts background services for automatic diagnostics.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "WdiServiceHost"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "svc-wdisystemhost",
+    "Zh": "诊断系统主机",
+    "En": "Diagnostic System Host",
+    "PurposeZh": "为自动诊断运行系统服务。",
+    "PurposeEn": "Hosts system services for automatic diagnostics.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "WdiSystemHost"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "svc-diagsvc",
+    "Zh": "诊断执行服务",
+    "En": "Diagnostic Execution Service",
+    "PurposeZh": "运行自动诊断和故障排查。",
+    "PurposeEn": "Runs automatic diagnostics and troubleshooting.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "diagsvc"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "inventory-telemetry",
+    "Zh": "清单采集与兼容性评估",
+    "En": "Inventory and compatibility checks",
+    "PurposeZh": "采集应用、设备和驱动清单，评估兼容性。",
+    "PurposeEn": "Collects app, device and driver inventories and assesses compatibility.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "InventorySvc"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat",
+        "Name": "DisableInventory",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat",
+        "Name": "AITEnable",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "prefetch",
+    "Zh": "应用预读",
+    "En": "Application prefetch",
+    "PurposeZh": "预读应用启动所需的磁盘数据。",
+    "PurposeEn": "Prefetches disk data needed when apps start.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
+        "Name": "EnablePrefetcher",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
+        "Name": "EnableSuperfetch",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "app-prelaunch",
+    "Zh": "应用预启动",
+    "En": "Application prelaunch",
+    "PurposeZh": "提前启动应用，并允许应用在后台活动。",
+    "PurposeEn": "Prelaunches apps and allows background app activity.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options",
+        "Name": "DisableBackgroundPreload",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
+        "Name": "LetAppsRunInBackground",
+        "Type": "DWord",
+        "Value": 2,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications",
+        "Name": "GlobalUserDisabled",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "windows-backup",
+    "Zh": "系统备份与文件历史记录",
+    "En": "System Backup and File History",
+    "PurposeZh": "本地与云端备份、应用列表同步、文件历史记录和备份提醒。",
+    "PurposeEn": "Local and cloud backups, app list sync, File History and backup reminders.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "SDRSVC"
+      },
+      {
+        "Kind": "Service",
+        "Name": "wbengine"
+      },
+      {
+        "Kind": "Service",
+        "Name": "fhsvc"
+      },
+      {
+        "Kind": "UserServices",
+        "Name": "CloudBackupRestoreSvc"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\AppListBackup\\*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\CloudRestore\\*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\FileHistory\\*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\WindowsBackup\\*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Registry\\RegIdleBackup"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\FileHistory",
+        "Name": "Disabled",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsBackup",
+        "Name": "DisableMonitoring",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "DisableApplicationSettingSync",
+        "Type": "DWord",
+        "Value": 2,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "DisableApplicationSettingSyncUserOverride",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "DisableSettingSync",
+        "Type": "DWord",
+        "Value": 2,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "DisableSettingSyncUserOverride",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "delivery-optimization",
+    "Zh": "传递优化",
+    "En": "Delivery Optimization",
+    "PurposeZh": "缓存下载内容，并在设备之间分享更新与应用数据。",
+    "PurposeEn": "Caches downloads and shares update and app data between devices.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization",
+        "Name": "DODownloadMode",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Kind": "Service",
+        "Name": "DoSvc"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "remote-desktop",
+    "Zh": "远程桌面",
+    "En": "Remote Desktop",
+    "PurposeZh": "通过系统自带远程桌面接收连接。",
+    "PurposeEn": "Accepts connections through the built-in Remote Desktop service.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server",
+        "Name": "fDenyTSConnections",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Kind": "Service",
+        "Name": "TermService"
+      },
+      {
+        "Kind": "Service",
+        "Name": "SessionEnv"
+      },
+      {
+        "Kind": "Service",
+        "Name": "UmRdpService"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "remote-assistance",
+    "Zh": "远程协助",
+    "En": "Remote Assistance",
+    "PurposeZh": "通过邀请或远程协助请求共享桌面。",
+    "PurposeEn": "Shares the desktop through invitations or Remote Assistance requests.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance",
+        "Name": "fAllowToGetHelp",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Terminal Services",
+        "Name": "fAllowToGetHelp",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Terminal Services",
+        "Name": "fAllowUnsolicited",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "ceip",
+    "Zh": "客户体验与设备数据收集",
+    "En": "Customer experience and device data",
+    "PurposeZh": "收集客户体验、设备清单和磁盘诊断数据。",
+    "PurposeEn": "Collects customer experience, device inventory and disk diagnostic data.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\SQMClient\\Windows",
+        "Name": "CEIPEnable",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Device Information\\Device"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Device Information\\Device User"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\PI\\Sqm-Tasks"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\*"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "usage-telemetry",
+    "Zh": "功能使用与质量数据收集",
+    "En": "Feature usage and quality data",
+    "PurposeZh": "定时上传功能使用量与质量摘要。",
+    "PurposeEn": "Periodically uploads feature usage and quality summaries.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\UsageData*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\UsageAndQualityInsights*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\BootstrapUsageDataReporting"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\UsageAndQualityInsights\\MaintenanceTask"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "privacy-access",
+    "Zh": "应用隐私权限与同步",
+    "En": "App privacy permissions and sync",
+    "PurposeZh": "语音与输入数据收集、应用诊断、跨设备同步和在线设置同步。",
+    "PurposeEn": "Speech and typing data collection, app diagnostics, cross-device sync and online settings sync.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization",
+        "Name": "AllowInputPersonalization",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization",
+        "Name": "RestrictImplicitTextCollection",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization",
+        "Name": "RestrictImplicitInkCollection",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\TextInput",
+        "Name": "AllowLinguisticDataCollection",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Personalization\\Settings",
+        "Name": "AcceptedPrivacyPolicy",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Speech_OneCore\\Settings\\OnlineSpeechPrivacy",
+        "Name": "HasAccepted",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\InputPersonalization",
+        "Name": "RestrictImplicitTextCollection",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\InputPersonalization",
+        "Name": "RestrictImplicitInkCollection",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\InputPersonalization\\TrainedDataStore",
+        "Name": "HarvestContacts",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
+        "Name": "LetAppsGetDiagnosticInfo",
+        "Type": "DWord",
+        "Value": 2,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+        "Name": "EnableCdp",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "DisableSettingSync",
+        "Type": "DWord",
+        "Value": 2,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "DisableSettingSyncUserOverride",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "phishing-services",
+    "Zh": "钓鱼防护后台",
+    "En": "Phishing protection background",
+    "PurposeZh": "监测恶意站点和密码泄露并显示安全警报。",
+    "PurposeEn": "Monitors malicious sites and credential exposure and displays security alerts.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "webthreatdefsvc"
+      },
+      {
+        "Kind": "UserServices",
+        "Name": "webthreatdefusersvc"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "connected-devices",
+    "Zh": "跨设备连接后台",
+    "En": "Cross-device connection background",
+    "PurposeZh": "手机连接、跨设备发现和电话后台服务。",
+    "PurposeEn": "Phone Link, cross-device discovery and phone background services.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "CDPSvc"
+      },
+      {
+        "Kind": "UserServices",
+        "Name": "CDPUserSvc"
+      },
+      {
+        "Kind": "Service",
+        "Name": "PhoneSvc"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "onedrive-integration",
+    "Zh": "OneDrive 系统集成",
+    "En": "OneDrive integration",
+    "PurposeZh": "提供文件同步和 OneDrive 系统集成。",
+    "PurposeEn": "Provides file sync and OneDrive system integration.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\OneDrive",
+        "Name": "DisableFileSyncNGSC",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\OneDrive",
+        "Name": "PreventNetworkTrafficPreUserSignIn",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "phone-resume",
+    "Zh": "跨设备任务接续",
+    "En": "Cross-device task resumption",
+    "PurposeZh": "在电脑上继续手机与 OneDrive 中的任务。",
+    "PurposeEn": "Continues phone and OneDrive tasks on the PC.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\PolicyManager\\current\\%UserSid%\\Connectivity",
+        "Name": "DisableCrossDeviceResume",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\PolicyManager\\current\\%UserSid%\\Connectivity",
+        "Name": "DisableCrossDeviceResume_ProviderSet",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CrossDeviceResume\\Configuration",
+        "Name": "IsResumeAllowed",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CrossDeviceResume\\Configuration",
+        "Name": "IsOneDriveResumeAllowed",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+        "Name": "EnableMmx",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\CrossDeviceResume.exe",
+        "Name": "Debugger",
+        "Value": null
+      },
+      {
+        "Path": "%SystemRoot%\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\CrossDeviceResume.exe",
+        "Name": "CrossDeviceResume.exe",
+        "Value": true,
+        "Kind": "ResumeAccess"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "clipboard-history",
+    "Zh": "剪贴板历史与同步",
+    "En": "Clipboard history and sync",
+    "PurposeZh": "保存复制历史，并在设备之间同步剪贴板。",
+    "PurposeEn": "Saves copied items and syncs the clipboard across devices.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+        "Name": "AllowClipboardHistory",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+        "Name": "AllowCrossDeviceClipboard",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Clipboard",
+        "Name": "EnableClipboardHistory",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Kind": "UserServices",
+        "Name": "cbdhsvc"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "xbox-services",
+    "Zh": "Xbox 与游戏后台服务",
+    "En": "Xbox and gaming background services",
+    "PurposeZh": "Xbox 登录、存档、配件、网络和商店游戏服务。",
+    "PurposeEn": "Xbox sign-in, game saves, accessories, networking and Store gaming services.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "XblAuthManager"
+      },
+      {
+        "Kind": "Service",
+        "Name": "XblGameSave"
+      },
+      {
+        "Kind": "Service",
+        "Name": "XboxGipSvc"
+      },
+      {
+        "Kind": "Service",
+        "Name": "XboxNetApiSvc"
+      },
+      {
+        "Kind": "Service",
+        "Name": "GamingServices"
+      },
+      {
+        "Kind": "Service",
+        "Name": "GamingServicesNet"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\XblGameSave\\*"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "game-recording",
+    "Zh": "游戏录制后台",
+    "En": "Game recording background",
+    "PurposeZh": "在后台捕获游戏画面和声音。",
+    "PurposeEn": "Captures game video and audio in the background.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR",
+        "Name": "AllowGameDVR",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\System\\GameConfigStore",
+        "Name": "GameDVR_Enabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameDVR",
+        "Name": "AppCaptureEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Kind": "UserServices",
+        "Name": "BcastDVRUserService"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "family-tasks",
+    "Zh": "家庭安全后台任务",
+    "En": "Family Safety background tasks",
+    "PurposeZh": "执行家庭安全监控，并刷新账户规则。",
+    "PurposeEn": "Runs Family Safety monitoring and refreshes account rules.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Shell\\FamilySafety*"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "hibernation",
+    "Zh": "系统休眠",
+    "En": "Hibernation",
+    "PurposeZh": "将内存内容保存到磁盘，用于休眠和快速启动。",
+    "PurposeEn": "Saves memory contents to disk for hibernation and Fast Startup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Hibernation",
+        "Value": 0,
+        "Kind": "Hibernate"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "recall-component",
+    "Zh": "Recall 可选组件",
+    "En": "Recall optional component",
+    "PurposeZh": "提供 Recall 屏幕快照与历史回顾功能。",
+    "PurposeEn": "Provides Recall snapshots and activity history.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Recall",
+        "Value": false,
+        "Kind": "OptionalFeature"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "fast-startup",
+    "Zh": "快速启动",
+    "En": "Fast Startup",
+    "PurposeZh": "关机时保存内核会话，加快下次启动。",
+    "PurposeEn": "Saves the kernel session at shutdown for faster startup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power",
+        "Name": "HiberbootEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "reserved-storage",
+    "Zh": "系统保留存储",
+    "En": "Reserved Storage",
+    "PurposeZh": "为系统更新和临时文件预留磁盘空间。",
+    "PurposeEn": "Reserves disk space for system updates and temporary files.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "ReservedStorage",
+        "Value": "Disabled",
+        "Kind": "ReservedStorage"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "edge-background",
+    "Zh": "Edge 预启动与后台运行",
+    "En": "Edge prelaunch and background",
+    "PurposeZh": "提前加载 Edge，并在关闭浏览器后保持后台活动。",
+    "PurposeEn": "Preloads Edge and keeps it active after the browser closes.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+        "Name": "StartupBoostEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+        "Name": "BackgroundModeEnabled",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\Main",
+        "Name": "AllowPrelaunch",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\TabPreloader",
+        "Name": "AllowTabPreloading",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "edge-updates",
+    "Zh": "Edge 与 WebView2 更新",
+    "En": "Edge and WebView2 updates",
+    "PurposeZh": "下载并安装 Edge 与 WebView2 的更新。",
+    "PurposeEn": "Downloads and installs updates for Edge and WebView2.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+        "Name": "UpdateDefault",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+        "Name": "Update{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+        "Name": "Update{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+        "Name": "Update{65C35B14-6C1D-4122-AC46-7148CC9D6497}",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+        "Name": "Update{0D50BFEC-CD6A-4F9A-964C-C7416E3ACB10}",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+        "Name": "Update{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Kind": "Service",
+        "Name": "edgeupdate"
+      },
+      {
+        "Kind": "Service",
+        "Name": "edgeupdatem"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\MicrosoftEdgeUpdateTaskMachine*"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "ai-features",
+    "Zh": "AI 与 Copilot",
+    "En": "AI and Copilot",
+    "PurposeZh": "AI、Copilot 与 Recall 的系统集成和后台活动。",
+    "PurposeEn": "System integration and background activity for AI, Copilot and Recall.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "WSAIFabricSvc"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsCopilot",
+        "Name": "TurnOffWindowsCopilot",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsCopilot",
+        "Name": "TurnOffWindowsCopilot",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
+        "Name": "DisableAIDataAnalysis",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
+        "Name": "AllowRecallEnablement",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
+        "Name": "DisableClickToDo",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Paint",
+        "Name": "DisableCocreator",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Paint",
+        "Name": "DisableGenerativeFill",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Paint",
+        "Name": "DisableImageCreator",
+        "Type": "DWord",
+        "Value": 1,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+        "Name": "Install{C50565E9-CCCF-44B4-BA15-5AC5C6569197}",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "startup-uniget",
+    "Zh": "UniGetUI 自启",
+    "En": "UniGetUI startup",
+    "PurposeZh": "登录后自动打开 UniGetUI。",
+    "PurposeEn": "Opens UniGetUI automatically at sign-in.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "UniGetUI",
+        "Value": false,
+        "Kind": "StartupEntries"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  }
+]

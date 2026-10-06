@@ -1,0 +1,30 @@
+[package]
+name = "zero_security_windows"
+version = "0.7.9"
+edition = "2024"
+license = "MIT"
+description = "Windows optimization with a native Rust terminal interface"
+repository = "https://github.com/tkkcc/zero_security_windows"
+build = "build.rs"
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = "0.4"
+globset = "0.4"
+winreg = "0.56"
+wmi = "0.18.4"
+windows = { version = "0.62.2", features = ["Foundation", "ApplicationModel", "Management_Deployment", "Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Com", "Win32_System_WinRT", "Win32_Storage_FileSystem", "Win32_System_Variant", "Win32_System_Ole", "Win32_System_TaskScheduler", "Win32_System_Threading", "Win32_System_Registry", "Win32_System_Diagnostics_ToolHelp", "Win32_System_Console", "Win32_UI_Controls", "Win32_UI_Shell", "Win32_UI_TextServices", "Win32_UI_WindowsAndMessaging", "Win32_NetworkManagement_WindowsFirewall"] }
+ratatui = { version = "0.30.2", features = ["unstable-rendered-line-info"] }
+rat-widget = "3.2.1"
+rat-event = "2.1"
+crossterm = "0.29"
+rust-fsm = "0.8"
+
+[build-dependencies]
+embed-resource = "3"
+
+[profile.release]
+lto = "thin"
+strip = true

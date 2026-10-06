@@ -1,0 +1,9 @@
+target/
+artifacts/
+work/
+__pycache__/
+*.log
+*.exe
+*.dll
+*.pdb
+*.zip
