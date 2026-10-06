@@ -69,6 +69,8 @@ mod settings_tests {
 #[link(name = "user32")]
 unsafe extern "system" {
     fn SystemParametersInfoW(action: u32, param: u32, data: Handle, flags: u32) -> i32;
+    fn GetKeyboardLayoutList(count: i32, layouts: *mut Handle) -> i32;
+    fn UnloadKeyboardLayout(layout: Handle) -> i32;
     fn SendMessageTimeoutW(
         window: Handle,
         message: u32,
@@ -384,6 +386,76 @@ fn layouts() -> Vec<LayoutProfile> {
 }
 const WETYPE_CLASS: GUID = GUID::from_u128(0x86598fb9_66a2_463e_b9c2_aeb906d477ad);
 const WETYPE_PROFILE: GUID = GUID::from_u128(0x607fdf85_fcc8_4dbd_a365_41296f980c9c);
+const WETYPE_LANGUAGE: u16 = 0x804;
+fn keyboard_layouts() -> Result<Vec<Handle>> {
+    unsafe {
+        let count = GetKeyboardLayoutList(0, std::ptr::null_mut());
+        native::ok(count)?;
+        let mut out = vec![std::ptr::null_mut(); count as usize];
+        let actual = GetKeyboardLayoutList(count, out.as_mut_ptr());
+        native::ok(actual)?;
+        out.truncate(actual as usize);
+        Ok(out)
+    }
+}
+fn input_state_matches(active: &[LayoutProfile], loaded: &[Handle]) -> bool {
+    active.len() == 1
+        && active[0].clsid == WETYPE_CLASS
+        && active[0].profile == WETYPE_PROFILE
+        && loaded
+            .iter()
+            .all(|h| (*h as usize & 0xffff) == WETYPE_LANGUAGE as usize)
+}
+#[cfg(test)]
+mod input_tests {
+    use super::*;
+    #[test]
+    fn a_session_only_us_keyboard_prevents_a_completed_status() {
+        let profile = LayoutProfile {
+            clsid: WETYPE_CLASS,
+            profile: WETYPE_PROFILE,
+            ..unsafe { std::mem::zeroed() }
+        };
+        let chinese = 0x08040804usize as Handle;
+        let us = 0x04090409usize as Handle;
+        assert!(!input_state_matches(
+            std::slice::from_ref(&profile),
+            &[chinese, us]
+        ));
+        assert!(input_state_matches(&[profile], &[chinese]));
+    }
+    #[test]
+    #[ignore = "修改当前用户输入法，仅在用户明确要求本机清理时执行"]
+    fn clean_a_session_only_keyboard_on_this_machine() -> Result<()> {
+        #[link(name = "user32")]
+        unsafe extern "system" {
+            fn LoadKeyboardLayoutW(name: *const u16, flags: u32) -> Handle;
+        }
+        let engine = crate::engine::Engine::new()?;
+        engine.store.initialize()?;
+        apply_input()?;
+        ensure!(
+            input_only()?,
+            "Test requires only WeType before adding the temporary US layout"
+        );
+        let us = unsafe { LoadKeyboardLayoutW(wide("00000409").as_ptr(), 0x80) };
+        ensure!(!us.is_null(), "Cannot load the temporary US keyboard");
+        let detected = !input_only()?;
+        let feature = engine.feature("input-method")?;
+        let before = engine.check(feature).state;
+        let result = engine.execute(feature, false, false, false)?;
+        ensure!(result.errors.is_empty(), "{}", result.errors.join("; "));
+        ensure!(
+            detected && before == crate::model::Status::Ready,
+            "Session-only US keyboard was reported as configured"
+        );
+        ensure!(
+            input_only()? && engine.check(feature).state == crate::model::Status::Done,
+            "US keyboard remained after cleanup"
+        );
+        Ok(())
+    }
+}
 pub fn input_only() -> Result<bool> {
     native::com()?;
     unsafe {
@@ -399,9 +471,7 @@ pub fn input_only() -> Result<bool> {
                 active.push(p)
             }
         }
-        Ok(active.len() == 1
-            && active[0].clsid == WETYPE_CLASS
-            && active[0].profile == WETYPE_PROFILE)
+        Ok(input_state_matches(&active, &keyboard_layouts()?))
     }
 }
 pub fn apply_input() -> Result<()> {
@@ -414,9 +484,8 @@ pub fn apply_input() -> Result<()> {
     unsafe {
         let p: ITfInputProcessorProfiles =
             CoCreateInstance(&CLSID_TF_InputProcessorProfiles, None, CLSCTX_INPROC_SERVER)?;
-        // CLEANINSTALL replaces the whole list, including the US keyboard.
-        // EnumEnabledLayoutOrTip returns bare KLIDs for keyboards; passing those
-        // to InstallLayoutOrTip without a language prefix did not remove them.
+        // Replace registered profiles, then also remove session-only keyboards
+        // that EnumEnabledLayoutOrTip does not report.
         native::ok(InstallLayoutOrTip(wide(tip).as_ptr(), 0x42))?;
         p.EnableLanguageProfile(&WETYPE_CLASS, 0x804, &WETYPE_PROFILE, true)?;
         p.SetDefaultLanguageProfile(0x804, &WETYPE_CLASS, &WETYPE_PROFILE)?;
@@ -434,6 +503,11 @@ pub fn apply_input() -> Result<()> {
         tip,
         "String",
     )?;
+    for layout in keyboard_layouts()? {
+        if layout as usize & 0xffff != WETYPE_LANGUAGE as usize {
+            native::ok(unsafe { UnloadKeyboardLayout(layout) })?;
+        }
+    }
     broadcast("intl");
     Ok(())
 }
