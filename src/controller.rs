@@ -106,6 +106,7 @@ pub fn launch(
             }
             for command in commands {
                 if let Command::Scan(indices) = command {
+                    engine.begin_batch();
                     checks(engine.clone(), tx.clone(), epoch.clone(), indices);
                     continue;
                 }

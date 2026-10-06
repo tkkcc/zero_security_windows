@@ -160,8 +160,14 @@ impl App {
     }
     pub fn command(&mut self, command: &Command) {
         self.follow_top = false;
-        self.busy = true;
         self.countdown = None;
+        if let Command::Scan(indices) = command {
+            for &i in indices {
+                self.states[i] = Check::new(Status::PendingCheck);
+            }
+            return;
+        }
+        self.busy = true;
         for i in 0..self.catalog.len() {
             let chosen = match command {
                 Command::All => true,
@@ -174,6 +180,16 @@ impl App {
         }
         self.message = choose(self.zh, "正在执行", "Executing").into();
         self.reorder();
+    }
+    fn space_command(&self) -> Option<Command> {
+        let i = self.selected()?;
+        if self.states[i].recheckable() {
+            Some(Command::Scan(vec![i]))
+        } else if self.states[i].actionable() || self.catalog[i].toggle() {
+            Some(Command::One(i))
+        } else {
+            None
+        }
     }
     fn navigate(&mut self, event: &Event) -> bool {
         let before = self.table.selected();
@@ -196,7 +212,14 @@ impl App {
         };
         let mut spans = vec![];
         for (key, zh, en) in [
-            ("Space", "执行当前项", "Run item"),
+            if self
+                .selected()
+                .is_some_and(|i| self.states[i].recheckable())
+            {
+                ("Space", "重新检测当前项", "Check item again")
+            } else {
+                ("Space", "执行当前项", "Run item")
+            },
             ("A", "执行全部", "Run all"),
             ("R", "重启", "Restart"),
             ("Q", "退出", "Exit"),
@@ -277,7 +300,17 @@ impl App {
             let f = &self.catalog[i];
             let state = &self.states[i];
             let mut lines = vec![Line::from(f.purpose(self.zh))];
-            if matches!(state.state, Status::Failed | Status::Unknown) && !state.detail.is_empty() {
+            if let Some(explanation) = state.explanation(self.zh) {
+                lines.push(Line::from(explanation));
+                if state.recheckable() {
+                    lines.push(Line::from(format!(
+                        "{}{}",
+                        choose(self.zh, "诊断日志：", "Diagnostic log: "),
+                        store::root().join("checks.jsonl").display(),
+                    )));
+                }
+            }
+            if state.state == Status::Failed && !state.detail.is_empty() {
                 lines.push(Line::styled(
                     state.detail.as_str(),
                     Style::default().fg(p.red),
@@ -576,10 +609,7 @@ fn event_loop(
                 KeyCode::Char('q' | 'Q') | KeyCode::Esc if !app.busy => return Ok(()),
                 KeyCode::Char('r' | 'R') if !app.busy && app.restart => Some(Command::Restart),
                 KeyCode::Char('a' | 'A') if !app.busy => Some(Command::All),
-                KeyCode::Char(' ') if !app.busy => app
-                    .selected()
-                    .filter(|i| app.states[*i].actionable() || app.catalog[*i].toggle())
-                    .map(Command::One),
+                KeyCode::Char(' ') if !app.busy => app.space_command(),
                 _ => None,
             };
             if let Some(command) = command {
@@ -602,6 +632,77 @@ fn event_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn unavailable_states_recheck_without_executing_or_moving_selection() -> Result<()> {
+        let mut app = App::new(catalog()?, true)?;
+        let i = app
+            .catalog
+            .iter()
+            .position(|f| f.id == "phishing-protection")
+            .unwrap();
+        app.focus(i);
+        for state in [Status::Unknown, Status::Restricted] {
+            app.states[i] = Check::new(state);
+            let command = app.space_command().unwrap();
+            assert!(matches!(&command, Command::Scan(indices) if indices == &[i]));
+            app.command(&command);
+            assert!(!app.busy);
+            assert_eq!(app.selected(), Some(i));
+            assert_eq!(app.states[i].state, Status::PendingCheck);
+            app.receive(Message::State(i, Check::new(Status::Ready), 0), 0);
+            assert!(matches!(app.space_command(), Some(Command::One(n)) if n == i));
+        }
+        app.states[i] = Check::new(Status::Failed);
+        assert!(matches!(app.space_command(), Some(Command::One(n)) if n == i));
+        for state in [Status::Absent, Status::Inactive, Status::Deferred] {
+            app.states[i] = Check::new(state);
+            assert!(app.space_command().is_none());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn check_explanations_use_neutral_text_and_execution_errors_keep_red() -> Result<()> {
+        use ratatui::{Terminal, backend::TestBackend};
+        for zh in [true, false] {
+            for palette in [Palette::LATTE, Palette::MOCHA] {
+                let mut app = App::new(catalog()?, zh)?;
+                app.palette = palette;
+                let i = app.catalog.iter().position(|f| f.id == "tamper").unwrap();
+                app.focus(i);
+                let mut terminal = Terminal::new(TestBackend::new(90, 24))?;
+                for state in [
+                    Status::Unknown,
+                    Status::Restricted,
+                    Status::Inactive,
+                    Status::Absent,
+                    Status::Deferred,
+                ] {
+                    app.states[i] = Check {
+                        state,
+                        detail: "internal diagnostic information".into(),
+                    };
+                    terminal.draw(|frame| app.draw(frame))?;
+                    let buffer = terminal.backend().buffer();
+                    let bottom = app.table.table_area.bottom() + 1;
+                    assert!(bottom < 23);
+                    for y in bottom..24 {
+                        for x in 1..89 {
+                            assert_ne!(buffer[(x, y)].fg, palette.red);
+                        }
+                    }
+                }
+                app.states[i] = Check {
+                    state: Status::Failed,
+                    detail: "operation failed".into(),
+                };
+                terminal.draw(|frame| app.draw(frame))?;
+                let buffer = terminal.backend().buffer();
+                assert!((1..89).any(|x| buffer[(x, 23)].fg == palette.red));
+            }
+        }
+        Ok(())
+    }
     #[test]
     fn changing_the_palette_keeps_selection_and_scroll_position() -> Result<()> {
         use ratatui::{Terminal, backend::TestBackend};

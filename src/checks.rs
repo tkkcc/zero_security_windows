@@ -2,23 +2,45 @@ use crate::{
     engine::{Engine, satisfied},
     mitigation,
     model::*,
-    native, preferences as prefs, registry as reg,
+    native, preferences as prefs, registry as reg, store,
     workflow::Phase,
 };
 use anyhow::Result;
 use serde_json::json;
+
+fn check_error(f: &Feature, error: &anyhow::Error) -> Check {
+    Check {
+        state: if f.page == "Install" {
+            Status::Failed
+        } else if error.chain().any(|cause| {
+            cause
+                .downcast_ref::<std::io::Error>()
+                .and_then(|e| e.raw_os_error())
+                .is_some_and(|code| matches!(code as u32, 5 | 1314 | 0x80070005 | 0x80070522))
+                || cause
+                    .downcast_ref::<windows::core::Error>()
+                    .is_some_and(|e| matches!(e.code().0 as u32, 0x80070005 | 0x80070522))
+        }) {
+            Status::Restricted
+        } else {
+            Status::Unknown
+        },
+        detail: format!("{error:#}"),
+    }
+}
+
 impl Engine {
     pub fn check(&self, f: &Feature) -> Check {
         let mut check = match self.check_inner(f) {
             Ok(v) => v,
-            Err(e) => Check {
-                state: if f.page == "Install" {
-                    Status::Failed
-                } else {
-                    Status::Unknown
-                },
-                detail: format!("{e:#}"),
-            },
+            Err(e) => {
+                let check = check_error(f, &e);
+                let _ = store::append(
+                    "checks.jsonl",
+                    &json!({"Time":chrono::Local::now().to_rfc3339(),"Id":f.id,"Error":check.detail}).to_string(),
+                );
+                check
+            }
         };
         if let Some(result) = self.store.results.lock().unwrap().get_mut(&f.id) {
             if check.state == Status::Done {
@@ -56,11 +78,11 @@ impl Engine {
         check
     }
     fn check_inner(&self, f: &Feature) -> Result<Check> {
-        if f.manual
-            || f.probe == "driver-signing"
-            || (self.safe && f.ops.iter().all(|op| op.kind == "TaskGroup"))
-        {
-            return Ok(Check::new(Status::Unknown));
+        if f.manual || f.probe == "driver-signing" {
+            return Ok(Check::new(Status::Absent));
+        }
+        if self.safe && !f.can_run_safe() {
+            return Ok(Check::new(Status::Deferred));
         }
         if f.group_zh == "Defender"
             && !matches!(f.id.as_str(), "defender" | "defender-tasks")
@@ -151,7 +173,7 @@ impl Engine {
                 }
                 if !native::service_running("WinDefend")? {
                     return Ok(Some(Check::new(if f.probe == "tamper" {
-                        Status::Unknown
+                        Status::Inactive
                     } else {
                         Status::Done
                     })));
@@ -308,5 +330,60 @@ impl Engine {
             _ => return Ok(None),
         };
         Ok(Some(Check::active(active)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn status_read_restrictions_are_separate_from_execution_failures() {
+        let feature = Feature::default();
+        for error in [
+            anyhow::Error::new(std::io::Error::from_raw_os_error(5)).context("reading state"),
+            anyhow::Error::new(windows::core::Error::from_hresult(windows::core::HRESULT(
+                0x80070005_u32 as i32,
+            ))),
+        ] {
+            let check = check_error(&feature, &error);
+            assert_eq!(check.state, Status::Restricted);
+            assert!(check.recheckable());
+            assert!(!check.actionable());
+            assert!(!check.detail.is_empty());
+        }
+        let error = anyhow::anyhow!("invalid state returned by Windows");
+        let check = check_error(&feature, &error);
+        assert_eq!(check.state, Status::Unknown);
+        assert!(check.recheckable());
+        assert!(!check.actionable());
+        let installer = Feature {
+            page: "Install".into(),
+            ..feature
+        };
+        let check = check_error(&installer, &error);
+        assert_eq!(check.state, Status::Failed);
+        assert!(check.actionable());
+        assert!(!check.recheckable());
+    }
+
+    #[test]
+    fn safe_mode_defers_desktop_checks_without_reading_missing_services() -> Result<()> {
+        let mut engine = Engine::new()?;
+        engine.safe = true;
+        let f = Feature {
+            id: "test-safe-desktop-check".into(),
+            probe: "cursor".into(),
+            ops: vec![Operation {
+                kind: "InputMethods".into(),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let check = engine.check(&f);
+        assert_eq!(check.state, Status::Deferred);
+        assert!(check.detail.is_empty());
+        assert!(!check.actionable());
+        Ok(())
     }
 }

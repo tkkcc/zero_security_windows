@@ -20,3 +20,5 @@ curl.exe -fL https://github.com/tkkcc/zero_security_windows/releases/latest/down
 No installation or separate runtime is needed. Only the context menu style switches between Windows 10 and 11.
 
 Keys are case insensitive: **Space** runs or retries the selected item, **A** runs all, **R** restarts, and **Q** exits. Rows keep their positions during checks and retries. Local settings run before installations, with up to six concurrent jobs. Restart and sign-in settings are applied before the Safe Mode round trip; installers that explicitly require a restart still show that requirement.
+
+Items skipped because of the current environment show “Not running”, “Nothing to change”, or “Run in normal mode”, with an explanation below the table. For restricted or unconfirmed states, **Space** checks again without executing changes. Execution failures remain red and retryable. Original check diagnostics are saved in `%ProgramData%\ZeroSecurityWindows\checks.jsonl`.

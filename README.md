@@ -19,4 +19,6 @@ curl.exe -fL https://github.com/tkkcc/zero_security_windows/releases/latest/down
 
 快捷键不区分大小写：**Space** 执行或重试当前项，**A** 执行全部，**R** 重启，**Q** 退出。列表顺序固定，安装放在本地优化之后；本地设置和安装各最多六路并行。安全模式往返前合并需要重启或重新登录的本地设置，一般只需两次重启；安装器明确要求重启时仍按实际状态提示。
 
+正常跳过的项目显示“未运行”“无需处理”或“返回正常模式执行”，选中后在底部说明原因。状态读取受限或尚未确认时，按 **Space** 只重新检测；执行失败仍显示红色“未完成 · 可重试”。原始检测信息保存在 `%ProgramData%\ZeroSecurityWindows\checks.jsonl`。
+
 无需安装或额外运行库。仅右键菜单样式支持 Windows 10 / 11 切换。

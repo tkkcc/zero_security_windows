@@ -255,7 +255,9 @@ impl Engine {
             }
             "ReservedStorage" => {
                 let (code, text) = native::run("dism.exe", &["/Online", "/English", "/Get-ReservedStorageState"])?;
-                ensure!(code == 0, "DISM ({code}): {text}");
+                if code != 0 {
+                    return Err(native::error(code as u32).context(format!("DISM ({code}): {text}")));
+                }
                 json!(if text.to_ascii_lowercase().contains("disabled") { "Disabled" } else { "Enabled" })
             }
             "ProcessBlock" => json!(same(&reg::read(&block_path(&op.name), "Debugger")?, &json!(block_command())) && !native::process_running(&op.name)?),

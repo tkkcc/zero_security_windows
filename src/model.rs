@@ -166,6 +166,8 @@ pub enum Status {
     Ready,
     Done,
     Unknown,
+    Restricted,
+    Inactive,
     Absent,
     Running,
     Queued,
@@ -199,6 +201,39 @@ impl Check {
             Status::Ready | Status::Failed | Status::PendingCheck | Status::Checking
         )
     }
+    pub fn recheckable(&self) -> bool {
+        matches!(self.state, Status::Unknown | Status::Restricted)
+    }
+    pub fn explanation(&self, zh: bool) -> Option<&str> {
+        Some(match self.state {
+            Status::Unknown => choose(
+                zh,
+                "Windows 暂未返回此项状态，此项暂时跳过。按 Space 重新检测。",
+                "Windows has not returned this item's state. It is skipped for now; press Space to check again.",
+            ),
+            Status::Restricted => choose(
+                zh,
+                "系统限制了此项状态的读取权限，此项暂时跳过。按 Space 重新检测。",
+                "Windows restricts access to this item's state. It is skipped for now; press Space to check again.",
+            ),
+            Status::Inactive => choose(
+                zh,
+                "Defender 服务当前未运行，Windows 不提供篡改防护的实时状态，此项自动跳过。",
+                "Defender is not running, so Windows does not report live tamper protection status. This item is skipped.",
+            ),
+            Status::Absent => choose(
+                zh,
+                "当前没有需要处理的对象，此项自动跳过。",
+                "There is nothing to change on this system. This item is skipped.",
+            ),
+            Status::Deferred => choose(
+                zh,
+                "重启返回正常模式后，再检测和执行此项。",
+                "This item will be checked and run after restarting into normal mode.",
+            ),
+            _ => return None,
+        })
+    }
     pub fn label(&self, f: &Feature, zh: bool) -> String {
         if self.state == Status::SignIn && f.toggle() {
             return format!("{} · {}", self.detail, choose(zh, "重新登录", "Sign in"));
@@ -228,8 +263,10 @@ impl Check {
             Status::SignIn => choose(zh, "重新登录生效", "Sign in to apply"),
             Status::Failed => choose(zh, "未完成 · 可重试", "Incomplete · Retry"),
             Status::Deferred => choose(zh, "返回正常模式执行", "Run in normal mode"),
-            Status::Unknown => choose(zh, "无法检测", "Check unavailable"),
-            Status::Absent => choose(zh, "不适用", "Not applicable"),
+            Status::Unknown => choose(zh, "状态待确认 · 可重查", "Unconfirmed · Recheck"),
+            Status::Restricted => choose(zh, "读取受限 · 可重查", "Access restricted · Recheck"),
+            Status::Inactive => choose(zh, "未运行", "Not running"),
+            Status::Absent => choose(zh, "无需处理", "Nothing to change"),
         }
         .into()
     }
