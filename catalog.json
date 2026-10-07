@@ -3367,13 +3367,41 @@
     "Id": "windows-update",
     "Zh": "系统更新长期暂停",
     "En": "Long-term update pause",
-    "PurposeZh": "将系统更新暂停期限设为 7000 天。",
-    "PurposeEn": "Sets the system update pause to 7000 days.",
+    "PurposeZh": "将系统更新暂停期限设为 7000 天，保留更新页面与手动恢复更新的能力。",
+    "PurposeEn": "Pauses updates for 7000 days while keeping Windows Update available for manual use.",
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
       {
         "Kind": "UpdatePause"
+      },
+      {
+        "Kind": "ProcessBlock",
+        "Name": "MoUsoCoreWorker.exe",
+        "Value": false
+      },
+      {
+        "Kind": "ProcessBlock",
+        "Name": "UsoClient.exe",
+        "Value": false
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "wuauserv",
+        "Value": 3
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "UsoSvc",
+        "Value": 2
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "WaaSMedicSvc",
+        "Value": 3
+      },
+      {
+        "Kind": "RestoreUpdateTasks"
       }
     ],
     "Probe": "updates",
@@ -3381,7 +3409,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Disable",
+    "Intent": "Apply",
     "Refresh": ""
   },
   {
@@ -3856,8 +3884,8 @@
     "Id": "location",
     "Zh": "位置服务",
     "En": "Location services",
-    "PurposeZh": "关闭位置访问，保留 Windows 设置中的开关，可随时手动开启。",
-    "PurposeEn": "Turns off location access while keeping the Windows Settings switches available to turn it back on.",
+    "PurposeZh": "关闭位置访问及应用请求位置的通知，保留 Windows 设置中的手动开关。",
+    "PurposeEn": "Turns off location access and location request notifications while keeping the Windows Settings switches available.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -3873,6 +3901,13 @@
         "Name": "Value",
         "Type": "String",
         "Value": "Deny",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location",
+        "Name": "ShowGlobalPrompts",
+        "Type": "DWord",
+        "Value": 0,
         "Kind": "Registry"
       },
       {
@@ -4012,61 +4047,6 @@
       }
     ],
     "Probe": "",
-    "Safe": false,
-    "Manual": false,
-    "Restart": false,
-    "Page": "System",
-    "Intent": "Disable",
-    "Refresh": ""
-  },
-  {
-    "Id": "update-background",
-    "Zh": "系统更新后台",
-    "En": "System update background",
-    "PurposeZh": "检查、下载和安排安装系统更新。",
-    "PurposeEn": "Checks for, downloads and schedules system updates.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
-    "Ops": [
-      {
-        "Name": "wuauserv",
-        "Value": false,
-        "Kind": "UpdateService"
-      },
-      {
-        "Name": "UsoSvc",
-        "Value": false,
-        "Kind": "UpdateService"
-      },
-      {
-        "Name": "WaaSMedicSvc",
-        "Value": false,
-        "Kind": "UpdateService"
-      },
-      {
-        "Kind": "TaskGroup",
-        "Pattern": "\\Microsoft\\Windows\\UpdateOrchestrator\\*"
-      },
-      {
-        "Kind": "TaskGroup",
-        "Pattern": "\\Microsoft\\Windows\\WindowsUpdate\\*"
-      },
-      {
-        "Kind": "TaskGroup",
-        "Pattern": "\\Microsoft\\Windows\\WaaSMedic\\*"
-      },
-      {
-        "Name": "MoUsoCoreWorker.exe",
-        "Value": true,
-        "Kind": "ProcessBlock"
-      },
-      {
-        "Name": "UsoClient.exe",
-        "Value": true,
-        "Kind": "ProcessBlock"
-      }
-    ],
-    "Probe": "update-background",
     "Safe": false,
     "Manual": false,
     "Restart": false,
@@ -4520,8 +4500,8 @@
     "Id": "delivery-optimization",
     "Zh": "传递优化",
     "En": "Delivery Optimization",
-    "PurposeZh": "缓存下载内容，并在设备之间分享更新与应用数据。",
-    "PurposeEn": "Caches downloads and shares update and app data between devices.",
+    "PurposeZh": "关闭设备之间共享更新和应用数据，保留更新与商店的正常下载。",
+    "PurposeEn": "Turns off peer sharing of updates and apps while preserving normal update and Store downloads.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4533,8 +4513,9 @@
         "Kind": "Registry"
       },
       {
-        "Kind": "Service",
-        "Name": "DoSvc"
+        "Kind": "ServiceStart",
+        "Name": "DoSvc",
+        "Value": 3
       }
     ],
     "Probe": "",

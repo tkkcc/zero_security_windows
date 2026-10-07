@@ -79,14 +79,14 @@ fn native_app_registration_and_current_state_resolve_an_old_install_error() -> a
 }
 
 #[test]
-fn scheduled_task_disabling_is_idempotent_without_running_its_action() -> anyhow::Result<()> {
+fn scheduled_task_switches_are_idempotent_without_running_the_action() -> anyhow::Result<()> {
     use windows::{
         Win32::System::{TaskScheduler::*, Variant::VARIANT},
         core::BSTR,
     };
     let name = format!(r"\ZeroSecurityWindowsTestTask{}", std::process::id());
     assert!(!native::task_enabled(&name)?);
-    native::disable_task(&name)?;
+    native::set_task_enabled(&name, false)?;
     let document = r#"<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task"><Principals><Principal id="System"><UserId>S-1-5-18</UserId></Principal></Principals><Settings><AllowStartOnDemand>false</AllowStartOnDemand></Settings><Actions Context="System"><Exec><Command>C:\Windows\System32\cmd.exe</Command></Exec></Actions></Task>"#;
     let folder = native::task_root()?;
     let task = unsafe {
@@ -103,9 +103,12 @@ fn scheduled_task_disabling_is_idempotent_without_running_its_action() -> anyhow
     let last_run = unsafe { task.LastRunTime()? };
     let result = (|| -> anyhow::Result<()> {
         anyhow::ensure!(native::task_enabled(&name)?);
-        native::disable_task(&name)?;
+        native::set_task_enabled(&name, false)?;
         anyhow::ensure!(!native::task_enabled(&name)?);
-        native::disable_task(&name)?;
+        native::set_task_enabled(&name, false)?;
+        native::set_task_enabled(&name, true)?;
+        anyhow::ensure!(native::task_enabled(&name)?);
+        native::set_task_enabled(&name, true)?;
         anyhow::ensure!(unsafe { task.LastRunTime()? } == last_run);
         Ok(())
     })();
@@ -385,5 +388,44 @@ fn repair_location_controls_on_this_machine() -> anyhow::Result<()> {
     let repeated = engine.execute(f, false, false, false)?;
     assert!(repeated.errors.is_empty());
     assert!(!repeated.changed);
+    Ok(())
+}
+
+#[test]
+#[ignore = "修复本机更新组件及位置请求通知；仅在用户要求时执行"]
+fn repair_update_components_and_location_notifications_on_this_machine() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    let location = engine.feature("location")?;
+    let result = engine.execute(location, false, false, false)?;
+    assert!(result.errors.is_empty(), "{:?}", result.errors);
+    assert_eq!(
+        registry::number(
+            r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location",
+            "ShowGlobalPrompts",
+            1,
+        )?,
+        0
+    );
+    let delivery = engine.feature("delivery-optimization")?;
+    let result = engine.execute(delivery, false, false, false)?;
+    assert!(result.errors.is_empty(), "{:?}", result.errors);
+    assert_eq!(engine.check(delivery).state, Status::Done);
+    let updates = engine.feature("windows-update")?;
+    let result = engine.execute(updates, false, false, false)?;
+    assert!(result.errors.is_empty(), "{:?}", result.errors);
+    assert!(!result.restart);
+    assert_eq!(engine.check(updates).state, Status::Done);
+    for op in engine
+        .expand(updates)?
+        .iter()
+        .filter(|op| matches!(op.kind.as_str(), "ServiceStart" | "Task" | "ProcessBlock"))
+    {
+        assert!(
+            crate::engine::satisfied(op, &engine.read(op)?),
+            "{} {}",
+            op.kind,
+            op.name
+        );
+    }
     Ok(())
 }

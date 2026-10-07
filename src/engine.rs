@@ -188,6 +188,28 @@ impl Engine {
                     }
                 }
                 "UpdatePause" => out.extend(update_pause()),
+                "RestoreUpdateTasks" => {
+                    if !self.safe && store::log_path().exists() {
+                        let tasks = self.fact("tasks", || Ok(json!(native::tasks()?)))?;
+                        for path in
+                            restored_update_tasks(&std::fs::read_to_string(store::log_path())?)?
+                        {
+                            if tasks
+                                .as_array()
+                                .unwrap()
+                                .iter()
+                                .any(|v| v.as_str().is_some_and(|v| v.eq_ignore_ascii_case(&path)))
+                            {
+                                out.push(Operation {
+                                    kind: "Task".into(),
+                                    path,
+                                    value: json!(true),
+                                    ..Default::default()
+                                });
+                            }
+                        }
+                    }
+                }
                 "DesktopIcons" => out.extend(desktop_icons()?),
                 "Power" => out.push(Operation {
                     scheme: prefs::scheme()?,
@@ -217,7 +239,10 @@ impl Engine {
         Ok(match op.kind.as_str() {
             "RegistryKey" => json!(reg::exists(&op.path)?),
             "Registry" | "RegistryDelete" | "Service" => reg::read(&op.path, &op.name)?,
-            "ServiceStart" => json!(native::service_start(&op.name, None)?),
+            "ServiceStart" => json!({
+                "scm": native::service_start(&op.name, None)?,
+                "registry": reg::read(&format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{}", op.name), "Start")?,
+            }),
             "Bcd" => {
                 let bcd = self.fact("bcd", || Ok(json!(native::command("bcdedit.exe", &["/enum", &self.boot_entry.lock().unwrap()])?)))?;
                 bcd.as_str().unwrap().lines()
@@ -265,9 +290,8 @@ impl Engine {
                 }
                 json!(if text.to_ascii_lowercase().contains("disabled") { "Disabled" } else { "Enabled" })
             }
-            "ProcessBlock" => json!(same(&reg::read(&block_path(&op.name), "Debugger")?, &json!(block_command())) && !native::process_running(&op.name)?),
+            "ProcessBlock" => json!(same(&reg::read(&block_path(&op.name), "Debugger")?, &json!(block_command())) && (!bool_value(&op.value) || !native::process_running(&op.name)?)),
             "ResumeAccess" => json!(!PathBuf::from(&op.path).exists() || (!native::execute_blocked(&PathBuf::from(&op.path))? && !native::process_running(&op.name)?)),
-            "UpdateService" => json!(native::service_running(&op.name)? || reg::number(&format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{}", op.name), "Start", 4)? < 3),
             "DesktopFiles" => json!(desktop_items()?.is_empty()),
             "StartPins" => {
                 let file = store::root().join("start-pins.json");
@@ -303,16 +327,18 @@ impl Engine {
                     Some(bool_value(&op.value)),
                 )?;
             }
-            "Task" => native::disable_task(&op.path)?,
+            "Task" => native::set_task_enabled(&op.path, bool_value(&op.value))?,
             "ServiceStart" => {
                 native::service_start(&op.name, Some(op.value.as_u64().unwrap() as u32))?;
+                reg::set(
+                    &format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{}", op.name),
+                    "Start",
+                    op.value.clone(),
+                    "DWord",
+                )?;
             }
-            "Service" | "UpdateService" => {
-                let name = if op.kind == "Service" {
-                    &op.service
-                } else {
-                    &op.name
-                };
+            "Service" => {
+                let name = &op.service;
                 let path = format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{name}");
                 let kind = reg::number(&path, "Type", 0)?;
                 let mut restart = false;
@@ -320,11 +346,7 @@ impl Engine {
                     restart = native::disable_service(name)?
                 }
                 reg::set(&path, "Start", 4, "DWord")?;
-                return Ok(if op.kind == "UpdateService" {
-                    native::service_running(name)? || reg::number(&path, "Start", 4)? < 3
-                } else {
-                    restart
-                });
+                return Ok(restart);
             }
             "Apps" => return apps::remove(op),
             "Winget" => {
@@ -412,9 +434,16 @@ impl Engine {
                 ]);
             }
             "ProcessBlock" => {
-                self.store.copy_executable()?;
-                reg::set(&block_path(&op.name), "Debugger", block_command(), "String")?;
-                native::stop_process(&op.name)?;
+                if bool_value(&op.value) {
+                    self.store.copy_executable()?;
+                    reg::set(&block_path(&op.name), "Debugger", block_command(), "String")?;
+                    native::stop_process(&op.name)?;
+                } else if same(
+                    &reg::read(&block_path(&op.name), "Debugger")?,
+                    &json!(block_command()),
+                ) {
+                    reg::delete(&block_path(&op.name), "Debugger")?;
+                }
             }
             "ResumeAccess" => {
                 if PathBuf::from(&op.path).exists() {
@@ -588,9 +617,22 @@ impl Engine {
 pub fn satisfied(op: &Operation, v: &Value) -> bool {
     if op.kind == "RegistryDelete" {
         v.is_null()
+    } else if op.kind == "ServiceStart" {
+        same(&v["scm"], &op.value) && same(&v["registry"], &op.value)
     } else {
         same(v, &reg::desired(op))
     }
+}
+fn restored_update_tasks(log: &str) -> Result<Vec<String>> {
+    let mut paths = std::collections::BTreeSet::new();
+    for line in log.lines() {
+        let record: Value = serde_json::from_str(line)?;
+        if record["Id"] == "update-background" && record["Kind"] == "Task" && record["Error"] == ""
+        {
+            paths.insert(record["Path"].as_str().unwrap().to_owned());
+        }
+    }
+    Ok(paths.into_iter().collect())
 }
 fn service_op(name: &str) -> Operation {
     Operation {
@@ -706,6 +748,34 @@ fn block_command() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn service_restore_requires_both_live_and_saved_start_types() {
+        let op = Operation {
+            kind: "ServiceStart".into(),
+            value: json!(3),
+            ..Default::default()
+        };
+        assert!(!satisfied(&op, &json!({"scm": 3, "registry": 4})));
+        assert!(!satisfied(&op, &json!({"scm": 4, "registry": 3})));
+        assert!(satisfied(&op, &json!({"scm": 3, "registry": 3})));
+    }
+    #[test]
+    fn update_task_restore_uses_only_successful_changes_made_by_this_tool() -> Result<()> {
+        let rows = [
+            json!({"Id":"update-background","Kind":"Task","Error":"","Path":"owned task"}),
+            json!({"Id":"update-background","Kind":"Task","Error":"","Path":"owned task"}),
+            json!({"Id":"update-background","Kind":"Task","Error":"access denied","Path":"unchanged task"}),
+            json!({"Id":"another-feature","Kind":"Task","Error":"","Path":"other task"}),
+            json!({"Id":"update-background","Kind":"ProcessBlock","Error":"","Path":""}),
+        ];
+        let log = rows
+            .iter()
+            .map(Value::to_string)
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert_eq!(restored_update_tasks(&log)?, vec!["owned task"]);
+        Ok(())
+    }
     #[test]
     fn parallel_verified_installs_update_one_inventory_without_losing_entries() -> Result<()> {
         let engine = Engine::new()?;

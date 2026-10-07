@@ -256,10 +256,21 @@ impl Engine {
                     ends.push(chrono::DateTime::parse_from_rfc3339(s)?)
                 }
                 let expiry = *ends.iter().min().unwrap();
-                let mut check = Check::active(
-                    expiry <= chrono::Utc::now()
-                        || reg::number(path, "FlightSettingsMaxPauseDays", 0)? < 7000,
-                );
+                let mut active = expiry <= chrono::Utc::now()
+                    || reg::number(path, "FlightSettingsMaxPauseDays", 0)? < 7000;
+                let components = Feature {
+                    ops: f
+                        .ops
+                        .iter()
+                        .filter(|op| op.kind != "UpdatePause")
+                        .cloned()
+                        .collect(),
+                    ..Default::default()
+                };
+                for op in self.expand(&components)? {
+                    active |= !satisfied(&op, &self.read(&op)?);
+                }
+                let mut check = Check::active(active);
                 check.detail = format!(
                     "{}{}",
                     choose(self.zh, "暂停至 ", "Paused to "),
@@ -318,14 +329,6 @@ impl Engine {
                     )?,
                     &json!(2),
                 )
-            }
-            "update-background" => {
-                for name in ["wuauserv", "UsoSvc", "WaaSMedicSvc"] {
-                    if native::service_running(name)? {
-                        return Ok(Some(Check::new(Status::Ready)));
-                    }
-                }
-                return Ok(None);
             }
             _ => return Ok(None),
         };

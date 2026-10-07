@@ -357,6 +357,7 @@ pub fn service_running(name: &str) -> Result<bool> {
 }
 pub fn service_start(name: &str, value: Option<u32>) -> Result<u32> {
     use windows::Win32::System::Services::{QUERY_SERVICE_CONFIGW, QueryServiceConfigW, SC_HANDLE};
+    let _guard = value.map(|_| system()).transpose()?;
     service_call(name, if value.is_some() { 3 } else { 1 }, |h| unsafe {
         if let Some(start) = value {
             let null = std::ptr::null();
@@ -575,15 +576,15 @@ pub fn task_enabled(path: &str) -> Result<bool> {
         None => Ok(false),
     }
 }
-pub fn disable_task(path: &str) -> Result<()> {
+pub fn set_task_enabled(path: &str, enabled: bool) -> Result<()> {
     let _guard = system()?;
     let Some(t) = registered_task(path)? else {
         return Ok(());
     };
     unsafe {
-        if t.Enabled()?.as_bool()
-            && let Err(e) = t.SetEnabled(false.into())
-            && task_enabled(path)?
+        if t.Enabled()?.as_bool() != enabled
+            && let Err(e) = t.SetEnabled(enabled.into())
+            && task_enabled(path)? != enabled
         {
             return Err(e.into());
         }

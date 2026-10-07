@@ -23,4 +23,6 @@ Keys are case insensitive: **Space** runs or retries the selected item, **A** ru
 
 Items skipped because of the current environment show “Not running”, “Nothing to change”, or “Run in normal mode”, with an explanation below the table. For restricted or unconfirmed states, **Space** checks again without executing changes. Execution failures remain red and retryable. Original check diagnostics are saved in `%ProgramData%\ZeroSecurityWindows\checks.jsonl`.
 
-Location access is turned off while its Windows Settings switches remain available. Applying this item removes the forced-off policy left by older versions and restores the Geolocation Service to manual trigger start.
+Location access and location request notifications are turned off while their Windows Settings switches remain available. Applying this item removes the forced-off policy left by older versions and restores the Geolocation Service to manual trigger start.
+
+Windows Update uses a long-term pause while its settings page and manual controls remain available. The update item restores services, processes and tasks blocked by older versions. Delivery Optimization only disables peer sharing, preserving normal downloads.
