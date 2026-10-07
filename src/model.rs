@@ -241,6 +241,8 @@ impl Check {
         match self.state {
             Status::PendingCheck => choose(zh, "待检测", "Awaiting check"),
             Status::Checking => choose(zh, "检测中", "Checking"),
+            Status::Ready if f.id == "location" => choose(zh, "可关闭", "Can turn off"),
+            Status::Done if f.id == "location" => choose(zh, "已关闭", "Off"),
             Status::Ready if f.toggle() => "Windows 11",
             Status::Done if f.toggle() => "Windows 10",
             Status::Ready => match f.intent.as_str() {

@@ -21,4 +21,6 @@ curl.exe -fL https://github.com/tkkcc/zero_security_windows/releases/latest/down
 
 正常跳过的项目显示“未运行”“无需处理”或“返回正常模式执行”，选中后在底部说明原因。状态读取受限或尚未确认时，按 **Space** 只重新检测；执行失败仍显示红色“未完成 · 可重试”。原始检测信息保存在 `%ProgramData%\ZeroSecurityWindows\checks.jsonl`。
 
+位置访问默认关闭，但保留 Windows 设置里的手动开关；执行此项会解除旧版本留下的强制关闭策略，并恢复定位服务的手动触发启动。
+
 无需安装或额外运行库。仅右键菜单样式支持 Windows 10 / 11 切换。

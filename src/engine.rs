@@ -130,12 +130,16 @@ impl Engine {
                 continue;
             }
             match op.kind.as_str() {
-                "Service" => {
+                "Service" | "ServiceStart" => {
                     if reg::exists(&format!(
                         r"HKLM:\SYSTEM\CurrentControlSet\Services\{}",
                         op.name
                     ))? {
-                        out.push(service_op(&op.name))
+                        out.push(if op.kind == "Service" {
+                            service_op(&op.name)
+                        } else {
+                            op.clone()
+                        })
                     }
                 }
                 "UserServices" => {
@@ -213,6 +217,7 @@ impl Engine {
         Ok(match op.kind.as_str() {
             "RegistryKey" => json!(reg::exists(&op.path)?),
             "Registry" | "RegistryDelete" | "Service" => reg::read(&op.path, &op.name)?,
+            "ServiceStart" => json!(native::service_start(&op.name, None)?),
             "Bcd" => {
                 let bcd = self.fact("bcd", || Ok(json!(native::command("bcdedit.exe", &["/enum", &self.boot_entry.lock().unwrap()])?)))?;
                 bcd.as_str().unwrap().lines()
@@ -299,6 +304,9 @@ impl Engine {
                 )?;
             }
             "Task" => native::disable_task(&op.path)?,
+            "ServiceStart" => {
+                native::service_start(&op.name, Some(op.value.as_u64().unwrap() as u32))?;
+            }
             "Service" | "UpdateService" => {
                 let name = if op.kind == "Service" {
                     &op.service

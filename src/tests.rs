@@ -323,3 +323,67 @@ fn safe_mode_expands_local_settings_without_opening_the_task_service() -> anyhow
     }
     Ok(())
 }
+
+#[test]
+fn location_off_state_does_not_require_a_policy_lock() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    engine.store.initialize()?;
+    let root = format!(
+        r"HKCU:\Software\ZeroSecurityWindowsLocationTest{}",
+        std::process::id()
+    );
+    let mut f = engine.feature("location")?.clone();
+    f.id = "test-location-preferences".into();
+    f.ops
+        .retain(|op| matches!(op.kind.as_str(), "Registry" | "RegistryDelete"));
+    for (i, op) in f.ops.iter_mut().enumerate() {
+        op.path = format!(r"{root}\{i}");
+    }
+    let result = (|| -> anyhow::Result<()> {
+        for op in &f.ops {
+            registry::write(op)?;
+        }
+        assert_eq!(engine.check(&f).state, Status::Done);
+        let consent = f.ops.iter().find(|op| op.name == "Value").unwrap();
+        registry::set(&consent.path, &consent.name, "Allow", "String")?;
+        assert_eq!(engine.check(&f).state, Status::Ready);
+        registry::write(consent)?;
+        assert_eq!(engine.check(&f).state, Status::Done);
+        let policy = f
+            .ops
+            .iter()
+            .find(|op| op.name == "DisableLocation")
+            .unwrap();
+        registry::set(&policy.path, &policy.name, 1, "DWord")?;
+        assert_eq!(engine.check(&f).state, Status::Ready);
+        registry::write(policy)?;
+        assert_eq!(engine.check(&f).state, Status::Done);
+        Ok(())
+    })();
+    registry::key(&root, false)?;
+    result
+}
+
+#[test]
+#[ignore = "修复本机位置开关；仅在用户要求时执行"]
+fn repair_location_controls_on_this_machine() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    let f = engine.feature("location")?;
+    let result = engine.execute(f, false, false, false)?;
+    assert!(result.errors.is_empty(), "{:?}", result.errors);
+    assert!(!result.restart);
+    assert_eq!(native::service_start("lfsvc", None)?, 3);
+    assert!(
+        registry::read(
+            r"HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors",
+            "DisableLocation",
+        )?
+        .is_null()
+    );
+    assert!(preferences::settings_page("privacy-location", false)?);
+    assert_eq!(engine.check(f).state, Status::Done);
+    let repeated = engine.execute(f, false, false, false)?;
+    assert!(repeated.errors.is_empty());
+    assert!(!repeated.changed);
+    Ok(())
+}

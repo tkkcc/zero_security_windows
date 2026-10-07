@@ -3856,21 +3856,41 @@
     "Id": "location",
     "Zh": "位置服务",
     "En": "Location services",
-    "PurposeZh": "供天气、地图等应用自动定位；禁用后无法自动获取位置。",
-    "PurposeEn": "Automatic location for weather, maps and other apps; unavailable when disabled.",
+    "PurposeZh": "关闭位置访问，保留 Windows 设置中的开关，可随时手动开启。",
+    "PurposeEn": "Turns off location access while keeping the Windows Settings switches available to turn it back on.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
       {
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors",
-        "Name": "DisableLocation",
-        "Type": "DWord",
-        "Value": 1,
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location",
+        "Name": "Value",
+        "Type": "String",
+        "Value": "Deny",
         "Kind": "Registry"
       },
       {
-        "Kind": "Service",
-        "Name": "lfsvc"
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location",
+        "Name": "Value",
+        "Type": "String",
+        "Value": "Deny",
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\lfsvc\\Service\\Configuration",
+        "Name": "Status",
+        "Type": "DWord",
+        "Value": 0,
+        "Kind": "Registry"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors",
+        "Name": "DisableLocation",
+        "Kind": "RegistryDelete"
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "lfsvc",
+        "Value": 3
       },
       {
         "Kind": "SettingsPage",

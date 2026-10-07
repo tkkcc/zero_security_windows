@@ -355,6 +355,33 @@ pub fn service_running(name: &str) -> Result<bool> {
         v => v,
     }
 }
+pub fn service_start(name: &str, value: Option<u32>) -> Result<u32> {
+    use windows::Win32::System::Services::{QUERY_SERVICE_CONFIGW, QueryServiceConfigW, SC_HANDLE};
+    service_call(name, if value.is_some() { 3 } else { 1 }, |h| unsafe {
+        if let Some(start) = value {
+            let null = std::ptr::null();
+            ok(ChangeServiceConfigW(
+                h,
+                u32::MAX,
+                start,
+                u32::MAX,
+                null,
+                null,
+                std::ptr::null_mut(),
+                null,
+                null,
+                null,
+                null,
+            ))?;
+        }
+        let mut size = 0;
+        let _ = QueryServiceConfigW(SC_HANDLE(h), None, 0, &mut size);
+        let mut data = vec![0u64; (size as usize).div_ceil(8)];
+        let config = data.as_mut_ptr().cast::<QUERY_SERVICE_CONFIGW>();
+        QueryServiceConfigW(SC_HANDLE(h), Some(config), size, &mut size)?;
+        Ok((*config).dwStartType.0)
+    })
+}
 pub fn disable_service(name: &str) -> Result<bool> {
     let _guard = system()?;
     let result = service_call(name, 0x26, |h| unsafe {
