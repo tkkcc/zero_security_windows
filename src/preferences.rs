@@ -40,6 +40,39 @@ pub fn settings_page(page: &str, show: bool) -> Result<bool> {
     }
     Ok(show || visible)
 }
+pub fn taskbar_pins(clear: bool) -> Result<bool> {
+    taskbar_pins_at(
+        r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband",
+        &PathBuf::from(std::env::var_os("APPDATA").unwrap())
+            .join(r"Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"),
+        clear,
+    )
+}
+fn taskbar_pins_at(path: &str, folder: &std::path::Path, clear: bool) -> Result<bool> {
+    let mut links = vec![];
+    if folder.exists() {
+        for entry in std::fs::read_dir(folder)? {
+            let entry = entry?.path();
+            if entry
+                .extension()
+                .is_some_and(|v| v.eq_ignore_ascii_case("lnk"))
+            {
+                links.push(entry);
+            }
+        }
+    }
+    let mut empty = links.is_empty();
+    for name in ["Favorites", "FavoritesResolve"] {
+        empty &= reg::read(path, name)?.is_null();
+        if clear {
+            reg::delete(path, name)?;
+        }
+    }
+    if clear {
+        recycle(&links)?;
+    }
+    Ok(clear || empty)
+}
 
 #[cfg(test)]
 mod settings_tests {
@@ -63,6 +96,41 @@ mod settings_tests {
             reveal_page("showonly:privacy-location", "privacy-location"),
             None
         );
+    }
+    #[test]
+    fn clearing_taskbar_pins_allows_new_pins_and_preserves_unrelated_files() -> anyhow::Result<()> {
+        use super::*;
+        let path = format!(
+            r"HKCU:\Software\ZeroSecurityWindowsPinsTest{}",
+            std::process::id()
+        );
+        let folder =
+            std::env::temp_dir().join(format!("ZeroSecurityWindowsPinsTest{}", std::process::id()));
+        std::fs::create_dir(&folder)?;
+        let link = folder.join("app.lnk");
+        let other = folder.join("desktop.ini");
+        std::fs::write(&link, "test shortcut")?;
+        std::fs::write(&other, "unrelated settings")?;
+        native::privilege("SeBackupPrivilege")?;
+        native::privilege("SeRestorePrivilege")?;
+        let result = (|| -> anyhow::Result<()> {
+            reg::set(&path, "Favorites", serde_json::json!([1, 2]), "Binary")?;
+            assert!(!taskbar_pins_at(&path, &folder, false)?);
+            taskbar_pins_at(&path, &folder, true)?;
+            assert!(taskbar_pins_at(&path, &folder, false)?);
+            assert!(other.exists());
+            std::fs::write(&link, "new user shortcut")?;
+            assert!(!taskbar_pins_at(&path, &folder, false)?);
+            assert!(link.exists());
+            Ok(())
+        })();
+        if link.exists() {
+            std::fs::remove_file(link)?;
+        }
+        std::fs::remove_file(other)?;
+        std::fs::remove_dir(folder)?;
+        reg::key(&path, false)?;
+        result
     }
 }
 

@@ -63,7 +63,7 @@ impl Engine {
             facts.remove(match op.kind.as_str() {
                 "Apps" => "apps",
                 "OneDrive" => "tools",
-                "TaskGroup" => "tasks",
+                "TaskGroup" | "RestoreTasks" => "tasks",
                 "Bcd" => "bcd",
                 "Mitigations" => "mitigations",
                 _ => "",
@@ -142,7 +142,7 @@ impl Engine {
                         })
                     }
                 }
-                "UserServices" => {
+                "UserServices" | "UserServicesStart" => {
                     for name in reg::children(r"HKLM:\SYSTEM\CurrentControlSet\Services")? {
                         if (name.eq_ignore_ascii_case(&op.name)
                             || name
@@ -155,7 +155,25 @@ impl Engine {
                             )? & 64
                                 != 0
                         {
-                            out.push(service_op(&name))
+                            out.push(if op.kind == "UserServices" {
+                                service_op(&name)
+                            } else if name.eq_ignore_ascii_case(&op.name) {
+                                Operation {
+                                    kind: "ServiceStart".into(),
+                                    name,
+                                    ..op.clone()
+                                }
+                            } else {
+                                Operation {
+                                    kind: "UserServiceStart".into(),
+                                    service: name.clone(),
+                                    ..Operation::reg(
+                                        format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{name}"),
+                                        "Start",
+                                        op.value.clone(),
+                                    )
+                                }
+                            })
                         }
                     }
                 }
@@ -188,11 +206,11 @@ impl Engine {
                     }
                 }
                 "UpdatePause" => out.extend(update_pause()),
-                "RestoreUpdateTasks" => {
+                "RestoreTasks" => {
                     if !self.safe && store::log_path().exists() {
                         let tasks = self.fact("tasks", || Ok(json!(native::tasks()?)))?;
                         for path in
-                            restored_update_tasks(&std::fs::read_to_string(store::log_path())?)?
+                            restored_tasks(&std::fs::read_to_string(store::log_path())?, &op.names)?
                         {
                             if tasks
                                 .as_array()
@@ -238,7 +256,7 @@ impl Engine {
     pub fn read(&self, op: &Operation) -> Result<Value> {
         Ok(match op.kind.as_str() {
             "RegistryKey" => json!(reg::exists(&op.path)?),
-            "Registry" | "RegistryDelete" | "Service" => reg::read(&op.path, &op.name)?,
+            "Registry" | "RegistryDelete" | "Service" | "UserServiceStart" => reg::read(&op.path, &op.name)?,
             "ServiceStart" => json!({
                 "scm": native::service_start(&op.name, None)?,
                 "registry": reg::read(&format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{}", op.name), "Start")?,
@@ -277,6 +295,8 @@ impl Engine {
             "SettingsPage" => json!(prefs::settings_page(&op.name, false)?),
             "Power" => json!(prefs::power(&op.scheme, &op.group, &op.name, op.source == "AC", None)?),
             "Hibernate" => json!(reg::number(r"HKLM:\SYSTEM\CurrentControlSet\Control\Power", "HibernateEnabled", 0)?),
+            "DeliveryMode" => json!(native::delivery_mode(None)?),
+            "TaskbarPins" => json!(prefs::taskbar_pins(false)?),
             "OptionalFeature" => {
                 let (code, text) = native::run("dism.exe", &["/Online", "/English", "/Get-FeatureInfo", &format!("/FeatureName:{}", op.name)])?;
                 if code as u32 == 0x800f080c { return Ok(json!(false)); }
@@ -291,7 +311,7 @@ impl Engine {
                 json!(if text.to_ascii_lowercase().contains("disabled") { "Disabled" } else { "Enabled" })
             }
             "ProcessBlock" => json!(same(&reg::read(&block_path(&op.name), "Debugger")?, &json!(block_command())) && (!bool_value(&op.value) || !native::process_running(&op.name)?)),
-            "ResumeAccess" => json!(!PathBuf::from(&op.path).exists() || (!native::execute_blocked(&PathBuf::from(&op.path))? && !native::process_running(&op.name)?)),
+            "ResumeAccess" => json!(!PathBuf::from(&op.path).exists() || !native::execute_blocked(&PathBuf::from(&op.path))?),
             "DesktopFiles" => json!(desktop_items()?.is_empty()),
             "StartPins" => {
                 let file = store::root().join("start-pins.json");
@@ -306,7 +326,7 @@ impl Engine {
     }
     pub fn write(&self, op: &Operation) -> Result<bool> {
         match op.kind.as_str() {
-            "Registry" | "RegistryDelete" => reg::write(op)?,
+            "Registry" | "RegistryDelete" | "UserServiceStart" => reg::write(op)?,
             "RegistryKey" => reg::key(&op.path, bool_value(&op.value))?,
             "Bcd" => {
                 native::command(
@@ -414,7 +434,19 @@ impl Engine {
                 )?;
             }
             "Hibernate" => {
-                native::command("powercfg.exe", &["/hibernate", "off"])?;
+                native::command(
+                    "powercfg.exe",
+                    &[
+                        "/hibernate",
+                        if op.value == json!(0) { "off" } else { "on" },
+                    ],
+                )?;
+            }
+            "DeliveryMode" => {
+                native::delivery_mode(Some(op.value.as_u64().unwrap() as u32))?;
+            }
+            "TaskbarPins" => {
+                prefs::taskbar_pins(true)?;
             }
             "OptionalFeature" => {
                 return native::dism(&[
@@ -448,7 +480,6 @@ impl Engine {
             "ResumeAccess" => {
                 if PathBuf::from(&op.path).exists() {
                     native::clear_execute_deny(&PathBuf::from(&op.path))?;
-                    native::stop_process(&op.name)?;
                 }
             }
             "DesktopFiles" => prefs::recycle(&desktop_items()?)?,
@@ -500,6 +531,7 @@ impl Engine {
         settings_only: bool,
     ) -> Result<ResultRecord> {
         self.store.initialize()?;
+        let logon = native::logon()?;
         let mut result = if settings_only {
             self.store
                 .results
@@ -511,6 +543,14 @@ impl Engine {
         } else {
             ResultRecord {
                 boot: self.boot,
+                logon: self
+                    .store
+                    .results
+                    .lock()
+                    .unwrap()
+                    .get(&f.id)
+                    .filter(|old| old.boot == self.boot && old.logon == logon)
+                    .map_or(0, |old| old.logon),
                 ..Default::default()
             }
         };
@@ -544,6 +584,9 @@ impl Engine {
                 let restart = self.write(&op)?;
                 result.restart |= restart;
                 result.changed = true;
+                if op.kind == "UserServiceStart" {
+                    result.logon = logon;
+                }
                 self.invalidate(f);
                 if op.kind != "Mitigations" && !restart {
                     ensure!(
@@ -623,11 +666,15 @@ pub fn satisfied(op: &Operation, v: &Value) -> bool {
         same(v, &reg::desired(op))
     }
 }
-fn restored_update_tasks(log: &str) -> Result<Vec<String>> {
+fn restored_tasks(log: &str, ids: &[String]) -> Result<Vec<String>> {
     let mut paths = std::collections::BTreeSet::new();
     for line in log.lines() {
         let record: Value = serde_json::from_str(line)?;
-        if record["Id"] == "update-background" && record["Kind"] == "Task" && record["Error"] == ""
+        if record["Id"]
+            .as_str()
+            .is_some_and(|id| ids.iter().any(|v| v == id))
+            && record["Kind"] == "Task"
+            && record["Error"] == ""
         {
             paths.insert(record["Path"].as_str().unwrap().to_owned());
         }
@@ -773,7 +820,17 @@ mod tests {
             .map(Value::to_string)
             .collect::<Vec<_>>()
             .join("\n");
-        assert_eq!(restored_update_tasks(&log)?, vec!["owned task"]);
+        assert_eq!(
+            restored_tasks(&log, &["update-background".into()])?,
+            vec!["owned task"]
+        );
+        assert_eq!(
+            restored_tasks(
+                &log,
+                &["update-background".into(), "another-feature".into()]
+            )?,
+            vec!["other task", "owned task"]
+        );
         Ok(())
     }
     #[test]

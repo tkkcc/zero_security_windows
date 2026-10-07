@@ -53,6 +53,11 @@ impl Engine {
                 }
             } else if result.restart && result.boot == self.boot {
                 check = Check::new(Status::Restart)
+            } else if result.logon != 0
+                && result.boot == self.boot
+                && native::logon().ok() == Some(result.logon)
+            {
+                check = Check::new(Status::SignIn)
             } else if result.shell != 0 && native::shell_stamp().ok() == Some(result.shell) {
                 check = Check {
                     state: Status::SignIn,
@@ -118,7 +123,8 @@ impl Engine {
         }
         let mut done = true;
         for op in ops {
-            if !satisfied(&op, &self.read(&op)?)
+            let value = self.read(&op)?;
+            if !satisfied(&op, &value)
                 || (op.kind == "Service" && native::service_running(&op.service)?)
             {
                 done = false
@@ -202,17 +208,6 @@ impl Engine {
                     "EnableLUA",
                     1,
                 )? != 0
-            }
-            "firewall" | "network-prompts" => {
-                let mut active = false;
-                for profile in ["Domain", "Private", "Public"] {
-                    active |= native::firewall(profile, f.probe == "network-prompts", None)?
-                }
-                active
-                    || (f.probe == "network-prompts"
-                        && !reg::exists(
-                            r"HKLM:\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff",
-                        )?)
             }
             "phishing" => {
                 for path in [
@@ -301,34 +296,6 @@ impl Engine {
                         || !std::path::PathBuf::from(desired.as_str().unwrap()).exists()
                 }
                 active
-            }
-            "this-pc" => return Ok(None),
-            "desktop-picture" => {
-                reg::number(
-                    r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers",
-                    "BackgroundType",
-                    0,
-                )? > 0
-                    || reg::number(
-                        r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\DesktopSpotlight\Settings",
-                        "EnabledState",
-                        0,
-                    )? > 0
-            }
-            "lockscreen-spotlight" => {
-                !same(
-                    &reg::read(
-                        r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
-                        "RotatingLockScreenEnabled",
-                    )?,
-                    &json!(0),
-                ) && !same(
-                    &reg::read(
-                        r"HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent",
-                        "ConfigureWindowsSpotlight",
-                    )?,
-                    &json!(2),
-                )
             }
             _ => return Ok(None),
         };

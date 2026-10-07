@@ -591,6 +591,26 @@ pub fn set_task_enabled(path: &str, enabled: bool) -> Result<()> {
     }
     Ok(())
 }
+pub fn logon() -> Result<u64> {
+    use windows::Win32::{Foundation::*, Security::*};
+    unsafe {
+        let mut token = HANDLE::default();
+        OpenProcessToken_typed(GetCurrentProcess_typed(), TOKEN_QUERY, &mut token)?;
+        let mut stats = TOKEN_STATISTICS::default();
+        let mut size = 0;
+        let result = GetTokenInformation(
+            token,
+            TokenStatistics,
+            Some((&mut stats as *mut TOKEN_STATISTICS).cast()),
+            std::mem::size_of_val(&stats) as u32,
+            &mut size,
+        );
+        windows::Win32::Foundation::CloseHandle(token)?;
+        result?;
+        Ok((stats.AuthenticationId.HighPart as u32 as u64) << 32
+            | stats.AuthenticationId.LowPart as u64)
+    }
+}
 pub fn sid() -> Result<String> {
     use windows::Win32::{Foundation::*, Security::*};
     unsafe {
@@ -769,6 +789,34 @@ pub fn wmi(namespace: &str, query: &str) -> Result<Value> {
     let c = wmi::WMIConnection::with_namespace_path(namespace)?;
     let rows: Vec<std::collections::HashMap<String, wmi::Variant>> = c.raw_query(query)?;
     Ok(serde_json::to_value(rows)?)
+}
+pub fn delivery_mode(value: Option<u32>) -> Result<u32> {
+    let c =
+        wmi::WMIConnection::with_namespace_path(r"root\Microsoft\Windows\DeliveryOptimization")?;
+    if let Some(value) = value {
+        let input = c
+            .get_object("MSFT_DeliveryOptimizationConfig")?
+            .get_method("SetDownloadMode")?
+            .unwrap()
+            .spawn_instance()?;
+        input.put_property("downloadMode", value)?;
+        c.exec_method(
+            "MSFT_DeliveryOptimizationConfig",
+            "SetDownloadMode",
+            Some(&input),
+        )?;
+    }
+    #[derive(serde::Deserialize)]
+    struct Config {
+        #[serde(rename = "DownloadMode")]
+        mode: u32,
+    }
+    let rows: Vec<Config> =
+        c.raw_query("SELECT DownloadMode FROM MSFT_DeliveryOptimizationConfig")?;
+    Ok(rows
+        .first()
+        .ok_or_else(|| anyhow::anyhow!("No Delivery Optimization configuration"))?
+        .mode)
 }
 pub fn expand(text: &str) -> String {
     let mut result = text.to_owned();

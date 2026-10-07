@@ -280,4 +280,6 @@ pub struct ResultRecord {
     pub changed: bool,
     pub boot: u64,
     pub shell: u64,
+    #[serde(default)]
+    pub logon: u64,
 }

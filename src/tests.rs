@@ -429,3 +429,145 @@ fn repair_update_components_and_location_notifications_on_this_machine() -> anyh
     }
     Ok(())
 }
+
+#[test]
+fn ordinary_privacy_preferences_remain_user_editable_and_checks_do_not_reapply_them()
+-> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    engine.store.initialize()?;
+    let path = format!(
+        r"HKCU:\Software\ZeroSecurityWindowsGuiTest{}",
+        std::process::id()
+    );
+    let mut feature = engine.feature("advertising")?.clone();
+    feature.id = "test-gui-preferences".into();
+    for op in &mut feature.ops {
+        op.path = format!(r"{}\{}", path, op.path.split_once('\\').unwrap().1);
+    }
+    let result = (|| -> anyhow::Result<()> {
+        for op in &feature.ops {
+            engine.write(op)?;
+        }
+        assert_eq!(engine.check(&feature).state, Status::Done);
+        for op in feature.ops.iter().filter(|op| op.kind == "Registry") {
+            registry::set(&op.path, &op.name, 1, "DWord")?;
+        }
+        assert_eq!(engine.check(&feature).state, Status::Ready);
+        for op in feature.ops.iter().filter(|op| op.kind == "Registry") {
+            assert_eq!(registry::read(&op.path, &op.name)?, json!(1));
+        }
+        Ok(())
+    })();
+    registry::key(&path, false)?;
+    result
+}
+
+#[test]
+fn per_user_service_repairs_keep_the_sign_in_requirement_across_retries() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    let path = format!(
+        r"HKCU:\Software\ZeroSecurityWindowsLogonTest{}",
+        std::process::id()
+    );
+    let feature = Feature {
+        id: "test-logon-repair".into(),
+        ops: vec![Operation {
+            kind: "UserServiceStart".into(),
+            ..Operation::reg(&path, "Start", 2)
+        }],
+        ..Default::default()
+    };
+    engine.store.initialize()?;
+    let result = (|| -> anyhow::Result<()> {
+        registry::set(&path, "Start", 4, "DWord")?;
+        let first = engine.execute(&feature, false, false, false)?;
+        assert_eq!(first.logon, native::logon()?);
+        assert_eq!(engine.check(&feature).state, Status::SignIn);
+        let repeated = engine.execute(&feature, false, false, false)?;
+        assert!(!repeated.changed);
+        assert_eq!(repeated.logon, first.logon);
+        assert_eq!(engine.check(&feature).state, Status::SignIn);
+        engine
+            .store
+            .results
+            .lock()
+            .unwrap()
+            .get_mut(&feature.id)
+            .unwrap()
+            .logon += 1;
+        assert_eq!(engine.check(&feature).state, Status::Done);
+        Ok(())
+    })();
+    registry::key(&path, false)?;
+    engine.store.results.lock().unwrap().remove(&feature.id);
+    engine.store.save()?;
+    result
+}
+
+#[test]
+#[ignore = "修复本机旧版普通设置锁定；仅在用户要求时执行"]
+fn repair_ordinary_gui_controls_on_this_machine() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    let mut errors = vec![];
+    for id in [
+        "start-menu",
+        "desktop-picture",
+        "lockscreen-spotlight",
+        "driver-updates",
+        "advertising",
+        "remote-assistance",
+        "this-pc",
+        "taskbar-pins",
+        "telemetry",
+        "feedback-prompts",
+        "search-highlights",
+        "widgets",
+        "windows-backup",
+        "delivery-optimization",
+        "remote-desktop",
+        "privacy-access",
+        "connected-devices",
+        "phone-resume",
+        "clipboard-history",
+        "game-recording",
+        "system-restore",
+        "firewall",
+        "network-prompts",
+        "edge-background",
+        "gui-control-repair",
+        "svc-sysmain",
+        "inventory-telemetry",
+    ] {
+        let mut feature = engine.feature(id)?.clone();
+        // Repair restrictions without clearing pins the user may have added after the last run.
+        feature
+            .ops
+            .retain(|op| !matches!(op.kind.as_str(), "TaskbarPins" | "StartPins"));
+        feature.refresh.clear();
+        match engine.execute(&feature, false, false, false) {
+            Ok(result) => errors.extend(result.errors.iter().map(|e| format!("{id}: {e}"))),
+            Err(e) => errors.push(format!("{id}: {e:#}")),
+        }
+    }
+    assert!(errors.is_empty(), "{errors:#?}");
+    Ok(())
+}
+
+#[test]
+#[ignore = "短暂切换本机传递优化开关并恢复关闭；仅在用户要求修复时执行"]
+fn delivery_optimization_uses_the_same_editable_config_as_windows_settings() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    let feature = engine.feature("delivery-optimization")?;
+    let result = engine.execute(feature, false, false, false)?;
+    assert!(result.errors.is_empty(), "{:?}", result.errors);
+    let switched = (|| -> anyhow::Result<()> {
+        assert_eq!(native::delivery_mode(Some(1))?, 1);
+        assert_eq!(engine.check(feature).state, Status::Ready);
+        Ok(())
+    })();
+    let restored = engine.execute(feature, false, false, false)?;
+    assert!(restored.errors.is_empty(), "{:?}", restored.errors);
+    assert_eq!(native::delivery_mode(None)?, 0);
+    assert_eq!(engine.check(feature).state, Status::Done);
+    switched
+}
