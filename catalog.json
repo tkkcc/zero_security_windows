@@ -1220,6 +1220,30 @@
     "Refresh": ""
   },
   {
+    "Id": "install-tailscale.tailcat",
+    "Zh": "tailcat",
+    "En": "tailcat",
+    "PurposeZh": "通过加密的点对点连接传输数据、转发端口和远程访问。",
+    "PurposeEn": "Transfer data, forward ports, and access remote systems through encrypted peer-to-peer connections.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "Tailscale.tailcat",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": ""
+  },
+  {
     "Id": "remove-news",
     "Zh": "资讯",
     "En": "News",
