@@ -392,6 +392,35 @@ fn repair_location_controls_on_this_machine() -> anyhow::Result<()> {
 }
 
 #[test]
+#[ignore = "卸载本机 Edge Game Assist 并启用时间服务自启；仅在用户要求时执行"]
+fn apply_game_assist_removal_and_automatic_time_sync_on_this_machine() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    for id in ["remove-edge-game-assist", "time-sync"] {
+        let f = engine.feature(id)?;
+        println!("{id} before: {:?}", engine.check(f).state);
+        let result = engine.execute(f, false, false, false)?;
+        println!("{id} applied: {result:?}");
+        assert!(result.errors.is_empty(), "{:?}", result.errors);
+        assert!(!result.restart);
+        assert_eq!(engine.check(f).state, Status::Done);
+        let repeated = engine.execute(f, false, false, false)?;
+        assert!(repeated.errors.is_empty());
+        assert!(!repeated.changed);
+    }
+    assert_eq!(native::service_start("W32Time", None)?, 2);
+    assert_eq!(
+        registry::number(
+            r"HKLM:\SYSTEM\CurrentControlSet\Services\W32Time",
+            "Start",
+            0
+        )?,
+        2
+    );
+    assert!(native::time_sync(false)?);
+    Ok(())
+}
+
+#[test]
 #[ignore = "修复本机更新组件及位置请求通知；仅在用户要求时执行"]
 fn repair_update_components_and_location_notifications_on_this_machine() -> anyhow::Result<()> {
     let engine = Engine::new()?;

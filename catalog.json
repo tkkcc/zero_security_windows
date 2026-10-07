@@ -1394,10 +1394,35 @@
           "Microsoft.MicrosoftMinesweeper",
           "Microsoft.MicrosoftMahjong",
           "Microsoft.MicrosoftSudoku",
-          "Microsoft.MinecraftUWP",
-          "Microsoft.Edge.GameAssist"
+          "Microsoft.MinecraftUWP"
         ],
         "Name": "games",
+        "Value": false,
+        "Kind": "Apps"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": ""
+  },
+  {
+    "Id": "remove-edge-game-assist",
+    "Zh": "Edge Game Assist",
+    "En": "Edge Game Assist",
+    "PurposeZh": "卸载 Edge 游戏助手；需要时可从 Edge 菜单重新安装。",
+    "PurposeEn": "Uninstalls Edge Game Assist; it can be reinstalled from the Edge menu.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Patterns": [
+          "Microsoft.Edge.GameAssist"
+        ],
+        "Name": "edge-game-assist",
         "Value": false,
         "Kind": "Apps"
       }
@@ -3353,6 +3378,33 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "time-sync",
+    "Zh": "时间同步自动启动",
+    "En": "Automatic time synchronization",
+    "PurposeZh": "将 Windows Time 设为自动启动并立即运行，移除服务触发器，保留现有校时服务器；可在服务管理中修改。",
+    "PurposeEn": "Sets Windows Time to Automatic and starts it, removing service triggers while keeping the time server; editable in Services.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Name": "W32Time",
+        "Value": 2,
+        "Kind": "ServiceStart"
+      },
+      {
+        "Value": true,
+        "Kind": "TimeSync"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Apply",
     "Refresh": ""
   },
   {

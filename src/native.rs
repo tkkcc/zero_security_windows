@@ -383,6 +383,52 @@ pub fn service_start(name: &str, value: Option<u32>) -> Result<u32> {
         Ok((*config).dwStartType.0)
     })
 }
+pub fn time_sync(apply: bool) -> Result<bool> {
+    use windows::Win32::System::Services::{
+        ChangeServiceConfig2W, QueryServiceConfig2W, SC_HANDLE, SERVICE_CONFIG_TRIGGER_INFO,
+        SERVICE_TRIGGER_INFO, StartServiceW,
+    };
+    let _guard = apply.then(system).transpose()?;
+    service_call("W32Time", if apply { 0x17 } else { 5 }, |h| unsafe {
+        if apply {
+            let triggers = SERVICE_TRIGGER_INFO::default();
+            ChangeServiceConfig2W(
+                SC_HANDLE(h),
+                SERVICE_CONFIG_TRIGGER_INFO,
+                Some((&triggers as *const SERVICE_TRIGGER_INFO).cast()),
+            )?;
+        }
+        let mut size = 0;
+        let _ = QueryServiceConfig2W(SC_HANDLE(h), SERVICE_CONFIG_TRIGGER_INFO, None, &mut size);
+        let mut data = vec![0u8; size as usize];
+        QueryServiceConfig2W(
+            SC_HANDLE(h),
+            SERVICE_CONFIG_TRIGGER_INFO,
+            Some(&mut data),
+            &mut size,
+        )?;
+        let triggers = std::ptr::read_unaligned(data.as_ptr().cast::<SERVICE_TRIGGER_INFO>());
+        let mut status: ServiceStatus = std::mem::zeroed();
+        ok(QueryServiceStatus(h, &mut status))?;
+        if apply && status.current != 4 {
+            if status.current != 2 {
+                StartServiceW(SC_HANDLE(h), None)?;
+                ok(QueryServiceStatus(h, &mut status))?;
+            }
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+            while status.current == 2 && std::time::Instant::now() < deadline {
+                std::thread::sleep(std::time::Duration::from_millis(40));
+                ok(QueryServiceStatus(h, &mut status))?;
+            }
+            ensure!(
+                status.current == 4,
+                "W32Time did not start (state {})",
+                status.current
+            );
+        }
+        Ok(triggers.cTriggers == 0 && status.current == 4)
+    })
+}
 pub fn disable_service(name: &str) -> Result<bool> {
     let _guard = system()?;
     let result = service_call(name, 0x26, |h| unsafe {

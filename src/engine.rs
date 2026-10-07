@@ -261,6 +261,7 @@ impl Engine {
                 "scm": native::service_start(&op.name, None)?,
                 "registry": reg::read(&format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{}", op.name), "Start")?,
             }),
+            "TimeSync" => json!(native::time_sync(false)?),
             "Bcd" => {
                 let bcd = self.fact("bcd", || Ok(json!(native::command("bcdedit.exe", &["/enum", &self.boot_entry.lock().unwrap()])?)))?;
                 bcd.as_str().unwrap().lines()
@@ -348,6 +349,9 @@ impl Engine {
                 )?;
             }
             "Task" => native::set_task_enabled(&op.path, bool_value(&op.value))?,
+            "TimeSync" => {
+                native::time_sync(true)?;
+            }
             "ServiceStart" => {
                 native::service_start(&op.name, Some(op.value.as_u64().unwrap() as u32))?;
                 reg::set(
