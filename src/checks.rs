@@ -68,7 +68,7 @@ impl Engine {
                             "Windows 11".into()
                         }
                     } else {
-                        String::new()
+                        check.detail
                     },
                 }
             }
@@ -134,6 +134,33 @@ impl Engine {
     }
     fn probe(&self, f: &Feature) -> Result<Option<Check>> {
         let active = match f.probe.as_str() {
+            "taskbar-pins" => {
+                let pins = prefs::taskbar_pin_names()?;
+                let mut active = !pins.is_empty();
+                for op in &f.ops {
+                    if op.kind != "TaskbarPins" {
+                        active |= !satisfied(op, &self.read(op)?);
+                    }
+                }
+                let mut check = Check::active(active);
+                check.detail = if pins.is_empty() {
+                    choose(
+                        self.zh,
+                        "Windows 未保存任务栏固定项。",
+                        "Windows has no saved taskbar pins.",
+                    )
+                    .into()
+                } else {
+                    format!(
+                        "{} {}{}{}",
+                        choose(self.zh, "Windows 保存了", "Windows saved"),
+                        pins.len(),
+                        choose(self.zh, " 个固定项：", " taskbar pins: "),
+                        pins.join(choose(self.zh, "、", ", ")),
+                    )
+                };
+                return Ok(Some(check));
+            }
             "vbs" | "hvci" | "credential" | "kernel-cet" | "secure-launch" => {
                 let rows = self.fact("dg", || {
                     native::wmi(
@@ -306,6 +333,29 @@ impl Engine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn shell_refresh_keeps_the_saved_pin_explanation() -> Result<()> {
+        let engine = Engine::new()?;
+        let mut f = engine.feature("taskbar-pins")?.clone();
+        f.id = "test-taskbar-shell-refresh".into();
+        let before = engine.check(&f);
+        assert!(matches!(before.state, Status::Ready | Status::Done));
+        assert!(!before.detail.is_empty());
+        let shell = native::shell_stamp()?;
+        assert_ne!(shell, 0);
+        engine.store.results.lock().unwrap().insert(
+            f.id.clone(),
+            ResultRecord {
+                shell,
+                boot: engine.boot,
+                ..Default::default()
+            },
+        );
+        let pending = engine.check(&f);
+        assert_eq!(pending.state, Status::SignIn);
+        assert_eq!(pending.detail, before.detail);
+        Ok(())
+    }
 
     #[test]
     fn status_read_restrictions_are_separate_from_execution_failures() {

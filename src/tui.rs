@@ -300,6 +300,19 @@ impl App {
             let f = &self.catalog[i];
             let state = &self.states[i];
             let mut lines = vec![Line::from(f.purpose(self.zh))];
+            if f.id == "taskbar-pins"
+                && matches!(state.state, Status::Ready | Status::Done | Status::SignIn)
+                && !state.detail.is_empty()
+            {
+                lines.push(Line::from(state.detail.as_str()));
+                if state.state != Status::Done {
+                    lines.push(Line::from(choose(
+                        self.zh,
+                        "固定项可能被旧设置隐藏；重新登录后刷新。当前打开的窗口也会显示在任务栏。",
+                        "Old settings may hide saved pins until sign-in. Running windows also appear on the taskbar.",
+                    )));
+                }
+            }
             if let Some(explanation) = state.explanation(self.zh) {
                 lines.push(Line::from(explanation));
                 if state.recheckable() {
@@ -632,6 +645,46 @@ fn event_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn taskbar_states_show_saved_pin_details_in_the_rendered_view() -> Result<()> {
+        use ratatui::{Terminal, backend::TestBackend};
+        for zh in [true, false] {
+            let mut app = App::new(catalog()?, zh)?;
+            let i = app
+                .catalog
+                .iter()
+                .position(|f| f.id == "taskbar-pins")
+                .unwrap();
+            app.focus(i);
+            let mut terminal = Terminal::new(TestBackend::new(120, 30))?;
+            for (state, label) in [
+                (Status::Ready, choose(zh, "可清理", "Can clear")),
+                (Status::Done, choose(zh, "无固定项", "No pins")),
+                (
+                    Status::SignIn,
+                    choose(zh, "重新登录生效", "Sign in to apply"),
+                ),
+            ] {
+                let detail = if state == Status::Done {
+                    "Windows has no saved taskbar pins."
+                } else {
+                    "Windows saved 3 taskbar pins: File Explorer, Microsoft Edge, Microsoft Store"
+                };
+                app.states[i] = Check {
+                    state,
+                    detail: detail.into(),
+                };
+                assert_eq!(app.states[i].label(&app.catalog[i], zh), label);
+                terminal.draw(|frame| app.draw(frame))?;
+                let buffer = terminal.backend().buffer();
+                let description: String = (app.table.table_area.bottom() + 1..30)
+                    .flat_map(|y| (0..120).map(move |x| buffer[(x, y)].symbol()))
+                    .collect();
+                assert!(description.contains(detail));
+            }
+        }
+        Ok(())
+    }
     #[test]
     fn unavailable_states_recheck_without_executing_or_moving_selection() -> Result<()> {
         let mut app = App::new(catalog()?, true)?;

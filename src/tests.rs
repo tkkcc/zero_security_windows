@@ -543,7 +543,11 @@ fn repair_ordinary_gui_controls_on_this_machine() -> anyhow::Result<()> {
         feature
             .ops
             .retain(|op| !matches!(op.kind.as_str(), "TaskbarPins" | "StartPins"));
-        feature.refresh.clear();
+        if id == "taskbar-pins" {
+            feature.probe.clear();
+        } else {
+            feature.refresh.clear();
+        }
         match engine.execute(&feature, false, false, false) {
             Ok(result) => errors.extend(result.errors.iter().map(|e| format!("{id}: {e}"))),
             Err(e) => errors.push(format!("{id}: {e:#}")),

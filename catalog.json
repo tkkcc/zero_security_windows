@@ -2556,8 +2556,8 @@
     "Id": "taskbar-pins",
     "Zh": "任务栏固定图标",
     "En": "Pinned taskbar apps",
-    "PurposeZh": "清空任务栏固定图标，仍可从 Windows 界面重新固定应用。",
-    "PurposeEn": "Clears taskbar pins while allowing applications to be pinned again.",
+    "PurposeZh": "清空 Windows 保存的任务栏固定项，仍可从 Windows 界面重新固定应用。",
+    "PurposeEn": "Clears saved taskbar pins while allowing applications to be pinned again.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2571,7 +2571,7 @@
         "Value": true
       }
     ],
-    "Probe": "",
+    "Probe": "taskbar-pins",
     "Safe": false,
     "Manual": false,
     "Restart": false,

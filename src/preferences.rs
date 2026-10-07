@@ -4,8 +4,11 @@ use crate::{
 };
 use anyhow::{Result, ensure};
 use std::path::PathBuf;
-use windows::Win32::{System::Com::*, UI::TextServices::*};
-use windows::core::{GUID, HSTRING, Interface};
+use windows::Win32::{
+    System::Com::*,
+    UI::{Shell::*, TextServices::*},
+};
+use windows::core::{GUID, HRESULT, HSTRING, IUnknown_Vtbl, Interface};
 
 fn reveal_page(policy: &str, page: &str) -> Option<String> {
     let (mode, list) = policy.split_once(':')?;
@@ -41,14 +44,64 @@ pub fn settings_page(page: &str, show: bool) -> Result<bool> {
     Ok(show || visible)
 }
 pub fn taskbar_pins(clear: bool) -> Result<bool> {
-    taskbar_pins_at(
-        r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband",
-        &PathBuf::from(std::env::var_os("APPDATA").unwrap())
-            .join(r"Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"),
-        clear,
-    )
+    if clear {
+        clear_taskbar_pins_at(
+            r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband",
+            &PathBuf::from(std::env::var_os("APPDATA").unwrap())
+                .join(r"Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"),
+        )?;
+    }
+    Ok(taskbar_pin_names()?.is_empty())
 }
-fn taskbar_pins_at(path: &str, folder: &std::path::Path, clear: bool) -> Result<bool> {
+// Only the enumeration method of IPinnedList3 is needed; Windows owns the pin format.
+windows::core::imp::define_interface!(
+    TaskbarPinList,
+    TaskbarPinListVtbl,
+    0x0dd79ae2_d156_45d4_9eeb_3b549769e940
+);
+#[repr(C)]
+pub struct TaskbarPinListVtbl {
+    base: IUnknown_Vtbl,
+    enum_objects:
+        unsafe extern "system" fn(*mut std::ffi::c_void, *mut *mut std::ffi::c_void) -> HRESULT,
+}
+pub fn taskbar_pin_names() -> Result<Vec<String>> {
+    // This Shell object requires STA; detection workers otherwise use MTA.
+    std::thread::spawn(|| -> Result<Vec<String>> {
+        unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok()? };
+        let result = (|| unsafe {
+            let list: TaskbarPinList = CoCreateInstance(
+                &GUID::from_u128(0x90aa3a4e_1cba_4233_b8bb_535773d48449),
+                None,
+                CLSCTX_INPROC_SERVER,
+            )?;
+            let mut raw = std::ptr::null_mut();
+            (list.vtable().enum_objects)(list.as_raw(), &mut raw).ok()?;
+            let items = IEnumFullIDList::from_raw(raw);
+            let mut names = vec![];
+            loop {
+                let mut item = [std::ptr::null_mut()];
+                let mut count = 0;
+                items.Next(&mut item, Some(&mut count)).ok()?;
+                if count == 0 {
+                    break;
+                }
+                let name = SHGetNameFromIDList(item[0], SIGDN_NORMALDISPLAY);
+                CoTaskMemFree(Some(item[0].cast()));
+                let name = name?;
+                let text = name.to_string();
+                CoTaskMemFree(Some(name.0.cast()));
+                names.push(text?);
+            }
+            Ok(names)
+        })();
+        unsafe { CoUninitialize() };
+        result
+    })
+    .join()
+    .unwrap()
+}
+fn clear_taskbar_pins_at(path: &str, folder: &std::path::Path) -> Result<()> {
     let mut links = vec![];
     if folder.exists() {
         for entry in std::fs::read_dir(folder)? {
@@ -61,22 +114,35 @@ fn taskbar_pins_at(path: &str, folder: &std::path::Path, clear: bool) -> Result<
             }
         }
     }
-    let mut empty = links.is_empty();
     for name in ["Favorites", "FavoritesResolve"] {
-        empty &= reg::read(path, name)?.is_null();
-        if clear {
-            reg::delete(path, name)?;
-        }
+        reg::delete(path, name)?;
     }
-    if clear {
-        recycle(&links)?;
-    }
-    Ok(clear || empty)
+    recycle(&links)
 }
 
 #[cfg(test)]
 mod settings_tests {
     use super::reveal_page;
+    #[test]
+    fn taskbar_snapshot_works_from_mta_without_rewriting_saved_pins() -> anyhow::Result<()> {
+        use super::*;
+        native::com()?;
+        let path = r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband";
+        let before = [
+            reg::read(path, "Favorites")?,
+            reg::read(path, "FavoritesResolve")?,
+        ];
+        let names = taskbar_pin_names()?;
+        assert_eq!(taskbar_pins(false)?, names.is_empty());
+        assert_eq!(
+            before,
+            [
+                reg::read(path, "Favorites")?,
+                reg::read(path, "FavoritesResolve")?
+            ]
+        );
+        Ok(())
+    }
     #[test]
     fn reveal_location_preserves_other_settings_page_choices() {
         assert_eq!(
@@ -115,12 +181,14 @@ mod settings_tests {
         native::privilege("SeRestorePrivilege")?;
         let result = (|| -> anyhow::Result<()> {
             reg::set(&path, "Favorites", serde_json::json!([1, 2]), "Binary")?;
-            assert!(!taskbar_pins_at(&path, &folder, false)?);
-            taskbar_pins_at(&path, &folder, true)?;
-            assert!(taskbar_pins_at(&path, &folder, false)?);
+            clear_taskbar_pins_at(&path, &folder)?;
+            assert!(reg::read(&path, "Favorites")?.is_null());
+            assert!(reg::read(&path, "FavoritesResolve")?.is_null());
+            assert!(!link.exists());
             assert!(other.exists());
             std::fs::write(&link, "new user shortcut")?;
-            assert!(!taskbar_pins_at(&path, &folder, false)?);
+            reg::set(&path, "Favorites", serde_json::json!([1, 2]), "Binary")?;
+            assert_eq!(reg::read(&path, "Favorites")?, serde_json::json!([1, 2]));
             assert!(link.exists());
             Ok(())
         })();

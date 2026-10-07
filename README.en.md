@@ -28,3 +28,5 @@ Location access and location request notifications are turned off while their Wi
 Windows Update uses a long-term pause while its settings page and manual controls remain available. The update item restores services, processes and tasks blocked by older versions. Delivery Optimization only disables peer sharing, preserving normal downloads.
 
 Ordinary privacy, desktop and connection controls remain editable in their GUI. Checks only read user changes. The relevant item or “Remove old GUI restrictions” repairs restrictions left by earlier versions; existing per-user service instances recover at the next sign-in. Deep disabling of Defender services and drivers remains intentional. See the [GUI recovery audit](docs/GUI恢复检查.md) for the full scope.
+
+“Pinned taskbar apps” checks pins saved by Windows, showing “Can clear” or “No pins” and listing their count and names below the table. Older hiding settings may temporarily keep saved pins invisible. Running windows also appear on the taskbar without necessarily being pinned.
