@@ -594,7 +594,6 @@ fn repair_ordinary_gui_controls_on_this_machine() -> anyhow::Result<()> {
         "firewall",
         "network-prompts",
         "edge-background",
-        "gui-control-repair",
         "inventory-telemetry",
     ] {
         let mut feature = engine.feature(id)?.clone();
