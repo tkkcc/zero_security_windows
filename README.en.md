@@ -29,7 +29,7 @@ Windows Update uses a long-term pause while its settings page and manual control
 
 “App launch preloading” disables application prefetching, prelaunch and operation recording. SysMain starts automatically; memory compression and page combining retain Windows settings, with their current states shown below the table.
 
-“Keep notification banners and sounds” enables banners and sounds while disabling the notification center sidebar, lock-screen notifications, badges and Windows suggestions. Individual app notification and sound controls remain available.
+General notifications are controlled by Windows and individual apps. The tool no longer changes banners, sounds, notification center, taskbar badges or lock-screen notifications.
 
 Ordinary privacy, desktop and connection controls remain editable in their GUI. Checks only read user changes. Relevant items retain necessary service configurations and manual controls; there is no separate legacy recovery item. Deep disabling of Defender services and drivers remains intentional. See the [GUI recovery audit](docs/GUI恢复检查.md) for the full scope.
 

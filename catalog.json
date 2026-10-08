@@ -3739,13 +3739,6 @@
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-        "Name": "SubscribedContent-310093Enabled",
-        "Type": "DWord",
-        "Value": 0,
-        "Kind": "Registry"
-      },
-      {
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
         "Name": "SubscribedContent-338388Enabled",
         "Type": "DWord",
         "Value": 0,
@@ -3753,21 +3746,7 @@
       },
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-        "Name": "SubscribedContent-338389Enabled",
-        "Type": "DWord",
-        "Value": 0,
-        "Kind": "Registry"
-      },
-      {
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
         "Name": "SoftLandingEnabled",
-        "Type": "DWord",
-        "Value": 0,
-        "Kind": "Registry"
-      },
-      {
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-        "Name": "SubscribedContent-338393Enabled",
         "Type": "DWord",
         "Value": 0,
         "Kind": "Registry"
@@ -3838,13 +3817,6 @@
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SystemSettings\\AccountNotifications",
         "Name": "EnableAccountNotifications",
-        "Type": "DWord",
-        "Value": 0,
-        "Kind": "Registry"
-      },
-      {
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.Suggested",
-        "Name": "Enabled",
         "Type": "DWord",
         "Value": 0,
         "Kind": "Registry"
@@ -5093,114 +5065,6 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
-  },
-  {
-    "Id": "notifications",
-    "Zh": "保留通知弹窗与声音",
-    "En": "Keep notification banners and sounds",
-    "PurposeZh": "保留右下角通知弹窗、声音及推送服务；关闭通知中心侧栏、锁屏通知、任务栏通知徽章与系统建议。通知中心策略重启生效，不修改各应用自己的通知和声音选择。",
-    "PurposeEn": "Keeps notification banners, sounds and push services; disables the notification center sidebar, lock-screen notifications, taskbar badges and Windows suggestions. The notification center policy takes effect after restart; individual app notification and sound choices are preserved.",
-    "GroupZh": "桌面",
-    "GroupEn": "Desktop",
-    "Ops": [
-      {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
-        "Name": "ToastEnabled",
-        "Type": "DWord",
-        "Value": 1
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
-        "Name": "DisableNotificationCenter",
-        "Type": "DWord",
-        "Value": 1
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
-        "Name": "NoToastApplicationNotification"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
-        "Name": "NoToastApplicationNotification"
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
-        "Name": "NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND",
-        "Type": "DWord",
-        "Value": 1
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
-        "Name": "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK",
-        "Type": "DWord",
-        "Value": 0
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
-        "Name": "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK",
-        "Type": "DWord",
-        "Value": 0
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "TaskbarBadges",
-        "Type": "DWord",
-        "Value": 0
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "ShowNotificationIcon",
-        "Type": "DWord",
-        "Value": 0
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-        "Name": "SubscribedContent-310093Enabled",
-        "Type": "DWord",
-        "Value": 0
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-        "Name": "SubscribedContent-338389Enabled",
-        "Type": "DWord",
-        "Value": 0
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-        "Name": "SubscribedContent-338393Enabled",
-        "Type": "DWord",
-        "Value": 0
-      },
-      {
-        "Kind": "ServiceStart",
-        "Name": "WpnService",
-        "Value": 2
-      },
-      {
-        "Kind": "UserServicesStart",
-        "Name": "WpnUserService",
-        "Value": 2
-      }
-    ],
-    "Probe": "",
-    "Safe": false,
-    "Manual": false,
-    "Restart": true,
-    "Page": "Desktop",
-    "Intent": "Apply",
     "Refresh": ""
   }
 ]

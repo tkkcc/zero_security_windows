@@ -673,7 +673,6 @@ fn apply_requested_background_and_boot_settings_on_this_machine() -> anyhow::Res
         "print-services",
         "device-discovery",
         "data-usage",
-        "notifications",
         "lsa",
         "process-mitigations",
         "driver-signing",
@@ -697,14 +696,6 @@ fn apply_requested_background_and_boot_settings_on_this_machine() -> anyhow::Res
         );
     }
     assert_eq!(native::service_running("WpnService")?, push_running);
-    assert_eq!(
-        registry::number(
-            r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications",
-            "ToastEnabled",
-            0
-        )?,
-        1
-    );
     assert!(native::time_sync(false)?);
     engine.begin_batch();
     for id in [
@@ -715,7 +706,6 @@ fn apply_requested_background_and_boot_settings_on_this_machine() -> anyhow::Res
         "print-services",
         "device-discovery",
         "data-usage",
-        "notifications",
         "lsa",
         "process-mitigations",
         "driver-signing",
