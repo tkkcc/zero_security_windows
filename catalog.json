@@ -2428,6 +2428,28 @@
     "Refresh": "Power"
   },
   {
+    "Id": "hibernation",
+    "Zh": "系统休眠",
+    "En": "Hibernation",
+    "PurposeZh": "关闭休眠能力并移除 hiberfil.sys，同时关闭依赖休眠的快速启动；不影响虚拟内存。",
+    "PurposeEn": "Disables hibernation and its hiberfil.sys file, including Fast Startup; virtual memory is unaffected.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Hibernate",
+        "Value": 0
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
     "Id": "start-menu",
     "Zh": "开始菜单布局",
     "En": "Start menu layout",
@@ -3461,17 +3483,19 @@
   },
   {
     "Id": "driver-updates",
-    "Zh": "设备安装驱动搜索",
-    "En": "Device setup driver search",
-    "PurposeZh": "关闭设备安装时的自动驱动搜索，保留控制面板的设备安装设置；不再强制排除更新驱动。",
-    "PurposeEn": "Turns off automatic driver searching during device setup while preserving Device Installation Settings and update choices.",
+    "Zh": "自动驱动更新",
+    "En": "Automatic driver updates",
+    "PurposeZh": "排除 Windows Update 质量更新中的驱动，并关闭设备安装时的在线驱动搜索；仍可手动安装驱动。",
+    "PurposeEn": "Excludes drivers from Windows quality updates and turns off online device setup searches; manual driver installation remains available.",
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
-        "Name": "ExcludeWUDriversInQualityUpdate"
+        "Name": "ExcludeWUDriversInQualityUpdate",
+        "Type": "DWord",
+        "Value": 1
       },
       {
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\DriverSearching",
@@ -3496,15 +3520,15 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
     "Id": "system-restore",
-    "Zh": "系统还原用户控制",
-    "En": "System Restore controls",
-    "PurposeZh": "解除旧版对系统保护的强制禁用，保留还原点，由控制面板管理。",
-    "PurposeEn": "Removes old restrictions on System Protection, preserves restore points and leaves configuration to Control Panel.",
+    "Zh": "系统还原",
+    "En": "System Restore",
+    "PurposeZh": "关闭所有磁盘的系统保护，停止自动创建还原点，保留系统属性中的重新开启入口。",
+    "PurposeEn": "Turns off System Protection on all drives and stops automatic restore point creation while preserving the controls to enable it again.",
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
@@ -3533,6 +3557,12 @@
         "Names": [
           "system-restore"
         ]
+      },
+      {
+        "Kind": "SystemRestore",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SPP\\Clients",
+        "Name": "{09F7EDC5-294E-4180-AF6A-FB0E6A0E9513}",
+        "Value": false
       }
     ],
     "Probe": "",
@@ -3540,7 +3570,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
@@ -4336,8 +4366,8 @@
     "Id": "gui-control-repair",
     "Zh": "旧版界面锁定清理",
     "En": "Remove old GUI restrictions",
-    "PurposeZh": "解除旧版对活动历史、AI、OneDrive、Edge 更新和家庭/Xbox 组件的额外限制，恢复休眠能力。",
-    "PurposeEn": "Removes old restrictions on activity history, AI, OneDrive, Edge, family/Xbox components and hibernation.",
+    "PurposeZh": "解除旧版对活动历史、AI、OneDrive、Edge 更新和家庭/Xbox 组件的额外限制。",
+    "PurposeEn": "Removes old restrictions on activity history, AI, OneDrive, Edge and family/Xbox components.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4530,10 +4560,6 @@
         "Names": [
           "usage-telemetry"
         ]
-      },
-      {
-        "Kind": "Hibernate",
-        "Value": 1
       },
       {
         "Kind": "RegistryDelete",

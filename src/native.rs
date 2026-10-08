@@ -836,6 +836,34 @@ pub fn wmi(namespace: &str, query: &str) -> Result<Value> {
     let rows: Vec<std::collections::HashMap<String, wmi::Variant>> = c.raw_query(query)?;
     Ok(serde_json::to_value(rows)?)
 }
+pub fn disable_system_restore() -> Result<()> {
+    #[derive(serde::Deserialize)]
+    struct SystemRestore;
+    #[derive(serde::Serialize)]
+    struct Input {
+        #[serde(rename = "Drive")]
+        drive: String,
+    }
+    #[derive(serde::Deserialize)]
+    struct Output {
+        #[serde(rename = "ReturnValue")]
+        code: u32,
+    }
+    let c = wmi::WMIConnection::with_namespace_path(r"root\default")?;
+    // Disabling the system drive disables every volume without locking GUI controls.
+    let result: Output = c.exec_class_method::<SystemRestore, _>(
+        "Disable",
+        Input {
+            drive: expand(r"%SystemDrive%\"),
+        },
+    )?;
+    ensure!(
+        result.code == 0,
+        "SystemRestore.Disable: {:08X}",
+        result.code
+    );
+    Ok(())
+}
 pub fn delivery_mode(value: Option<u32>) -> Result<u32> {
     let c =
         wmi::WMIConnection::with_namespace_path(r"root\Microsoft\Windows\DeliveryOptimization")?;

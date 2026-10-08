@@ -295,7 +295,11 @@ impl Engine {
             "LanguageBar" => json!(if prefs::language_bar(None)? & 2063 == 8 && reg::number(r"HKCU:\Software\Microsoft\CTF\LangBar", "ShowStatus", 0)? == 3 { "Hidden" } else { "Other" }),
             "SettingsPage" => json!(prefs::settings_page(&op.name, false)?),
             "Power" => json!(prefs::power(&op.scheme, &op.group, &op.name, op.source == "AC", None)?),
-            "Hibernate" => json!(reg::number(r"HKLM:\SYSTEM\CurrentControlSet\Control\Power", "HibernateEnabled", 0)?),
+            "Hibernate" => json!({
+                "enabled": reg::number(r"HKLM:\SYSTEM\CurrentControlSet\Control\Power", "HibernateEnabled", 1)?,
+                "file": PathBuf::from(native::expand(r"%SystemDrive%\hiberfil.sys")).try_exists()?,
+            }),
+            "SystemRestore" => json!(reg::read(&op.path, &op.name)?.as_array().is_some_and(|volumes| volumes.iter().any(|v| v.as_str().is_some_and(|s| !s.is_empty())))),
             "DeliveryMode" => json!(native::delivery_mode(None)?),
             "TaskbarPins" => json!(prefs::taskbar_pins(false)?),
             "OptionalFeature" => {
@@ -446,6 +450,7 @@ impl Engine {
                     ],
                 )?;
             }
+            "SystemRestore" => native::disable_system_restore()?,
             "DeliveryMode" => {
                 native::delivery_mode(Some(op.value.as_u64().unwrap() as u32))?;
             }
@@ -666,6 +671,8 @@ pub fn satisfied(op: &Operation, v: &Value) -> bool {
         v.is_null()
     } else if op.kind == "ServiceStart" {
         same(&v["scm"], &op.value) && same(&v["registry"], &op.value)
+    } else if op.kind == "Hibernate" {
+        same(&v["enabled"], &op.value) && v["file"] == json!(op.value != json!(0))
     } else {
         same(v, &reg::desired(op))
     }

@@ -577,7 +577,6 @@ fn repair_ordinary_gui_controls_on_this_machine() -> anyhow::Result<()> {
         "start-menu",
         "desktop-picture",
         "lockscreen-spotlight",
-        "driver-updates",
         "advertising",
         "remote-assistance",
         "this-pc",
@@ -594,7 +593,6 @@ fn repair_ordinary_gui_controls_on_this_machine() -> anyhow::Result<()> {
         "phone-resume",
         "clipboard-history",
         "game-recording",
-        "system-restore",
         "firewall",
         "network-prompts",
         "edge-background",
@@ -638,4 +636,139 @@ fn delivery_optimization_uses_the_same_editable_config_as_windows_settings() -> 
     assert_eq!(native::delivery_mode(None)?, 0);
     assert_eq!(engine.check(feature).state, Status::Done);
     switched
+}
+
+#[test]
+fn driver_updates_require_both_update_exclusion_and_device_search_off() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    let root = format!(
+        r"HKCU:\Software\ZeroSecurityWindowsDriverTest{}",
+        std::process::id()
+    );
+    let mut feature = engine.feature("driver-updates")?.clone();
+    feature.id = "test-driver-updates".into();
+    for op in &mut feature.ops {
+        op.path = format!(r"{root}\{}", op.path.split_once('\\').unwrap().1);
+    }
+    let result = (|| -> anyhow::Result<()> {
+        let search = feature
+            .ops
+            .iter()
+            .find(|op| op.name == "SearchOrderConfig")
+            .unwrap();
+        let exclusion = feature
+            .ops
+            .iter()
+            .find(|op| op.name == "ExcludeWUDriversInQualityUpdate")
+            .unwrap();
+        registry::write(search)?;
+        assert_eq!(engine.check(&feature).state, Status::Ready);
+        for op in &feature.ops {
+            registry::write(op)?;
+        }
+        assert_eq!(engine.check(&feature).state, Status::Done);
+        registry::set(&search.path, &search.name, 1, "DWord")?;
+        assert_eq!(engine.check(&feature).state, Status::Ready);
+        registry::write(search)?;
+        registry::set(&exclusion.path, &exclusion.name, 0, "DWord")?;
+        assert_eq!(engine.check(&feature).state, Status::Ready);
+        assert_eq!(registry::read(&exclusion.path, &exclusion.name)?, json!(0));
+        Ok(())
+    })();
+    registry::key(&root, false)?;
+    result
+}
+
+#[test]
+fn system_restore_checks_protected_volumes_instead_of_missing_policy_or_restore_points()
+-> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    let path = format!(
+        r"HKCU:\Software\ZeroSecurityWindowsRestoreTest{}",
+        std::process::id()
+    );
+    let mut feature = engine.feature("system-restore")?.clone();
+    feature.id = "test-system-restore".into();
+    feature.ops.retain(|op| op.kind == "SystemRestore");
+    let op = &mut feature.ops[0];
+    op.path = path.clone();
+    let name = op.name.clone();
+    let result = (|| -> anyhow::Result<()> {
+        assert_eq!(engine.check(&feature).state, Status::Done);
+        registry::set(
+            &path,
+            &name,
+            json!([r"\\?\Volume{00000000-0000-0000-0000-000000000001}\"]),
+            "MultiString",
+        )?;
+        assert_eq!(engine.check(&feature).state, Status::Ready);
+        assert!(engine.read(&feature.ops[0])?.as_bool().unwrap());
+        registry::set(&path, &name, json!([]), "MultiString")?;
+        assert_eq!(engine.check(&feature).state, Status::Done);
+        Ok(())
+    })();
+    registry::key(&path, false)?;
+    result
+}
+
+#[test]
+fn hibernation_off_requires_the_file_to_be_removed() {
+    let op = Operation {
+        kind: "Hibernate".into(),
+        value: json!(0),
+        ..Default::default()
+    };
+    assert!(crate::engine::satisfied(
+        &op,
+        &json!({"enabled": 0, "file": false})
+    ));
+    assert!(!crate::engine::satisfied(
+        &op,
+        &json!({"enabled": 0, "file": true})
+    ));
+    assert!(!crate::engine::satisfied(
+        &op,
+        &json!({"enabled": 1, "file": false})
+    ));
+}
+
+#[test]
+#[ignore = "关闭本机驱动自动更新、系统保护和休眠能力；仅在用户明确要求时执行"]
+fn disable_driver_updates_system_restore_and_hibernation_on_this_machine() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    engine.store.initialize()?;
+    let power_root = native::expand(r"%SystemDrive%\");
+    let pagefile = std::path::Path::new(&power_root).join("pagefile.sys");
+    let pagefile_size = std::fs::metadata(&pagefile)?.len();
+    let services = [
+        native::service_start("VSS", None)?,
+        native::service_start("swprv", None)?,
+    ];
+    // Exercise the real WMI method even when protection is already off.
+    native::disable_system_restore()?;
+    for id in ["driver-updates", "system-restore", "hibernation"] {
+        let feature = engine.feature(id)?;
+        let result = engine.execute(feature, false, false, false)?;
+        println!("{id}: {result:?}");
+        assert!(result.errors.is_empty(), "{:?}", result.errors);
+        assert!(!result.restart);
+        assert_eq!(engine.check(feature).state, Status::Done);
+        let repeated = engine.execute(feature, false, false, false)?;
+        assert!(repeated.errors.is_empty());
+        assert!(!repeated.changed);
+    }
+    assert!(
+        !std::path::Path::new(&power_root)
+            .join("hiberfil.sys")
+            .try_exists()?
+    );
+    assert_eq!(std::fs::metadata(&pagefile)?.len(), pagefile_size);
+    assert_eq!(
+        [
+            native::service_start("VSS", None)?,
+            native::service_start("swprv", None)?
+        ],
+        services
+    );
+    Ok(())
 }
