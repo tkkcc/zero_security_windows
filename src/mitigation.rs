@@ -1,6 +1,16 @@
 use crate::{native, registry as reg};
 use anyhow::{Result, ensure};
 use std::ffi::c_void;
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn OpenProcess(access: u32, inherit: i32, id: u32) -> native::Handle;
+    fn GetProcessMitigationPolicy(
+        process: native::Handle,
+        policy: u32,
+        data: *mut c_void,
+        size: usize,
+    ) -> i32;
+}
 #[link(name = "ntdll")]
 unsafe extern "system" {
     fn RtlQueryImageMitigationPolicy(
@@ -37,15 +47,40 @@ const POLICIES: &[(u32, usize)] = &[
     (13, 1),
     (14, 1),
     (15, 3),
+    (16, 1),
 ];
 fn system_policy(id: u32) -> bool {
     matches!(id, 0 | 1 | 7 | 13 | 14)
 }
 fn audit_policy(id: u32) -> bool {
-    matches!(id, 2 | 4 | 8 | 9 | 10 | 11 | 12 | 13 | 15)
+    matches!(id, 2 | 4 | 8 | 9 | 10 | 11 | 12 | 13 | 15 | 16)
+}
+fn windows_image(image: &str) -> bool {
+    image.to_lowercase().starts_with(&format!(
+        "{}\\",
+        native::expand("%SystemRoot%").to_lowercase()
+    ))
 }
 fn targets() -> Result<Vec<String>> {
-    let mut targets = vec![String::new()];
+    let mut targets = vec![
+        String::new(),
+        "dism.exe".into(),
+        "DismHost.exe".into(),
+        "bcdedit.exe".into(),
+        "powercfg.exe".into(),
+    ];
+    targets.extend(
+        native::process_images()?
+            .into_iter()
+            .filter(|(_, image)| windows_image(image))
+            .map(|(_, image)| {
+                std::path::Path::new(&image)
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_lowercase()
+            }),
+    );
     for name in reg::children(IFEO)? {
         let path = format!(r"{IFEO}\{name}");
         if !reg::read(&path, "MitigationOptions")?.is_null()
@@ -97,8 +132,8 @@ pub fn active() -> Result<bool> {
                 if flags == 8 && (image.is_empty() || !audit_policy(id)) {
                     continue;
                 }
-                if let Some(data) = read(&image, id, flags, len)?
-                    && data[..options(id, len)].iter().any(|v| v & 3 != 2)
+                if read(&image, id, flags, len)?
+                    .is_none_or(|data| data[..options(id, len)].iter().any(|v| v & 3 != 2))
                 {
                     return Ok(true);
                 }
@@ -106,6 +141,53 @@ pub fn active() -> Result<bool> {
         }
     }
     Ok(false)
+}
+// Runtime policy IDs differ from RTL image policy IDs. Audit-only bits do not enforce protection.
+const RUNTIME: &[(u32, u32, &str)] = &[
+    (0, 1, "DEP"),
+    (1, 7, "ASLR"),
+    (2, 1, "DynamicCode"),
+    (3, 3, "StrictHandle"),
+    (4, 1, "Win32k"),
+    (6, 1, "ExtensionPoint"),
+    (7, 1, "CFG"),
+    (8, 3, "Signature"),
+    (9, 1, "Font"),
+    (10, 7, "ImageLoad"),
+    (13, 1, "ChildProcess"),
+    (15, 5, "CET"),
+    (16, 1, "RedirectionTrust"),
+    (18, 1, "SEHOP"),
+];
+pub fn runtime() -> Result<Vec<(String, usize)>> {
+    let mut counts = vec![0; RUNTIME.len()];
+    for (id, image) in native::process_images()? {
+        if !windows_image(&image) {
+            continue;
+        }
+        unsafe {
+            let process = OpenProcess(0x400, 0, id);
+            if process.is_null() {
+                continue;
+            }
+            for (i, &(policy, mask, _)) in RUNTIME.iter().enumerate() {
+                let mut flags = [0u32; 2];
+                let size = if policy == 0 { 8 } else { 4 };
+                if GetProcessMitigationPolicy(process, policy, flags.as_mut_ptr().cast(), size) != 0
+                    && flags[0] & mask != 0
+                {
+                    counts[i] += 1;
+                }
+            }
+            native::CloseHandle(process);
+        }
+    }
+    Ok(RUNTIME
+        .iter()
+        .zip(counts)
+        .filter(|(_, count)| *count != 0)
+        .map(|((_, _, name), count)| (name.to_string(), count))
+        .collect())
 }
 pub fn disable() -> Result<()> {
     let _system = native::system()?;
@@ -149,13 +231,44 @@ pub fn disable() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::windows::process::CommandExt;
+    fn current_flags(policy: u32) -> u32 {
+        let mut flags = 0u32;
+        assert_ne!(
+            unsafe {
+                GetProcessMitigationPolicy(
+                    native::GetCurrentProcess(),
+                    policy,
+                    (&mut flags as *mut u32).cast(),
+                    4,
+                )
+            },
+            0
+        );
+        flags
+    }
+    #[test]
+    #[ignore = "仅由隔离可执行文件启动验证测试调用"]
+    fn child_uses_disabled_startup_policies() {
+        for (id, mask) in [(1, 7), (3, 3), (7, 1), (15, 5), (16, 1)] {
+            assert_eq!(current_flags(id) & mask, 0, "Runtime policy {id}");
+        }
+    }
     #[test]
     fn isolated_image_policy_persists_without_changing_system_defaults() -> Result<()> {
         let before = read("", 1, 0, 3)?;
+        let parent_before = [
+            current_flags(1),
+            current_flags(3),
+            current_flags(15),
+            current_flags(16),
+        ];
         let image = format!("zero-security-test-{}.exe", std::process::id());
+        let executable = std::env::temp_dir().join(&image);
         let key = format!(r"{IFEO}\{image}");
         ensure!(!reg::exists(&key)?, "Test key already exists");
         let result = (|| {
+            std::fs::copy(std::env::current_exe()?, &executable)?;
             let _system = native::system()?;
             for &(id, len) in POLICIES {
                 for flags in [0, 8] {
@@ -182,9 +295,36 @@ mod tests {
                 }
             }
             assert_eq!(read("", 1, 0, 3)?, before);
+            assert_eq!(
+                [
+                    current_flags(1),
+                    current_flags(3),
+                    current_flags(15),
+                    current_flags(16)
+                ],
+                parent_before
+            );
+            let output = std::process::Command::new(&executable)
+                .args([
+                    "--exact",
+                    "mitigation::tests::child_uses_disabled_startup_policies",
+                    "--ignored",
+                    "--test-threads=1",
+                ])
+                .creation_flags(0x08000000)
+                .output()?;
+            ensure!(
+                output.status.success(),
+                "Child policy verification: {}{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
             Ok(())
         })();
         reg::key(&key, false)?;
+        if executable.exists() {
+            std::fs::remove_file(executable)?;
+        }
         result
     }
 }

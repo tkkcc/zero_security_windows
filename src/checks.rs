@@ -43,7 +43,7 @@ impl Engine {
             }
         };
         if let Some(result) = self.store.results.lock().unwrap().get_mut(&f.id) {
-            if check.state == Status::Done {
+            if matches!(check.state, Status::Done | Status::Limited) {
                 result.errors.clear();
             }
             if !result.errors.is_empty() {
@@ -51,9 +51,12 @@ impl Engine {
                     state: Status::Failed,
                     detail: result.errors.join("; "),
                 }
-            } else if result.restart && result.boot == self.boot {
-                check = Check::new(Status::Restart)
+            } else if (result.restart || (f.restart && check.state == Status::Limited))
+                && result.boot == self.boot
+            {
+                check.state = Status::Restart;
             } else if result.logon != 0
+                && check.state != Status::Restart
                 && result.boot == self.boot
                 && native::logon().ok() == Some(result.logon)
             {
@@ -83,7 +86,7 @@ impl Engine {
         check
     }
     fn check_inner(&self, f: &Feature) -> Result<Check> {
-        if f.manual || f.probe == "driver-signing" {
+        if f.manual {
             return Ok(Check::new(Status::Absent));
         }
         if self.safe && !f.can_run_safe() {
@@ -122,6 +125,7 @@ impl Engine {
             return Ok(Check::new(Status::Absent));
         }
         let mut done = true;
+        let mut running_until_restart = false;
         for op in ops {
             let value = self.read(&op)?;
             if !satisfied(&op, &value)
@@ -129,11 +133,58 @@ impl Engine {
             {
                 done = false
             }
+            if satisfied(&op, &value)
+                && op.value == json!(4)
+                && matches!(op.kind.as_str(), "ServiceStart" | "UserServiceStart")
+                && native::service_running(if op.kind == "ServiceStart" {
+                    &op.name
+                } else {
+                    &op.service
+                })?
+            {
+                running_until_restart = true;
+            }
+        }
+        if done && running_until_restart {
+            return Ok(Check {
+                state: Status::Restart,
+                detail: choose(
+                    self.zh,
+                    "已禁用后续启动，当前服务保留到重启。",
+                    "Future starts are disabled; the current service remains until restart.",
+                )
+                .into(),
+            });
         }
         Ok(Check::active(!done))
     }
     fn probe(&self, f: &Feature) -> Result<Option<Check>> {
         let active = match f.probe.as_str() {
+            "lsa" | "driver-signing" => {
+                for op in self.expand(f)? {
+                    if !satisfied(&op, &self.read(&op)?) {
+                        return Ok(Some(Check::new(Status::Ready)));
+                    }
+                }
+                let running = if f.probe == "lsa" {
+                    native::lsa_protected()?
+                } else {
+                    native::code_integrity()?
+                };
+                let mut check = Check::new(if running {
+                    Status::Limited
+                } else {
+                    Status::Done
+                });
+                if running {
+                    check.detail = if f.probe == "lsa" {
+                        choose(self.zh, "LSASS 当前仍以受保护进程运行；若重启后仍保留，请检查固件锁定或系统策略。", "LSASS is still protected; if retained after restart, inspect the firmware lock or Windows policy.")
+                    } else {
+                        choose(self.zh, "启动参数已写入，当前内核代码完整性仍开启；是否允许关闭由 Windows 启动验证决定。", "Boot setting is saved; kernel code integrity remains enabled. Windows boot verification decides whether it can be disabled.")
+                    }.into();
+                }
+                return Ok(Some(check));
+            }
             "taskbar-pins" => {
                 let pins = prefs::taskbar_pin_names()?;
                 let mut active = !pins.is_empty();
@@ -259,10 +310,36 @@ impl Engine {
                     || (cpu[1] & (8 | 32)) != 0
                     || (kva[0] & 1) != 0
             }
-            "mitigations" => self
-                .fact("mitigations", || Ok(json!(mitigation::active()?)))?
-                .as_bool()
-                .unwrap(),
+            "mitigations" => {
+                if self
+                    .fact("mitigations", || Ok(json!(mitigation::active()?)))?
+                    .as_bool()
+                    .unwrap()
+                {
+                    return Ok(Some(Check::new(Status::Ready)));
+                }
+                let runtime = mitigation::runtime()?;
+                return Ok(Some(Check {
+                    state: if runtime.is_empty() {
+                        Status::Done
+                    } else {
+                        Status::Limited
+                    },
+                    detail: format!(
+                        "{}{}",
+                        choose(
+                            self.zh,
+                            "运行中的 Windows 进程仍有：",
+                            "Running Windows processes retain: "
+                        ),
+                        runtime
+                            .iter()
+                            .map(|(name, count)| format!("{name} {count}"))
+                            .collect::<Vec<_>>()
+                            .join("、")
+                    ),
+                }));
+            }
             "updates" => {
                 let path = r"HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings";
                 let mut ends = vec![];

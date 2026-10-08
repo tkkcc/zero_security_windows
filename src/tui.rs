@@ -329,6 +329,9 @@ impl App {
                     Style::default().fg(p.red),
                 ));
             }
+            if matches!(state.state, Status::Limited | Status::Restart) && !state.detail.is_empty() {
+                lines.push(Line::from(state.detail.as_str()));
+            }
             Paragraph::new(lines)
                 .style(Style::default().fg(p.muted))
                 .wrap(Wrap { trim: true })
@@ -707,7 +710,12 @@ mod tests {
         }
         app.states[i] = Check::new(Status::Failed);
         assert!(matches!(app.space_command(), Some(Command::One(n)) if n == i));
-        for state in [Status::Absent, Status::Inactive, Status::Deferred] {
+        for state in [
+            Status::Absent,
+            Status::Inactive,
+            Status::Deferred,
+            Status::Limited,
+        ] {
             app.states[i] = Check::new(state);
             assert!(app.space_command().is_none());
         }

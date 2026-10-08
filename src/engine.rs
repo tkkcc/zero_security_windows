@@ -157,7 +157,8 @@ impl Engine {
                         {
                             out.push(if op.kind == "UserServices" {
                                 service_op(&name)
-                            } else if name.eq_ignore_ascii_case(&op.name) {
+                            } else if name.eq_ignore_ascii_case(&op.name) && op.source != "NextBoot"
+                            {
                                 Operation {
                                     kind: "ServiceStart".into(),
                                     name,
@@ -267,7 +268,7 @@ impl Engine {
                 bcd.as_str().unwrap().lines()
                     .filter_map(|s| s.split_once(char::is_whitespace))
                     .find(|(key, _)| key == &op.name)
-                    .map(|(_, value)| json!(value.trim()))
+                    .map(|(_, value)| json!(if value.trim().eq_ignore_ascii_case("Yes") { "On" } else if value.trim().eq_ignore_ascii_case("No") { "Off" } else { value.trim() }))
                     .unwrap_or(Value::Null)
             }
             "Firewall" => json!(native::firewall(&op.name, op.property == "NotifyOnListen", None)?),
@@ -541,25 +542,23 @@ impl Engine {
     ) -> Result<ResultRecord> {
         self.store.initialize()?;
         let logon = native::logon()?;
+        let previous = self.store.results.lock().unwrap().get(&f.id).cloned();
         let mut result = if settings_only {
-            self.store
-                .results
-                .lock()
-                .unwrap()
-                .get(&f.id)
-                .cloned()
-                .unwrap_or_default()
+            previous.unwrap_or_default()
         } else {
             ResultRecord {
                 boot: self.boot,
-                logon: self
-                    .store
-                    .results
-                    .lock()
-                    .unwrap()
-                    .get(&f.id)
-                    .filter(|old| old.boot == self.boot && old.logon == logon)
-                    .map_or(0, |old| old.logon),
+                restart: previous
+                    .as_ref()
+                    .is_some_and(|old| old.boot == self.boot && old.restart),
+                logon: if f.restart {
+                    0
+                } else {
+                    previous
+                        .as_ref()
+                        .filter(|old| old.boot == self.boot && old.logon == logon)
+                        .map_or(0, |old| old.logon)
+                },
                 ..Default::default()
             }
         };
@@ -593,7 +592,7 @@ impl Engine {
                 let restart = self.write(&op)?;
                 result.restart |= restart;
                 result.changed = true;
-                if op.kind == "UserServiceStart" {
+                if op.kind == "UserServiceStart" && !f.restart {
                     result.logon = logon;
                 }
                 self.invalidate(f);

@@ -3096,8 +3096,8 @@
     "Id": "lsa",
     "Zh": "LSA 进程保护",
     "En": "LSA protection",
-    "PurposeZh": "保护处理登录和身份验证的系统进程。",
-    "PurposeEn": "Protects the process that handles sign-in and authentication.",
+    "PurposeZh": "关闭 LSA 启动保护，重启后检查 LSASS 实际保护级别；不停止当前登录进程。",
+    "PurposeEn": "Disables LSA protection for the next boot and verifies the live protection level; does not stop LSASS.",
     "GroupZh": "核心隔离",
     "GroupEn": "Core isolation",
     "Ops": [
@@ -3114,9 +3114,16 @@
         "Type": "DWord",
         "Value": 0,
         "Kind": "Registry"
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+        "Name": "RunAsPPL",
+        "Type": "DWord",
+        "Value": 0
       }
     ],
-    "Probe": "",
+    "Probe": "lsa",
     "Safe": false,
     "Manual": false,
     "Restart": true,
@@ -3307,8 +3314,8 @@
     "Id": "process-mitigations",
     "Zh": "程序漏洞防护",
     "En": "Exploit Protection",
-    "PurposeZh": "限制程序利用内存漏洞执行恶意代码。",
-    "PurposeEn": "Limits exploitation of memory vulnerabilities in programs.",
+    "PurposeZh": "关闭全局及当前 Windows 可执行文件的启动保护配置，包括 CET 和重定向检查；重启生效。64 位 DEP 等强制保护可能保留，检测同时显示实际运行状态。",
+    "PurposeEn": "Disables global and current Windows image startup mitigations, including CET and redirection checks, after restart. Mandatory protections such as 64-bit DEP may remain; checks include live state.",
     "GroupZh": "缓解",
     "GroupEn": "Mitigations",
     "Ops": [
@@ -3319,7 +3326,7 @@
     "Probe": "mitigations",
     "Safe": false,
     "Manual": false,
-    "Restart": false,
+    "Restart": true,
     "Page": "System",
     "Intent": "Disable",
     "Refresh": ""
@@ -3383,8 +3390,8 @@
     "Id": "driver-signing",
     "Zh": "驱动签名检查",
     "En": "Driver signature checks",
-    "PurposeZh": "限制不符合完整性和签名要求的驱动加载。",
-    "PurposeEn": "Restricts loading of drivers that fail integrity or signature checks.",
+    "PurposeZh": "写入禁用驱动完整性检查的启动参数，重启后检查实际内核状态；Secure Boot 或 Windows 自身约束可能仍保留检查。",
+    "PurposeEn": "Disables boot integrity checks and verifies live kernel state after restart; Secure Boot or Windows restrictions may retain enforcement.",
     "GroupZh": "缓解",
     "GroupEn": "Mitigations",
     "Ops": [
@@ -3600,10 +3607,10 @@
   },
   {
     "Id": "telemetry",
-    "Zh": "可选诊断数据",
-    "En": "Optional diagnostic data",
-    "PurposeZh": "关闭可选诊断数据，保留 Windows 必需的数据及手动开启能力。",
-    "PurposeEn": "Turns off optional diagnostic data while preserving required data and manual controls.",
+    "Zh": "诊断数据与遥测后台",
+    "En": "Diagnostic data and telemetry",
+    "PurposeZh": "关闭可选诊断数据、遥测服务和相关计划任务；不终止当前服务，重启生效。",
+    "PurposeEn": "Disables optional diagnostics, telemetry services and their scheduled tasks without stopping current services; restart to apply.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -3637,21 +3644,44 @@
         "Value": 3
       },
       {
-        "Kind": "ServiceStart",
-        "Name": "DiagTrack",
-        "Value": 2
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\SQMClient\\Windows",
+        "Name": "CEIPEnable",
+        "Type": "DWord",
+        "Value": 0
       },
       {
-        "Kind": "RestoreTasks",
-        "Names": [
-          "telemetry"
-        ]
+        "Kind": "ServiceStart",
+        "Name": "DiagTrack",
+        "Value": 4
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "dmwappushservice",
+        "Value": 4
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "WerSvc",
+        "Value": 4
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Application Experience\\*"
+      },
+      {
+        "Kind": "TaskGroup",
+        "Pattern": "\\Microsoft\\Windows\\Feedback\\Siuf\\*"
       }
     ],
     "Probe": "",
     "Safe": false,
     "Manual": false,
-    "Restart": false,
+    "Restart": true,
     "Page": "System",
     "Intent": "Apply",
     "Refresh": ""
@@ -4022,8 +4052,8 @@
     "Id": "search-highlights",
     "Zh": "搜索热点",
     "En": "Search highlights",
-    "PurposeZh": "关闭搜索热点，允许从搜索设置重新开启；不再强制禁用联网搜索。",
-    "PurposeEn": "Turns off search highlights while keeping manual controls and online search available.",
+    "PurposeZh": "关闭搜索热点，允许从搜索设置重新开启。",
+    "PurposeEn": "Turns off search highlights; users can enable them again in Search settings.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4036,11 +4066,6 @@
         "Kind": "RegistryDelete",
         "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search",
         "Name": "DisableWebSearch"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
-        "Name": "DisableSearchBoxSuggestions"
       },
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SearchSettings",
@@ -4177,20 +4202,21 @@
     "Id": "svc-dps",
     "Zh": "诊断策略",
     "En": "Diagnostic Policy Service",
-    "PurposeZh": "自动检测和排查系统问题。",
-    "PurposeEn": "Automatically detects and troubleshoots system problems.",
+    "PurposeZh": "自动检测和排查系统问题。 禁用后续启动，当前服务保留到重启。",
+    "PurposeEn": "Automatically detects and troubleshoots system problems. Future starts are disabled; current services remain until restart.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "DPS"
+        "Kind": "ServiceStart",
+        "Name": "DPS",
+        "Value": 4
       }
     ],
     "Probe": "",
     "Safe": false,
     "Manual": false,
-    "Restart": false,
+    "Restart": true,
     "Page": "System",
     "Intent": "Disable",
     "Refresh": ""
@@ -4199,20 +4225,21 @@
     "Id": "svc-wdiservicehost",
     "Zh": "诊断服务主机",
     "En": "Diagnostic Service Host",
-    "PurposeZh": "为自动诊断运行后台服务。",
-    "PurposeEn": "Hosts background services for automatic diagnostics.",
+    "PurposeZh": "为自动诊断运行后台服务。 禁用后续启动，当前服务保留到重启。",
+    "PurposeEn": "Hosts background services for automatic diagnostics. Future starts are disabled; current services remain until restart.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "WdiServiceHost"
+        "Kind": "ServiceStart",
+        "Name": "WdiServiceHost",
+        "Value": 4
       }
     ],
     "Probe": "",
     "Safe": false,
     "Manual": false,
-    "Restart": false,
+    "Restart": true,
     "Page": "System",
     "Intent": "Disable",
     "Refresh": ""
@@ -4221,20 +4248,21 @@
     "Id": "svc-wdisystemhost",
     "Zh": "诊断系统主机",
     "En": "Diagnostic System Host",
-    "PurposeZh": "为自动诊断运行系统服务。",
-    "PurposeEn": "Hosts system services for automatic diagnostics.",
+    "PurposeZh": "为自动诊断运行系统服务。 禁用后续启动，当前服务保留到重启。",
+    "PurposeEn": "Hosts system services for automatic diagnostics. Future starts are disabled; current services remain until restart.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "WdiSystemHost"
+        "Kind": "ServiceStart",
+        "Name": "WdiSystemHost",
+        "Value": 4
       }
     ],
     "Probe": "",
     "Safe": false,
     "Manual": false,
-    "Restart": false,
+    "Restart": true,
     "Page": "System",
     "Intent": "Disable",
     "Refresh": ""
@@ -4243,20 +4271,21 @@
     "Id": "svc-diagsvc",
     "Zh": "诊断执行服务",
     "En": "Diagnostic Execution Service",
-    "PurposeZh": "运行自动诊断和故障排查。",
-    "PurposeEn": "Runs automatic diagnostics and troubleshooting.",
+    "PurposeZh": "运行自动诊断和故障排查。 禁用后续启动，当前服务保留到重启。",
+    "PurposeEn": "Runs automatic diagnostics and troubleshooting. Future starts are disabled; current services remain until restart.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "diagsvc"
+        "Kind": "ServiceStart",
+        "Name": "diagsvc",
+        "Value": 4
       }
     ],
     "Probe": "",
     "Safe": false,
     "Manual": false,
-    "Restart": false,
+    "Restart": true,
     "Page": "System",
     "Intent": "Disable",
     "Refresh": ""
@@ -4550,18 +4579,6 @@
         "Name": "CEIPEnable"
       },
       {
-        "Kind": "RestoreTasks",
-        "Names": [
-          "ceip"
-        ]
-      },
-      {
-        "Kind": "RestoreTasks",
-        "Names": [
-          "usage-telemetry"
-        ]
-      },
-      {
         "Kind": "RegistryDelete",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options",
         "Name": "DisableBackgroundPreload"
@@ -4822,8 +4839,8 @@
     "Id": "connected-devices",
     "Zh": "跨设备与附近共享",
     "En": "Cross-device and nearby sharing",
-    "PurposeZh": "关闭跨设备共享和附近共享，保留连接服务及手动开关。",
-    "PurposeEn": "Turns off cross-device and nearby sharing while keeping services and manual controls available.",
+    "PurposeZh": "关闭跨设备和附近共享，并禁用连接、手机及跨设备用户服务的后续启动，重启生效。",
+    "PurposeEn": "Disables cross-device and nearby sharing and future starts of connected-device, phone and per-user cross-device services; restart to apply.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4844,23 +4861,24 @@
       {
         "Kind": "ServiceStart",
         "Name": "CDPSvc",
-        "Value": 2
+        "Value": 4
       },
       {
         "Kind": "UserServicesStart",
         "Name": "CDPUserSvc",
-        "Value": 2
+        "Value": 4,
+        "Source": "NextBoot"
       },
       {
         "Kind": "ServiceStart",
         "Name": "PhoneSvc",
-        "Value": 3
+        "Value": 4
       }
     ],
     "Probe": "",
     "Safe": false,
     "Manual": false,
-    "Restart": false,
+    "Restart": true,
     "Page": "System",
     "Intent": "Apply",
     "Refresh": ""
@@ -5126,6 +5144,270 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
+    "Intent": "Apply",
+    "Refresh": ""
+  },
+  {
+    "Id": "search-web",
+    "Zh": "搜索联网结果",
+    "En": "Web search results",
+    "PurposeZh": "关闭 Windows 搜索的联网建议与网页结果；保留本地搜索，不拦截 SearchHost 或卸载商店。商店结果能否独立保留取决于 Windows 版本。",
+    "PurposeEn": "Disables online suggestions and web results without blocking SearchHost, local search or Store. Separate Store results depend on Windows version.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+        "Name": "DisableSearchBoxSuggestions",
+        "Type": "DWord",
+        "Value": 1
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "user-data-services",
+    "Zh": "联系人与用户数据后台",
+    "En": "Contacts and user data services",
+    "PurposeZh": "禁用联系人索引及用户数据存储、访问服务的后续启动，重启生效；使用这些服务的联系人或日历应用将不可同步。",
+    "PurposeEn": "Disables future starts of contact indexing and user data storage/access services after restart; apps relying on these services cannot sync contacts or calendars.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "UserServicesStart",
+        "Name": "PimIndexMaintenanceSvc",
+        "Value": 4,
+        "Source": "NextBoot"
+      },
+      {
+        "Kind": "UserServicesStart",
+        "Name": "UnistoreSvc",
+        "Value": 4,
+        "Source": "NextBoot"
+      },
+      {
+        "Kind": "UserServicesStart",
+        "Name": "UserDataSvc",
+        "Value": 4,
+        "Source": "NextBoot"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "print-services",
+    "Zh": "打印后台",
+    "En": "Print services",
+    "PurposeZh": "禁用打印后台及打印工作流用户服务的后续启动，重启生效；实体打印和打印到 PDF 均不再可用。",
+    "PurposeEn": "Disables print spooler and per-user print workflow services after restart, including physical printing and Print to PDF.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "ServiceStart",
+        "Name": "Spooler",
+        "Value": 4
+      },
+      {
+        "Kind": "UserServicesStart",
+        "Name": "PrintWorkflowUserSvc",
+        "Value": 4,
+        "Source": "NextBoot"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "device-discovery",
+    "Zh": "网络设备发现",
+    "En": "Network device discovery",
+    "PurposeZh": "关闭 SSDP、UPnP、网络功能发现及 WPS 配置服务；保留 USB 即插即用、无线网络和蓝牙，重启生效。",
+    "PurposeEn": "Disables SSDP, UPnP, network function discovery and WPS configuration after restart; preserves USB Plug and Play, Wi-Fi and Bluetooth.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "ServiceStart",
+        "Name": "SSDPSRV",
+        "Value": 4
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "upnphost",
+        "Value": 4
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "fdPHost",
+        "Value": 4
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "FDResPub",
+        "Value": 4
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "wcncsvc",
+        "Value": 4
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "data-usage",
+    "Zh": "流量统计后台",
+    "En": "Data usage reporting",
+    "PurposeZh": "禁用网络流量统计服务的后续启动；保留网络连接和流量传输，重启生效。",
+    "PurposeEn": "Disables future starts of data usage reporting after restart, preserving networking and traffic transmission.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "ServiceStart",
+        "Name": "DusmSvc",
+        "Value": 4
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": ""
+  },
+  {
+    "Id": "notifications",
+    "Zh": "仅保留通知弹窗",
+    "En": "Keep notification banners only",
+    "PurposeZh": "保留右下角通知弹窗及推送服务；关闭通知中心、通知声音、锁屏通知、任务栏通知徽章与系统建议。重启生效，不修改各应用自己的通知选择。",
+    "PurposeEn": "Keeps notification banners and push services; disables notification center, sounds, lock-screen notifications, taskbar badges and Windows suggestions after restart, preserving individual app choices.",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
+    "Ops": [
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
+        "Name": "ToastEnabled",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+        "Name": "DisableNotificationCenter",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
+        "Name": "NoToastApplicationNotification"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
+        "Name": "NoToastApplicationNotification"
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
+        "Name": "NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND",
+        "Type": "DWord",
+        "Value": 0
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
+        "Name": "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK",
+        "Type": "DWord",
+        "Value": 0
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
+        "Name": "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK",
+        "Type": "DWord",
+        "Value": 0
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "TaskbarBadges",
+        "Type": "DWord",
+        "Value": 0
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "ShowNotificationIcon",
+        "Type": "DWord",
+        "Value": 0
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SubscribedContent-310093Enabled",
+        "Type": "DWord",
+        "Value": 0
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SubscribedContent-338389Enabled",
+        "Type": "DWord",
+        "Value": 0
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+        "Name": "SubscribedContent-338393Enabled",
+        "Type": "DWord",
+        "Value": 0
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "WpnService",
+        "Value": 2
+      },
+      {
+        "Kind": "UserServicesStart",
+        "Name": "WpnUserService",
+        "Value": 2
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": ""
   }

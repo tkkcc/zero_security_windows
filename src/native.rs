@@ -111,6 +111,13 @@ unsafe extern "system" {
     fn ProcessIdToSessionId(id: u32, session: *mut u32) -> i32;
     fn TerminateProcess(process: Handle, exit: u32) -> i32;
     fn WaitForSingleObject(process: Handle, millis: u32) -> u32;
+    fn QueryFullProcessImageNameW(
+        process: Handle,
+        flags: u32,
+        path: *mut u16,
+        size: *mut u32,
+    ) -> i32;
+    fn GetProcessInformation(process: Handle, class: u32, data: Handle, size: u32) -> i32;
     fn GetUserPreferredUILanguages(
         flags: u32,
         count: *mut u32,
@@ -273,6 +280,52 @@ pub fn process_running(name: &str) -> Result<bool> {
     Ok(processes()?
         .iter()
         .any(|(_, n)| n.eq_ignore_ascii_case(name)))
+}
+pub fn process_images() -> Result<Vec<(u32, String)>> {
+    let mut images = vec![];
+    for (id, _) in processes()? {
+        unsafe {
+            let process = OpenProcess(0x1000, 0, id);
+            if process.is_null() {
+                continue;
+            }
+            let mut path = vec![0u16; 32768];
+            let mut length = path.len() as u32;
+            if QueryFullProcessImageNameW(process, 0, path.as_mut_ptr(), &mut length) != 0 {
+                images.push((id, String::from_utf16_lossy(&path[..length as usize])));
+            }
+            CloseHandle(process);
+        }
+    }
+    Ok(images)
+}
+pub fn lsa_protected() -> Result<bool> {
+    let id = processes()?
+        .into_iter()
+        .find(|(_, name)| name.eq_ignore_ascii_case("lsass.exe"))
+        .ok_or_else(|| anyhow::anyhow!("LSASS is not running"))?
+        .0;
+    unsafe {
+        let process = OpenProcess(0x1000, 0, id);
+        ensure!(!process.is_null(), "{}", std::io::Error::last_os_error());
+        let mut level = 0u32;
+        let result = ok(GetProcessInformation(
+            process,
+            7,
+            (&mut level as *mut u32).cast(),
+            4,
+        ));
+        CloseHandle(process);
+        result?;
+        Ok(level != 0xfffffffe)
+    }
+}
+pub fn code_integrity() -> Result<bool> {
+    let mut data = [8u32, 0];
+    let status =
+        unsafe { NtQuerySystemInformation(103, data.as_mut_ptr().cast(), 8, std::ptr::null_mut()) };
+    ensure!(status >= 0, "Code integrity query: {status:08X}");
+    Ok(data[1] & 1 != 0)
 }
 pub fn stop_process(name: &str) -> Result<()> {
     let _guard = system()?;

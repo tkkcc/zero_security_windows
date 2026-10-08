@@ -168,6 +168,7 @@ pub enum Status {
     Unknown,
     Restricted,
     Inactive,
+    Limited,
     Absent,
     Running,
     Queued,
@@ -193,7 +194,7 @@ impl Check {
         Self::new(if active { Status::Ready } else { Status::Done })
     }
     pub fn visible(&self, f: &Feature) -> bool {
-        !f.manual && f.probe != "driver-signing"
+        !f.manual
     }
     pub fn actionable(&self) -> bool {
         matches!(
@@ -220,6 +221,11 @@ impl Check {
                 zh,
                 "Defender 服务当前未运行，Windows 不提供篡改防护的实时状态，此项自动跳过。",
                 "Defender is not running, so Windows does not report live tamper protection status. This item is skipped.",
+            ),
+            Status::Limited => choose(
+                zh,
+                "关闭配置已写入，系统或程序仍保留部分保护；不会重复要求重启。",
+                "Disable settings are saved, but Windows or the application retains some protections; another restart is not requested.",
             ),
             Status::Absent => choose(
                 zh,
@@ -270,6 +276,7 @@ impl Check {
             Status::Unknown => choose(zh, "状态待确认 · 可重查", "Unconfirmed · Recheck"),
             Status::Restricted => choose(zh, "读取受限 · 可重查", "Access restricted · Recheck"),
             Status::Inactive => choose(zh, "未运行", "Not running"),
+            Status::Limited => choose(zh, "部分保护保留", "Protection kept"),
             Status::Absent => choose(zh, "无需处理", "Nothing to change"),
         }
         .into()

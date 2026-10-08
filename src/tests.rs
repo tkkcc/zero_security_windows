@@ -581,7 +581,6 @@ fn repair_ordinary_gui_controls_on_this_machine() -> anyhow::Result<()> {
         "remote-assistance",
         "this-pc",
         "taskbar-pins",
-        "telemetry",
         "feedback-prompts",
         "search-highlights",
         "widgets",
@@ -589,7 +588,6 @@ fn repair_ordinary_gui_controls_on_this_machine() -> anyhow::Result<()> {
         "delivery-optimization",
         "remote-desktop",
         "privacy-access",
-        "connected-devices",
         "phone-resume",
         "clipboard-history",
         "game-recording",
@@ -616,6 +614,118 @@ fn repair_ordinary_gui_controls_on_this_machine() -> anyhow::Result<()> {
         }
     }
     assert!(errors.is_empty(), "{errors:#?}");
+    Ok(())
+}
+
+#[test]
+fn repeated_execution_keeps_restart_pending_until_a_different_boot() -> anyhow::Result<()> {
+    let mut engine = Engine::new()?;
+    let root = format!(
+        r"HKCU:\Software\ZeroSecurityWindowsStartupTest{}",
+        std::process::id()
+    );
+    let f = Feature {
+        id: "test-restart-retention".into(),
+        ops: vec![Operation::reg(&root, "Desired", 0)],
+        restart: true,
+        ..Default::default()
+    };
+    let result = (|| -> anyhow::Result<()> {
+        assert_eq!(engine.check(&f).state, Status::Ready);
+        assert!(engine.execute(&f, false, false, false)?.restart);
+        assert_eq!(engine.check(&f).state, Status::Restart);
+        let repeated = engine.execute(&f, false, false, false)?;
+        assert!(!repeated.changed);
+        assert!(repeated.restart);
+        assert_eq!(engine.check(&f).state, Status::Restart);
+        engine.boot += 1;
+        assert_eq!(engine.check(&f).state, Status::Done);
+        Ok(())
+    })();
+    registry::key(&root, false)?;
+    engine.store.results.lock().unwrap().remove(&f.id);
+    engine.store.save()?;
+    result
+}
+
+#[test]
+#[ignore = "应用用户明确要求的后台关闭和启动保护；不停止进程、不重启"]
+fn apply_requested_background_and_boot_settings_on_this_machine() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    let stable: Vec<_> = native::processes()?
+        .into_iter()
+        .filter(|(_, name)| {
+            matches!(
+                name.as_str(),
+                "lsass.exe" | "explorer.exe" | "SearchHost.exe"
+            )
+        })
+        .collect();
+    let push_running = native::service_running("WpnService")?;
+    for id in [
+        "search-web",
+        "telemetry",
+        "svc-dps",
+        "svc-wdiservicehost",
+        "svc-wdisystemhost",
+        "svc-diagsvc",
+        "connected-devices",
+        "phone-resume",
+        "user-data-services",
+        "print-services",
+        "device-discovery",
+        "data-usage",
+        "notifications",
+        "lsa",
+        "process-mitigations",
+        "driver-signing",
+    ] {
+        let f = engine.feature(id)?;
+        let before = engine.check(f);
+        println!("{id} before: {before:?}");
+        let result = engine.execute(f, false, false, false)?;
+        println!("{id} applied: {result:?}; after: {:?}", engine.check(f));
+        assert!(result.errors.is_empty(), "{id}: {:?}", result.errors);
+        assert!(matches!(
+            engine.check(f).state,
+            Status::Done | Status::Restart | Status::Limited | Status::SignIn
+        ));
+    }
+    let after = native::processes()?;
+    for process in stable {
+        assert!(
+            after.contains(&process),
+            "Running process was interrupted: {process:?}"
+        );
+    }
+    assert_eq!(native::service_running("WpnService")?, push_running);
+    assert_eq!(
+        registry::number(
+            r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications",
+            "ToastEnabled",
+            0
+        )?,
+        1
+    );
+    assert!(native::time_sync(false)?);
+    engine.begin_batch();
+    for id in [
+        "search-web",
+        "telemetry",
+        "connected-devices",
+        "user-data-services",
+        "print-services",
+        "device-discovery",
+        "data-usage",
+        "notifications",
+        "lsa",
+        "process-mitigations",
+        "driver-signing",
+    ] {
+        let f = engine.feature(id)?;
+        let result = engine.execute(f, false, false, false)?;
+        assert!(result.errors.is_empty(), "Repeat {id}: {:?}", result.errors);
+    }
     Ok(())
 }
 
