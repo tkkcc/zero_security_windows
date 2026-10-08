@@ -5308,10 +5308,10 @@
   },
   {
     "Id": "notifications",
-    "Zh": "仅保留通知弹窗",
-    "En": "Keep notification banners only",
-    "PurposeZh": "保留右下角通知弹窗及推送服务；关闭通知中心、通知声音、锁屏通知、任务栏通知徽章与系统建议。重启生效，不修改各应用自己的通知选择。",
-    "PurposeEn": "Keeps notification banners and push services; disables notification center, sounds, lock-screen notifications, taskbar badges and Windows suggestions after restart, preserving individual app choices.",
+    "Zh": "保留通知弹窗与声音",
+    "En": "Keep notification banners and sounds",
+    "PurposeZh": "保留右下角通知弹窗、声音及推送服务；关闭通知中心侧栏、锁屏通知、任务栏通知徽章与系统建议。通知中心策略重启生效，不修改各应用自己的通知和声音选择。",
+    "PurposeEn": "Keeps notification banners, sounds and push services; disables the notification center sidebar, lock-screen notifications, taskbar badges and Windows suggestions. The notification center policy takes effect after restart; individual app notification and sound choices are preserved.",
     "GroupZh": "桌面",
     "GroupEn": "Desktop",
     "Ops": [
@@ -5344,7 +5344,7 @@
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
         "Name": "NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND",
         "Type": "DWord",
-        "Value": 0
+        "Value": 1
       },
       {
         "Kind": "Registry",

@@ -29,6 +29,8 @@ Windows Update uses a long-term pause while its settings page and manual control
 
 “App launch preloading” disables application prefetching, prelaunch and operation recording. SysMain starts automatically; memory compression and page combining retain Windows settings, with their current states shown below the table.
 
+“Keep notification banners and sounds” enables banners and sounds while disabling the notification center sidebar, lock-screen notifications, badges and Windows suggestions. Individual app notification and sound controls remain available.
+
 Ordinary privacy, desktop and connection controls remain editable in their GUI. Checks only read user changes. The relevant item or “Remove old GUI restrictions” repairs restrictions left by earlier versions; existing per-user service instances recover at the next sign-in. Deep disabling of Defender services and drivers remains intentional. See the [GUI recovery audit](docs/GUI恢复检查.md) for the full scope.
 
 “Pinned taskbar apps” checks pins saved by Windows, showing “Can clear” or “No pins” and listing their count and names below the table. Older hiding settings may temporarily keep saved pins invisible. Running windows also appear on the taskbar without necessarily being pinned.
