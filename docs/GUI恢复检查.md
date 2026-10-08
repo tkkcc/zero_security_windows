@@ -138,14 +138,14 @@ Edge 预启动和后台运行使用可覆盖的推荐默认值，不再写强制
 | 搜索热点与联网结果 (`search-highlights`) | 已修正 | 隐私和安全性 → 搜索权限 |
 | 小组件入口与后台 (`widgets`) | 已修正 | 个性化 → 任务栏 |
 | 文件搜索索引 (`svc-wsearch`) | 保留服务开关 | 管理员可通过 services.msc 恢复；本机已验证修改配置权限 |
-| 应用启动预读 (`svc-sysmain`) | 已修正 | services.msc → SysMain |
+| 应用启动预读 (`svc-sysmain`) | 仅关闭应用功能 | SysMain 自动启动并运行，内存管理保留系统设置；恢复应用预读需将 EnablePrefetcher 设为 3，预启动使用 Enable-MMAgent -ApplicationPreLaunch |
 | 程序兼容性助手 (`svc-pcasvc`) | 保留服务开关 | 管理员可通过 services.msc 恢复；本机已验证修改配置权限 |
 | 诊断策略 (`svc-dps`) | 保留服务开关 | 管理员可通过 services.msc 恢复；本机已验证修改配置权限 |
 | 诊断服务主机 (`svc-wdiservicehost`) | 保留服务开关 | 管理员可通过 services.msc 恢复；本机已验证修改配置权限 |
 | 诊断系统主机 (`svc-wdisystemhost`) | 保留服务开关 | 管理员可通过 services.msc 恢复；本机已验证修改配置权限 |
 | 诊断执行服务 (`svc-diagsvc`) | 保留服务开关 | 管理员可通过 services.msc 恢复；本机已验证修改配置权限 |
 | 清单采集与兼容性评估 (`inventory-telemetry`) | 已修正 | services.msc → InventorySvc |
-| 应用预读 (`prefetch`) | 移除额外禁用 | 恢复默认预读参数，后续由 SysMain 服务开关控制 |
+| 应用预读 (`prefetch`) | 合并到应用启动预读 | 禁用应用预读；不禁用整个 SysMain 或内存管理功能 |
 | 应用预启动 (`app-prelaunch`) | 移除额外禁用 | 旧策略 / 服务 / 任务由“旧版界面锁定清理”恢复 |
 | 系统备份与文件历史记录 (`windows-backup`) | 已修正 | 账户 → Windows 备份；控制面板 → 文件历史记录 |
 | 传递优化 (`delivery-optimization`) | 已修正 | Windows 更新 → 高级选项 → 传递优化 |

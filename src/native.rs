@@ -889,6 +889,70 @@ pub fn wmi(namespace: &str, query: &str) -> Result<Value> {
     let rows: Vec<std::collections::HashMap<String, wmi::Variant>> = c.raw_query(query)?;
     Ok(serde_json::to_value(rows)?)
 }
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct MemoryAgent {
+    pub application_launch_prefetching: bool,
+    pub application_pre_launch: bool,
+    pub operation_api: bool,
+    pub memory_compression: bool,
+    pub page_combining: bool,
+}
+impl MemoryAgent {
+    pub fn app_preloading(&self) -> bool {
+        self.application_launch_prefetching || self.application_pre_launch || self.operation_api
+    }
+}
+pub fn memory_agent(disable_app: bool) -> Result<MemoryAgent> {
+    #[derive(serde::Deserialize)]
+    #[serde(rename = "PS_MMAgent")]
+    struct Agent;
+    #[derive(serde::Serialize)]
+    #[serde(rename_all = "PascalCase")]
+    struct DisableInput {
+        application_pre_launch: bool,
+    }
+    #[derive(serde::Deserialize)]
+    struct GetOutput {
+        #[serde(rename = "cmdletOutput")]
+        state: MemoryAgent,
+    }
+    if disable_app {
+        use windows::Win32::System::Services::{SC_HANDLE, StartServiceW};
+        let _guard = system()?;
+        service_call("SysMain", 0x14, |h| unsafe {
+            let mut status: ServiceStatus = std::mem::zeroed();
+            ok(QueryServiceStatus(h, &mut status))?;
+            if status.current != 4 && status.current != 2 {
+                StartServiceW(SC_HANDLE(h), None)?;
+            }
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+            while status.current != 4 && std::time::Instant::now() < deadline {
+                std::thread::sleep(std::time::Duration::from_millis(40));
+                ok(QueryServiceStatus(h, &mut status))?;
+            }
+            ensure!(
+                status.current == 4,
+                "SysMain did not start (state {})",
+                status.current
+            );
+            Ok(())
+        })?;
+    }
+    let c = wmi::WMIConnection::with_namespace_path(r"root\Microsoft\Windows\PS_MMAgent")?;
+    if disable_app {
+        // EnablePrefetcher controls launch prefetching/OperationAPI; their WMI setters are unsupported.
+        // Omit memory switches: Windows retains compression and page combining settings.
+        c.exec_class_method::<Agent, ()>(
+            "Disable",
+            DisableInput {
+                application_pre_launch: true,
+            },
+        )?;
+    }
+    let result: GetOutput = c.exec_class_method::<Agent, _>("Get", ())?;
+    Ok(result.state)
+}
 pub fn disable_system_restore() -> Result<()> {
     #[derive(serde::Deserialize)]
     struct SystemRestore;

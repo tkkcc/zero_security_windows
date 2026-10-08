@@ -4144,31 +4144,34 @@
     "Id": "svc-sysmain",
     "Zh": "应用启动预读",
     "En": "App launch preloading",
-    "PurposeZh": "关闭 SysMain 预读服务，保留默认预读配置，可通过服务管理器恢复。",
-    "PurposeEn": "Disables SysMain while retaining default prefetch configuration so Services can restore it.",
+    "PurposeZh": "关闭应用启动预读、预启动和预读记录，恢复 SysMain 自动启动。内存压缩与内存页合并保留系统设置。",
+    "PurposeEn": "Disables application prefetching, prelaunch and operation recording, restoring automatic SysMain startup. Retains Windows memory compression and page combining settings.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "SysMain"
+        "Kind": "ServiceStart",
+        "Name": "SysMain",
+        "Value": 2
       },
       {
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
         "Name": "EnablePrefetcher",
         "Type": "DWord",
-        "Value": 3,
+        "Value": 0,
         "Kind": "Registry"
       },
       {
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
         "Name": "EnableSuperfetch",
-        "Type": "DWord",
-        "Value": 3,
-        "Kind": "Registry"
+        "Kind": "RegistryDelete"
+      },
+      {
+        "Kind": "AppPreloading",
+        "Value": false
       }
     ],
-    "Probe": "",
+    "Probe": "app-preloading",
     "Safe": false,
     "Manual": false,
     "Restart": false,

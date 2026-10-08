@@ -595,7 +595,6 @@ fn repair_ordinary_gui_controls_on_this_machine() -> anyhow::Result<()> {
         "network-prompts",
         "edge-background",
         "gui-control-repair",
-        "svc-sysmain",
         "inventory-telemetry",
     ] {
         let mut feature = engine.feature(id)?.clone();
@@ -880,5 +879,30 @@ fn disable_driver_updates_system_restore_and_hibernation_on_this_machine() -> an
         ],
         services
     );
+    Ok(())
+}
+
+#[test]
+#[ignore = "仅关闭本机应用预读，保留内存管理；仅在用户明确要求时执行"]
+fn disable_app_preloading_preserving_memory_on_this_machine() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    let feature = engine.feature("svc-sysmain")?;
+    let before = native::memory_agent(false)?;
+    println!("Before: {before:?}");
+    // Exercise the native method even when a previous run has disabled app preloading.
+    let result = engine.execute(feature, false, false, false)?;
+    println!("Applied: {result:?}");
+    assert!(result.errors.is_empty(), "{:?}", result.errors);
+    let after = native::memory_agent(true)?;
+    println!("After: {after:?}");
+    assert!(!after.app_preloading());
+    assert_eq!(after.memory_compression, before.memory_compression);
+    assert_eq!(after.page_combining, before.page_combining);
+    assert!(native::service_running("SysMain")?);
+    assert_eq!(native::service_start("SysMain", None)?, 2);
+    assert_eq!(engine.check(feature).state, Status::Done);
+    let repeated = engine.execute(feature, false, false, false)?;
+    assert!(repeated.errors.is_empty());
+    assert!(!repeated.changed);
     Ok(())
 }

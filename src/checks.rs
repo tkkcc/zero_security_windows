@@ -160,6 +160,48 @@ impl Engine {
     }
     fn probe(&self, f: &Feature) -> Result<Option<Check>> {
         let active = match f.probe.as_str() {
+            "app-preloading" => {
+                let state = native::memory_agent(false)?;
+                let mut active = state.app_preloading() || !native::service_running("SysMain")?;
+                for op in f.ops.iter().filter(|op| op.kind != "AppPreloading") {
+                    active |= !satisfied(op, &self.read(op)?);
+                }
+                return Ok(Some(Check {
+                    state: if active { Status::Ready } else { Status::Done },
+                    detail: format!(
+                        "{}{}{}{}{}",
+                        choose(
+                            self.zh,
+                            "保留系统内存设置：内存压缩",
+                            "Windows memory settings retained: compression "
+                        ),
+                        choose(
+                            self.zh,
+                            if state.memory_compression {
+                                "开启"
+                            } else {
+                                "关闭"
+                            },
+                            if state.memory_compression {
+                                "on"
+                            } else {
+                                "off"
+                            }
+                        ),
+                        choose(self.zh, "，内存页合并", ", page combining "),
+                        choose(
+                            self.zh,
+                            if state.page_combining {
+                                "开启"
+                            } else {
+                                "关闭"
+                            },
+                            if state.page_combining { "on" } else { "off" }
+                        ),
+                        choose(self.zh, "。", "."),
+                    ),
+                }));
+            }
             "lsa" | "driver-signing" => {
                 for op in self.expand(f)? {
                     if !satisfied(&op, &self.read(&op)?) {
