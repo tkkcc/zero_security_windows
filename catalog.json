@@ -3461,8 +3461,8 @@
   },
   {
     "Id": "driver-updates",
-    "Zh": "自动驱动更新",
-    "En": "Automatic driver updates",
+    "Zh": "设备安装驱动搜索",
+    "En": "Device setup driver search",
     "PurposeZh": "关闭设备安装时的自动驱动搜索，保留控制面板的设备安装设置；不再强制排除更新驱动。",
     "PurposeEn": "Turns off automatic driver searching during device setup while preserving Device Installation Settings and update choices.",
     "GroupZh": "更新与还原",
@@ -4039,12 +4039,12 @@
     "Ops": [
       {
         "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Dsh",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Dsh",
         "Name": "AllowNewsAndInterests"
       },
       {
         "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Dsh",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Dsh",
         "Name": "AllowWidgets"
       },
       {

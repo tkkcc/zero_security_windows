@@ -492,6 +492,41 @@ fn ordinary_privacy_preferences_remain_user_editable_and_checks_do_not_reapply_t
 }
 
 #[test]
+fn widgets_detect_and_remove_the_policy_lock_before_accepting_user_preferences()
+-> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    let root = format!(
+        r"HKCU:\Software\ZeroSecurityWindowsWidgetsTest{}",
+        std::process::id()
+    );
+    let mut feature = engine.feature("widgets")?.clone();
+    feature.id = "test-widget-preferences".into();
+    for op in &mut feature.ops {
+        let (hive, path) = op.path.split_once(":\\").unwrap();
+        op.path = format!(r"{root}\{hive}\{path}");
+    }
+    let policy = format!(r"{root}\HKLM\SOFTWARE\Policies\Microsoft\Dsh");
+    let preference =
+        format!(r"{root}\HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced");
+    let result = (|| -> anyhow::Result<()> {
+        registry::set(&policy, "AllowNewsAndInterests", 0, "DWord")?;
+        registry::set(&preference, "TaskbarDa", 0, "DWord")?;
+        assert_eq!(engine.check(&feature).state, Status::Ready);
+        for op in &feature.ops {
+            engine.write(op)?;
+        }
+        assert!(registry::read(&policy, "AllowNewsAndInterests")?.is_null());
+        assert_eq!(engine.check(&feature).state, Status::Done);
+        registry::set(&preference, "TaskbarDa", 1, "DWord")?;
+        assert_eq!(engine.check(&feature).state, Status::Ready);
+        assert_eq!(registry::read(&preference, "TaskbarDa")?, json!(1));
+        Ok(())
+    })();
+    registry::key(&root, false)?;
+    result
+}
+
+#[test]
 fn per_user_service_repairs_keep_the_sign_in_requirement_across_retries() -> anyhow::Result<()> {
     let engine = Engine::new()?;
     let path = format!(
