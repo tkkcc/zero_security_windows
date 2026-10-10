@@ -341,7 +341,7 @@ impl App {
             message = format!(
                 "{} {running} · {} {queued}",
                 choose(self.zh, "执行中", "Running"),
-                choose(self.zh, "等待执行", "Queued")
+                choose(self.zh, "排队中", "Queued")
             );
         }
         if let Some((deadline, restart)) = self.countdown {
@@ -941,7 +941,7 @@ mod tests {
             app.focus(i);
             let mut terminal = Terminal::new(TestBackend::new(120, 30))?;
             for (state, label) in [
-                (Status::Ready, choose(zh, "待清理", "Needs cleanup")),
+                (Status::Ready, choose(zh, "可清理", "Can clean up")),
                 (Status::Done, choose(zh, "无固定项", "No pins")),
                 (Status::SignIn, choose(zh, "待重新登录", "Needs sign-in")),
             ] {

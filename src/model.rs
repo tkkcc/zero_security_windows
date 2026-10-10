@@ -295,7 +295,7 @@ impl Check {
             },
             Status::Queued => choose(
                 zh,
-                "已加入执行队列，等待执行。",
+                "已加入执行队列，尚未开始执行。",
                 "Queued and waiting to run.",
             ),
             Status::SafeQueued => choose(
@@ -383,18 +383,18 @@ impl Check {
         match self.state {
             Status::PendingCheck => choose(zh, "待检测", "Awaiting check"),
             Status::Checking => choose(zh, "检测中", "Checking"),
-            Status::Ready if f.id == "taskbar-pins" => choose(zh, "待清理", "Needs cleanup"),
+            Status::Ready if f.id == "taskbar-pins" => choose(zh, "可清理", "Can clean up"),
             Status::Done if f.id == "taskbar-pins" => choose(zh, "无固定项", "No pins"),
-            Status::Ready if f.id == "location" => choose(zh, "待关闭", "Needs disabling"),
+            Status::Ready if f.id == "location" => choose(zh, "可关闭", "Can turn off"),
             Status::Done if f.id == "location" => choose(zh, "已关闭", "Off"),
             Status::Ready if f.toggle() => "Windows 11",
             Status::Done if f.toggle() => "Windows 10",
             Status::Done if f.security() => choose(zh, "已优化", "Optimized"),
             Status::Ready => match f.intent.as_str() {
-                "Install" => choose(zh, "未安装", "Not installed"),
-                "Remove" => choose(zh, "已安装", "Installed"),
-                "Apply" => choose(zh, "待设置", "Needs configuration"),
-                _ => choose(zh, "待禁用", "Needs disabling"),
+                "Install" => choose(zh, "可安装", "Can install"),
+                "Remove" => choose(zh, "可卸载", "Can uninstall"),
+                "Apply" => choose(zh, "可设置", "Can configure"),
+                _ => choose(zh, "可禁用", "Can disable"),
             },
             Status::Done => match f.intent.as_str() {
                 "Install" => choose(zh, "已安装", "Installed"),
@@ -403,7 +403,7 @@ impl Check {
                 _ => choose(zh, "已禁用", "Disabled"),
             },
             Status::Running => choose(zh, "执行中", "Running"),
-            Status::Queued => choose(zh, "等待执行", "Queued"),
+            Status::Queued => choose(zh, "排队中", "Queued"),
             Status::SafeQueued => choose(zh, "待安全模式", "Needs Safe Mode"),
             Status::Restart => choose(zh, "待重启", "Needs restart"),
             Status::SignIn => choose(zh, "待重新登录", "Needs sign-in"),

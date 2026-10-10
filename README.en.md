@@ -37,4 +37,6 @@ Security items show “Optimized” once their configurable settings meet the ta
 
 Ordinary privacy, desktop and connection controls remain editable in their GUI. Checks only read user changes. Defender services and drivers use deep disabling. See the [GUI recovery audit](docs/GUI恢复检查.md) for the full scope.
 
-“Pinned taskbar apps” checks pins saved by Windows, showing “Needs cleanup” or “No pins” and listing their count and names below the table. Running windows also appear on the taskbar without necessarily being pinned.
+Items that have not run show available actions such as “Can install”, “Can uninstall”, “Can configure” and “Can disable”. Once added to the execution queue, they show “Queued”.
+
+“Pinned taskbar apps” checks pins saved by Windows, showing “Can clean up” or “No pins” and listing their count and names below the table. Running windows also appear on the taskbar without necessarily being pinned.
