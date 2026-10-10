@@ -23,7 +23,7 @@ Keys are case insensitive: **Space** runs or retries the selected item, **A** ru
 
 The right column shows short status labels. Select an item to see separate sections below the table: Purpose describes the target, Effect explains the scope or limitations, Status gives the current check results, and Action lists the available next step. Pause dates, saved taskbar pins and protection counts appear in Status.
 
-“Not running”, “Not applicable” and “Needs normal mode” describe the current environment. “Access restricted” and “Unconfirmed” mean Windows has not supplied a usable result; press **Space** to check again. Check diagnostics are saved in `%ProgramData%\ZeroSecurityWindows\checks.jsonl`. Actual execution failures appear in red as “Incomplete”; press **Space** to retry.
+“Not applicable” and “Needs normal mode” describe the current environment. “Skipped” means Windows restricts access to the setting; the reason and log are shown below, with no repeated check action. “Unconfirmed” means a usable result is temporarily unavailable; press **Space** to check again. Check diagnostics are saved in `%ProgramData%\ZeroSecurityWindows\checks.jsonl`. Actual execution failures appear in red as “Incomplete”; press **Space** to retry.
 
 Location access and location request notifications are turned off while their Windows Settings switches remain available.
 
@@ -33,7 +33,7 @@ Windows Update uses a long-term pause while its settings page and manual control
 
 General notifications are controlled by Windows and individual applications.
 
-Security checks cover configurable settings and actual running protections. Windows-mandated or application-enabled protections may remain; these show “Protection retained” with specific results below the table. Windows mandates DEP for 64-bit applications.
+Security items show “Optimized” once their configurable settings meet the target, with no repeat action. Windows-mandated or application-enabled protections may remain; the details explain runtime results and limits. “Optimized” does not mean every process has all protections disabled. Windows mandates DEP for 64-bit applications. When Defender or phishing protection background services are disabled, dependent warnings need no separate action.
 
 Ordinary privacy, desktop and connection controls remain editable in their GUI. Checks only read user changes. Defender services and drivers use deep disabling. See the [GUI recovery audit](docs/GUI恢复检查.md) for the full scope.
 

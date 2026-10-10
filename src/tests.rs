@@ -686,7 +686,7 @@ fn apply_requested_background_and_boot_settings_on_this_machine() -> anyhow::Res
         assert!(result.errors.is_empty(), "{id}: {:?}", result.errors);
         assert!(matches!(
             engine.check(f).state,
-            Status::Done | Status::Restart | Status::Limited | Status::SignIn
+            Status::Done | Status::Restart | Status::SignIn
         ));
     }
     let after = native::processes()?;

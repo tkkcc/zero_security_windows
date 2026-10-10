@@ -21,7 +21,7 @@ curl.exe -fL https://github.com/tkkcc/zero_security_windows/releases/latest/down
 
 右侧显示简短状态，选中后在底部查看分区详情：功能是执行目标，影响是适用范围或限制，状态是当前检测结果，操作是可用的下一步。暂停日期、固定应用列表和防护计数显示在状态区。
 
-“未运行”“无需处理”“待正常模式”表示当前环境无需执行或需要切换模式。“读取受限”“状态待确认”表示 Windows 尚未提供可用结果，按 **Space** 重新检测。检测信息保存在 `%ProgramData%\ZeroSecurityWindows\checks.jsonl`；实际执行失败显示红色“执行未完成”，可按 **Space** 重试。
+“无需处理”“待正常模式”表示当前环境无需执行或需要切换模式。“已跳过”表示 Windows 限制该设置的访问，原因和日志显示在底部，无需反复尝试。“状态待确认”表示暂未获得可用结果，可按 **Space** 重新检测。检测信息保存在 `%ProgramData%\ZeroSecurityWindows\checks.jsonl`；实际执行失败显示红色“执行未完成”，可按 **Space** 重试。
 
 位置访问与应用请求位置的通知默认关闭，保留 Windows 设置里的手动开关。
 
@@ -31,7 +31,7 @@ curl.exe -fL https://github.com/tkkcc/zero_security_windows/releases/latest/down
 
 通用通知交由 Windows 和各应用自行控制。
 
-安全机制同时检查可配置的设置和实际运行状态。Windows 强制或程序自行启用的防护可能保留，显示“部分防护保留”，并在底部列出具体结果。64 位程序的 DEP 由 Windows 强制启用。
+安全项目的可配置设置达到目标后显示“已优化”，不再提供重复执行。Windows 强制或程序自行启用的防护可能保留，底部说明实际运行情况与限制；“已优化”不表示所有进程的防护全部关闭。64 位程序的 DEP 由 Windows 强制启用。Defender 或钓鱼防护后台已停用时，依赖它们的提醒不再要求单独处理。
 
 普通隐私、桌面和连接设置保留 GUI 手动控制，用户修改后只检测状态。Defender 服务、驱动等采用深度禁用，完整范围见 [GUI 恢复检查](docs/GUI恢复检查.md)。
 

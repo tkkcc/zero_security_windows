@@ -3251,13 +3251,6 @@
         "Type": "DWord",
         "Value": 0,
         "Kind": "Registry"
-      },
-      {
-        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WTDS\\Components",
-        "Name": "ServiceEnabled",
-        "Type": "DWord",
-        "Value": 0,
-        "Kind": "Registry"
       }
     ],
     "Probe": "phishing",

@@ -260,11 +260,14 @@ impl App {
                 color: self.palette.blue,
             });
         }
-        if state.recheckable() || state.state == Status::Failed {
+        if matches!(
+            state.state,
+            Status::Unknown | Status::Restricted | Status::Failed
+        ) {
             sections.push(DetailSection {
                 label: choose(self.zh, "日志", "Log"),
                 text: store::root()
-                    .join(if state.recheckable() {
+                    .join(if state.state != Status::Failed {
                         "checks.jsonl"
                     } else {
                         "operations.jsonl"
@@ -549,16 +552,10 @@ impl App {
                     }
                 }
                 let failures = self
-                    .engine
-                    .as_ref()
-                    .map(|e| {
-                        let results = e.store.results.lock().unwrap();
-                        e.catalog
-                            .iter()
-                            .filter(|f| results.get(&f.id).is_some_and(|r| !r.errors.is_empty()))
-                            .count()
-                    })
-                    .unwrap_or(0);
+                    .states
+                    .iter()
+                    .filter(|s| s.state == Status::Failed)
+                    .count();
                 self.message = format!(
                     "{} {processed} {}",
                     choose(self.zh, "已处理", "Processed"),
@@ -578,6 +575,21 @@ impl App {
                     ))
                 }
                 let unconfirmed = self.states.iter().filter(|s| s.recheckable()).count();
+                let skipped = self
+                    .states
+                    .iter()
+                    .filter(|s| s.state == Status::Restricted)
+                    .count();
+                if skipped > 0 {
+                    self.message.push_str(&format!(
+                        " · {skipped} {}",
+                        choose(
+                            self.zh,
+                            "项受系统限制，已跳过",
+                            "skipped due to system restrictions"
+                        )
+                    ));
+                }
                 if unconfirmed > 0 {
                     self.message.push_str(&format!(
                         " · {unconfirmed} {}",
@@ -763,7 +775,7 @@ mod tests {
             for (id, state, detail) in [
                 (
                     "process-mitigations",
-                    Status::Limited,
+                    Status::Done,
                     choose(
                         zh,
                         "启动配置已关闭。仍启用的防护（数量为已读取的 Windows 进程数）：\n数据执行保护 DEP：170；地址随机化 ASLR：8\n动态代码限制：3；严格句柄检查：71\n系统调用限制：1；扩展点限制：2\n控制流保护 CFG：1；代码签名限制：5\n字体加载限制：3；映像加载限制：4\n子进程限制：3；堆栈保护 CET：53\n重定向信任检查：12；异常处理链保护：170",
@@ -772,7 +784,7 @@ mod tests {
                 ),
                 (
                     "dep",
-                    Status::Limited,
+                    Status::Done,
                     choose(
                         zh,
                         "启动策略已关闭；当前 64 位进程的 DEP 仍开启。",
@@ -810,6 +822,13 @@ mod tests {
                         state,
                         detail: detail.into(),
                     };
+                    if state == Status::Done && app.catalog[i].security() {
+                        assert_eq!(
+                            app.states[i].label(&app.catalog[i], zh),
+                            choose(zh, "已优化", "Optimized")
+                        );
+                        assert!(app.space_command().is_none());
+                    }
                     let sections = app.detail_sections();
                     assert_eq!(sections[0].label, choose(zh, "功能", "Purpose"));
                     assert!(
@@ -955,24 +974,22 @@ mod tests {
             .position(|f| f.id == "phishing-protection")
             .unwrap();
         app.focus(i);
-        for state in [Status::Unknown, Status::Restricted] {
-            app.states[i] = Check::new(state);
-            let command = app.space_command().unwrap();
-            assert!(matches!(&command, Command::Scan(indices) if indices == &[i]));
-            app.command(&command);
-            assert!(!app.busy);
-            assert_eq!(app.selected(), Some(i));
-            assert_eq!(app.states[i].state, Status::PendingCheck);
-            app.receive(Message::State(i, Check::new(Status::Ready), 0), 0);
-            assert!(matches!(app.space_command(), Some(Command::One(n)) if n == i));
-        }
+        app.states[i] = Check::new(Status::Unknown);
+        let command = app.space_command().unwrap();
+        assert!(matches!(&command, Command::Scan(indices) if indices == &[i]));
+        app.command(&command);
+        assert!(!app.busy);
+        assert_eq!(app.selected(), Some(i));
+        assert_eq!(app.states[i].state, Status::PendingCheck);
+        app.receive(Message::State(i, Check::new(Status::Ready), 0), 0);
+        assert!(matches!(app.space_command(), Some(Command::One(n)) if n == i));
         app.states[i] = Check::new(Status::Failed);
         assert!(matches!(app.space_command(), Some(Command::One(n)) if n == i));
         for state in [
             Status::Absent,
-            Status::Inactive,
             Status::Deferred,
-            Status::Limited,
+            Status::Done,
+            Status::Restricted,
         ] {
             app.states[i] = Check::new(state);
             assert!(app.space_command().is_none());
@@ -993,7 +1010,6 @@ mod tests {
                 for state in [
                     Status::Unknown,
                     Status::Restricted,
-                    Status::Inactive,
                     Status::Absent,
                     Status::Deferred,
                 ] {
@@ -1180,6 +1196,30 @@ mod tests {
         );
         assert!(app.countdown.is_none());
         assert!(app.message.contains("1 项状态待确认"));
+        app.states[0] = Check::new(Status::Restricted);
+        app.receive(
+            Message::Finished {
+                processed: 1,
+                restart: false,
+                auto: true,
+                refresh: vec![],
+            },
+            0,
+        );
+        assert!(app.countdown.is_some());
+        assert!(app.message.contains("1 项受系统限制，已跳过"));
+        app.states[0] = Check::new(Status::Failed);
+        app.receive(
+            Message::Finished {
+                processed: 1,
+                restart: false,
+                auto: true,
+                refresh: vec![],
+            },
+            0,
+        );
+        assert!(app.countdown.is_none());
+        assert!(app.message.contains("1 项执行未完成"));
         Ok(())
     }
     #[test]

@@ -174,8 +174,6 @@ pub enum Status {
     Done,
     Unknown,
     Restricted,
-    Inactive,
-    Limited,
     Absent,
     Running,
     Queued,
@@ -210,7 +208,7 @@ impl Check {
         )
     }
     pub fn recheckable(&self) -> bool {
-        matches!(self.state, Status::Unknown | Status::Restricted)
+        self.state == Status::Unknown
     }
     pub fn summary(&self, f: &Feature, zh: bool) -> &str {
         match self.state {
@@ -243,6 +241,12 @@ impl Check {
                     "Current settings do not fully match this item's target.",
                 ),
             },
+            Status::Done if f.security() && !self.detail.is_empty() => "",
+            Status::Done if f.security() => choose(
+                zh,
+                "可配置的设置已达到此项目的优化目标。",
+                "Configurable settings meet this item's optimization target.",
+            ),
             Status::Done => match f.intent.as_str() {
                 "Install" => choose(zh, "此应用已安装。", "This application is installed."),
                 "Remove" => choose(
@@ -263,19 +267,8 @@ impl Check {
             ),
             Status::Restricted => choose(
                 zh,
-                "Windows 限制了此设置的读取权限。",
-                "Windows restricts access to this setting's status.",
-            ),
-            Status::Inactive => choose(
-                zh,
-                "Defender 未运行，篡改防护的实时状态不可用。",
-                "Defender is not running, so live tamper protection status is unavailable.",
-            ),
-            Status::Limited if !self.detail.is_empty() => "",
-            Status::Limited => choose(
-                zh,
-                "可调整的配置已关闭，系统或程序仍保留部分防护。",
-                "Configurable settings are off; Windows or applications retain some protections.",
+                "Windows 限制了此设置的访问，此项目已跳过。",
+                "Windows restricts access to this setting; this item has been skipped.",
             ),
             Status::Absent => choose(
                 zh,
@@ -358,7 +351,7 @@ impl Check {
                 }
             }
             Status::Failed => choose(zh, "按 Space 重试。", "Press Space to retry."),
-            Status::Unknown | Status::Restricted => choose(
+            Status::Unknown => choose(
                 zh,
                 "按 Space 重新检测；执行全部时暂时跳过此项目。",
                 "Press Space to check again; Run all skips this item for now.",
@@ -396,6 +389,7 @@ impl Check {
             Status::Done if f.id == "location" => choose(zh, "已关闭", "Off"),
             Status::Ready if f.toggle() => "Windows 11",
             Status::Done if f.toggle() => "Windows 10",
+            Status::Done if f.security() => choose(zh, "已优化", "Optimized"),
             Status::Ready => match f.intent.as_str() {
                 "Install" => choose(zh, "未安装", "Not installed"),
                 "Remove" => choose(zh, "已安装", "Installed"),
@@ -416,9 +410,7 @@ impl Check {
             Status::Failed => choose(zh, "执行未完成", "Incomplete"),
             Status::Deferred => choose(zh, "待正常模式", "Needs normal mode"),
             Status::Unknown => choose(zh, "状态待确认", "Unconfirmed"),
-            Status::Restricted => choose(zh, "读取受限", "Access restricted"),
-            Status::Inactive => choose(zh, "未运行", "Not running"),
-            Status::Limited => choose(zh, "部分防护保留", "Protection retained"),
+            Status::Restricted => choose(zh, "已跳过", "Skipped"),
             Status::Absent => choose(zh, "无需处理", "Not applicable"),
         }
         .into()

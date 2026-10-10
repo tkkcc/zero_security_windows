@@ -41,10 +41,10 @@ impl Engine {
             }
         };
         if let Some(result) = self.store.results.lock().unwrap().get_mut(&f.id) {
-            if matches!(check.state, Status::Done | Status::Limited) {
+            if matches!(check.state, Status::Done | Status::Absent) {
                 result.errors.clear();
             }
-            if !result.errors.is_empty() {
+            if !result.errors.is_empty() && check.state != Status::Restricted {
                 check = Check {
                     state: Status::Failed,
                     detail: result.errors.join("; "),
@@ -202,10 +202,10 @@ impl Engine {
                 }
                 let (policy, enabled) = native::dep()?;
                 return Ok(Some(Check {
-                    state: if policy == 0 && !enabled {
+                    state: if policy == 0 {
                         Status::Done
                     } else {
-                        Status::Limited
+                        Status::Restart
                     },
                     detail: if policy != 0 {
                         choose(self.zh, "启动参数已设为关闭；当前系统 DEP 策略仍开启。", "The boot option is set to off; the current system DEP policy is still enabled.")
@@ -227,11 +227,7 @@ impl Engine {
                 } else {
                     native::code_integrity()?
                 };
-                let mut check = Check::new(if running {
-                    Status::Limited
-                } else {
-                    Status::Done
-                });
+                let mut check = Check::new(Status::Done);
                 if running {
                     check.detail = if f.probe == "lsa" {
                         choose(self.zh, "启动保护已设为关闭；当前登录安全进程仍以受保护模式运行。", "Startup protection is set to off; the sign-in security process is still running in protected mode.")
@@ -312,11 +308,14 @@ impl Engine {
                     return Ok(None);
                 }
                 if !native::service_running("WinDefend")? {
-                    return Ok(Some(Check::new(if f.probe == "tamper" {
-                        Status::Inactive
+                    return Ok(Some(if f.probe == "tamper" {
+                        Check {
+                            state: Status::Absent,
+                            detail: choose(self.zh, "Defender 未运行，篡改防护无需单独处理。", "Defender is not running; tamper protection needs no separate action.").into(),
+                        }
                     } else {
-                        Status::Done
-                    })));
+                        Check::new(Status::Done)
+                    }));
                 }
                 let rows = self.fact("mp", || {
                     native::wmi(
@@ -344,20 +343,19 @@ impl Engine {
                 )? != 0
             }
             "phishing" => {
-                for path in [
-                    r"HKLM:\SOFTWARE\Policies\Microsoft\Windows\WTDS\Components",
-                    r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WTDS\Components",
-                ] {
-                    if same(&reg::read(path, "ServiceEnabled")?, &json!(0)) {
-                        return Ok(Some(Check::new(Status::Done)));
-                    }
+                let background = self.check_inner(self.feature("phishing-services")?)?;
+                if matches!(background.state, Status::Done | Status::Absent) {
+                    return Ok(Some(Check {
+                        state: background.state,
+                        detail: if background.state == Status::Done {
+                            choose(self.zh, "钓鱼防护后台已禁用且未运行，密码安全提醒无需单独处理。", "Phishing protection background services are disabled and stopped; password warnings need no separate action.").into()
+                        } else {
+                            String::new()
+                        },
+                    }));
                 }
-                if !reg::exists(r"HKLM:\SYSTEM\CurrentControlSet\Services\webthreatdefsvc")?
-                    && !reg::exists(r"HKLM:\SYSTEM\CurrentControlSet\Services\webthreatdefusersvc")?
-                {
-                    return Ok(Some(Check::new(Status::Absent)));
-                }
-                return Ok(None);
+                let op = &f.ops[0];
+                return Ok(Some(Check::active(!satisfied(op, &self.read(op)?))));
             }
             "cpu" => {
                 let cpu = native::query_flags(201)?;
@@ -376,30 +374,30 @@ impl Engine {
                 }
                 let runtime = mitigation::runtime(self.zh)?;
                 return Ok(Some(Check {
-                    state: if runtime.is_empty() {
-                        Status::Done
+                    state: Status::Done,
+                    detail: if runtime.is_empty() {
+                        String::new()
                     } else {
-                        Status::Limited
+                        format!(
+                            "{}{}",
+                            choose(
+                                self.zh,
+                                "启动配置已关闭。仍启用的防护（数量为已读取的 Windows 进程数）：\n",
+                                "Startup settings are off. Retained protections (counts are inspected Windows processes):\n"
+                            ),
+                            runtime
+                                .iter()
+                                .map(|(name, count)| format!(
+                                    "{name}{}{count}",
+                                    choose(self.zh, "：", ": ")
+                                ))
+                                .collect::<Vec<_>>()
+                                .chunks(2)
+                                .map(|pair| pair.join(choose(self.zh, "；", "; ")))
+                                .collect::<Vec<_>>()
+                                .join("\n")
+                        )
                     },
-                    detail: format!(
-                        "{}{}",
-                        choose(
-                            self.zh,
-                            "启动配置已关闭。仍启用的防护（数量为已读取的 Windows 进程数）：\n",
-                            "Startup settings are off. Retained protections (counts are inspected Windows processes):\n"
-                        ),
-                        runtime
-                            .iter()
-                            .map(|(name, count)| format!(
-                                "{name}{}{count}",
-                                choose(self.zh, "：", ": ")
-                            ))
-                            .collect::<Vec<_>>()
-                            .chunks(2)
-                            .map(|pair| pair.join(choose(self.zh, "；", "; ")))
-                            .collect::<Vec<_>>()
-                            .join("\n")
-                    ),
                 }));
             }
             "updates" => {
@@ -479,7 +477,15 @@ mod tests {
         feature.id = "test-dep-restart".into();
         feature.ops.clear();
         let before = engine.check(&feature);
-        assert!(matches!(before.state, Status::Done | Status::Limited));
+        let (policy, _) = native::dep()?;
+        assert_eq!(
+            before.state,
+            if policy == 0 {
+                Status::Done
+            } else {
+                Status::Restart
+            }
+        );
         let mut results = engine.store.results.lock().unwrap();
         results.insert(
             feature.id.clone(),
@@ -528,6 +534,66 @@ mod tests {
     }
 
     #[test]
+    fn phishing_completion_uses_background_or_policy_without_reading_internal_state() -> Result<()>
+    {
+        use winreg::{RegKey, enums::HKEY_CURRENT_USER};
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let name = format!(
+            r"Software\ZeroSecurityWindowsPhishingTest{}",
+            std::process::id()
+        );
+        let (key, _) = root.create_subkey(&name)?;
+        let path = format!(r"HKCU:\{name}");
+        let mut engine = Engine::new()?;
+        let background = engine
+            .catalog
+            .iter()
+            .position(|f| f.id == "phishing-services")
+            .unwrap();
+        engine.catalog[background].ops = vec![Operation::reg(&path, "Background", 0)];
+        let mut f = engine.feature("phishing-protection")?.clone();
+        f.id = "test-phishing-completion".into();
+        let result = (|| -> Result<()> {
+            key.set_value("Background", &0u32)?;
+            // The feature is complete without opening even an invalid policy path.
+            f.ops[0].path = "HKLM:\\invalid\0path".into();
+            engine.store.results.lock().unwrap().insert(
+                f.id.clone(),
+                ResultRecord {
+                    errors: vec!["old status read failure".into()],
+                    ..Default::default()
+                },
+            );
+            let done = engine.check(&f);
+            assert_eq!(done.state, Status::Done);
+            assert!(!done.actionable());
+            assert!(!done.recheckable());
+            assert!(!done.detail.is_empty());
+            assert!(
+                engine.store.results.lock().unwrap()[&f.id]
+                    .errors
+                    .is_empty()
+            );
+
+            key.set_value("Background", &1u32)?;
+            f.ops[0].path = path.clone();
+            assert_eq!(engine.check(&f).state, Status::Ready);
+            key.set_value("ServiceEnabled", &0u32)?;
+            assert_eq!(engine.check(&f).state, Status::Done);
+            key.set_value("ServiceEnabled", &1u32)?;
+            assert_eq!(engine.check(&f).state, Status::Ready);
+
+            engine.catalog[background].ops.clear();
+            f.ops[0].path = "HKLM:\\invalid\0path".into();
+            assert_eq!(engine.check(&f).state, Status::Absent);
+            Ok(())
+        })();
+        drop(key);
+        root.delete_subkey_all(&name)?;
+        result
+    }
+
+    #[test]
     fn status_read_restrictions_are_separate_from_execution_failures() {
         for error in [
             anyhow::Error::new(std::io::Error::from_raw_os_error(5)).context("reading state"),
@@ -537,7 +603,7 @@ mod tests {
         ] {
             let check = check_error(&error);
             assert_eq!(check.state, Status::Restricted);
-            assert!(check.recheckable());
+            assert!(!check.recheckable());
             assert!(!check.actionable());
             assert!(!check.detail.is_empty());
         }

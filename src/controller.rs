@@ -176,7 +176,9 @@ fn affected(engine: &Engine, command: &Command) -> Vec<usize> {
         .enumerate()
         .filter(|(_, f)| {
             touched.iter().any(|t| {
-                t.group_zh == f.group_zh && matches!(t.group_zh.as_str(), "Defender" | "核心隔离")
+                t.id == "phishing-services" && f.id == "phishing-protection"
+                    || t.group_zh == f.group_zh
+                        && matches!(t.group_zh.as_str(), "Defender" | "核心隔离")
                     || t.ops.iter().any(|a| {
                         f.ops.iter().any(|b| {
                             a.kind == b.kind && matches!(a.kind.as_str(), "Apps" | "TaskGroup")
