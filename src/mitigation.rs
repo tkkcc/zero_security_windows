@@ -1,4 +1,4 @@
-use crate::{native, registry as reg};
+use crate::{model::choose, native, registry as reg};
 use anyhow::{Result, ensure};
 use std::ffi::c_void;
 #[link(name = "kernel32")]
@@ -143,23 +143,23 @@ pub fn active() -> Result<bool> {
     Ok(false)
 }
 // Runtime policy IDs differ from RTL image policy IDs. Audit-only bits do not enforce protection.
-const RUNTIME: &[(u32, u32, &str)] = &[
-    (0, 1, "DEP"),
-    (1, 7, "ASLR"),
-    (2, 1, "DynamicCode"),
-    (3, 3, "StrictHandle"),
-    (4, 1, "Win32k"),
-    (6, 1, "ExtensionPoint"),
-    (7, 1, "CFG"),
-    (8, 3, "Signature"),
-    (9, 1, "Font"),
-    (10, 7, "ImageLoad"),
-    (13, 1, "ChildProcess"),
-    (15, 5, "CET"),
-    (16, 1, "RedirectionTrust"),
-    (18, 1, "SEHOP"),
+const RUNTIME: &[(u32, u32, &str, &str)] = &[
+    (0, 1, "数据执行保护 DEP", "DEP"),
+    (1, 7, "地址随机化 ASLR", "ASLR"),
+    (2, 1, "动态代码限制", "Dynamic code"),
+    (3, 3, "严格句柄检查", "Strict handle checks"),
+    (4, 1, "系统调用限制", "Win32k restrictions"),
+    (6, 1, "扩展点限制", "Extension point restrictions"),
+    (7, 1, "控制流保护 CFG", "Control flow guard"),
+    (8, 3, "代码签名限制", "Code signing restrictions"),
+    (9, 1, "字体加载限制", "Font restrictions"),
+    (10, 7, "映像加载限制", "Image loading restrictions"),
+    (13, 1, "子进程限制", "Child process restrictions"),
+    (15, 5, "堆栈保护 CET", "Stack protection CET"),
+    (16, 1, "重定向信任检查", "Redirection trust checks"),
+    (18, 1, "异常处理链保护", "Exception chain protection"),
 ];
-pub fn runtime() -> Result<Vec<(String, usize)>> {
+pub fn runtime(zh: bool) -> Result<Vec<(String, usize)>> {
     let mut counts = vec![0; RUNTIME.len()];
     for (id, image) in native::process_images()? {
         if !windows_image(&image) {
@@ -170,7 +170,7 @@ pub fn runtime() -> Result<Vec<(String, usize)>> {
             if process.is_null() {
                 continue;
             }
-            for (i, &(policy, mask, _)) in RUNTIME.iter().enumerate() {
+            for (i, &(policy, mask, _, _)) in RUNTIME.iter().enumerate() {
                 let mut flags = [0u32; 2];
                 let size = if policy == 0 { 8 } else { 4 };
                 if GetProcessMitigationPolicy(process, policy, flags.as_mut_ptr().cast(), size) != 0
@@ -186,7 +186,7 @@ pub fn runtime() -> Result<Vec<(String, usize)>> {
         .iter()
         .zip(counts)
         .filter(|(_, count)| *count != 0)
-        .map(|((_, _, name), count)| (name.to_string(), count))
+        .map(|((_, _, zh_name, en_name), count)| (choose(zh, zh_name, en_name).to_string(), count))
         .collect())
 }
 pub fn disable() -> Result<()> {

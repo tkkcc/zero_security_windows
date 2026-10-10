@@ -8,11 +8,9 @@ use crate::{
 use anyhow::Result;
 use serde_json::json;
 
-fn check_error(f: &Feature, error: &anyhow::Error) -> Check {
+fn check_error(error: &anyhow::Error) -> Check {
     Check {
-        state: if f.page == "Install" {
-            Status::Failed
-        } else if error.chain().any(|cause| {
+        state: if error.chain().any(|cause| {
             cause
                 .downcast_ref::<std::io::Error>()
                 .and_then(|e| e.raw_os_error())
@@ -34,7 +32,7 @@ impl Engine {
         let mut check = match self.check_inner(f) {
             Ok(v) => v,
             Err(e) => {
-                let check = check_error(f, &e);
+                let check = check_error(&e);
                 let _ = store::append(
                     "checks.jsonl",
                     &json!({"Time":chrono::Local::now().to_rfc3339(),"Id":f.id,"Error":check.detail}).to_string(),
@@ -58,7 +56,7 @@ impl Engine {
                 && result.boot == self.boot
                 && native::logon().ok() == Some(result.logon)
             {
-                check = Check::new(Status::SignIn)
+                check.state = Status::SignIn;
             } else if result.shell != 0 && native::shell_stamp().ok() == Some(result.shell) {
                 check = Check {
                     state: Status::SignIn,
@@ -148,8 +146,8 @@ impl Engine {
                 state: Status::Restart,
                 detail: choose(
                     self.zh,
-                    "已禁用后续启动，当前服务保留到重启。",
-                    "Future starts are disabled; the current service remains until restart.",
+                    "服务已设为禁用，当前实例仍在运行。",
+                    "The service is set to Disabled; its current instance is still running.",
                 )
                 .into(),
             });
@@ -168,11 +166,7 @@ impl Engine {
                     state: if active { Status::Ready } else { Status::Done },
                     detail: format!(
                         "{}{}{}{}{}",
-                        choose(
-                            self.zh,
-                            "保留系统内存设置：内存压缩",
-                            "Windows memory settings retained: compression "
-                        ),
+                        choose(self.zh, "当前内存压缩：", "Memory compression: "),
                         choose(
                             self.zh,
                             if state.memory_compression {
@@ -186,7 +180,7 @@ impl Engine {
                                 "off"
                             }
                         ),
-                        choose(self.zh, "，内存页合并", ", page combining "),
+                        choose(self.zh, "；内存页合并：", "; page combining: "),
                         choose(
                             self.zh,
                             if state.page_combining {
@@ -214,9 +208,9 @@ impl Engine {
                         Status::Limited
                     },
                     detail: if policy != 0 {
-                        choose(self.zh, "关闭启动设置已保存，当前系统 DEP 策略仍开启；重启后按实际运行状态核验。", "The disable boot setting is saved, but the current system DEP policy remains enabled; verify its live state after restart.")
+                        choose(self.zh, "启动参数已设为关闭；当前系统 DEP 策略仍开启。", "The boot option is set to off; the current system DEP policy is still enabled.")
                     } else if enabled {
-                        choose(self.zh, "DEP 启动策略已关闭；Windows 对 64 位程序强制保留 DEP，无法通过此设置关闭。", "The DEP boot policy is off; Windows mandates DEP for 64-bit programs, which this setting cannot disable.")
+                        choose(self.zh, "启动策略已关闭；当前 64 位进程的 DEP 仍开启。", "The boot policy is off; DEP remains enabled for the current 64-bit process.")
                     } else {
                         choose(self.zh, "DEP 启动策略及当前进程 DEP 已关闭。", "The DEP boot policy and current process DEP are off.")
                     }.into(),
@@ -240,9 +234,9 @@ impl Engine {
                 });
                 if running {
                     check.detail = if f.probe == "lsa" {
-                        choose(self.zh, "LSASS 当前仍以受保护进程运行；若重启后仍保留，请检查固件锁定或系统策略。", "LSASS is still protected; if retained after restart, inspect the firmware lock or Windows policy.")
+                        choose(self.zh, "启动保护已设为关闭；当前登录安全进程仍以受保护模式运行。", "Startup protection is set to off; the sign-in security process is still running in protected mode.")
                     } else {
-                        choose(self.zh, "启动参数已写入，当前内核代码完整性仍开启；是否允许关闭由 Windows 启动验证决定。", "Boot setting is saved; kernel code integrity remains enabled. Windows boot verification decides whether it can be disabled.")
+                        choose(self.zh, "启动参数已设为关闭；内核代码完整性检查仍开启。", "The boot option is set to off; kernel code integrity checks remain enabled.")
                     }.into();
                 }
                 return Ok(Some(check));
@@ -380,7 +374,7 @@ impl Engine {
                 {
                     return Ok(Some(Check::new(Status::Ready)));
                 }
-                let runtime = mitigation::runtime()?;
+                let runtime = mitigation::runtime(self.zh)?;
                 return Ok(Some(Check {
                     state: if runtime.is_empty() {
                         Status::Done
@@ -391,14 +385,20 @@ impl Engine {
                         "{}{}",
                         choose(
                             self.zh,
-                            "运行中的 Windows 进程仍有：",
-                            "Running Windows processes retain: "
+                            "启动配置已关闭。仍启用的防护（数量为已读取的 Windows 进程数）：\n",
+                            "Startup settings are off. Retained protections (counts are inspected Windows processes):\n"
                         ),
                         runtime
                             .iter()
-                            .map(|(name, count)| format!("{name} {count}"))
+                            .map(|(name, count)| format!(
+                                "{name}{}{count}",
+                                choose(self.zh, "：", ": ")
+                            ))
                             .collect::<Vec<_>>()
-                            .join("、")
+                            .chunks(2)
+                            .map(|pair| pair.join(choose(self.zh, "；", "; ")))
+                            .collect::<Vec<_>>()
+                            .join("\n")
                     ),
                 }));
             }
@@ -434,7 +434,7 @@ impl Engine {
                 let mut check = Check::active(active);
                 check.detail = format!(
                     "{}{}",
-                    choose(self.zh, "暂停至 ", "Paused to "),
+                    choose(self.zh, "更新暂停至 ", "Updates paused until "),
                     expiry.format("%Y-%m-%d")
                 );
                 return Ok(Some(check));
@@ -529,32 +529,23 @@ mod tests {
 
     #[test]
     fn status_read_restrictions_are_separate_from_execution_failures() {
-        let feature = Feature::default();
         for error in [
             anyhow::Error::new(std::io::Error::from_raw_os_error(5)).context("reading state"),
             anyhow::Error::new(windows::core::Error::from_hresult(windows::core::HRESULT(
                 0x80070005_u32 as i32,
             ))),
         ] {
-            let check = check_error(&feature, &error);
+            let check = check_error(&error);
             assert_eq!(check.state, Status::Restricted);
             assert!(check.recheckable());
             assert!(!check.actionable());
             assert!(!check.detail.is_empty());
         }
         let error = anyhow::anyhow!("invalid state returned by Windows");
-        let check = check_error(&feature, &error);
+        let check = check_error(&error);
         assert_eq!(check.state, Status::Unknown);
         assert!(check.recheckable());
         assert!(!check.actionable());
-        let installer = Feature {
-            page: "Install".into(),
-            ..feature
-        };
-        let check = check_error(&installer, &error);
-        assert_eq!(check.state, Status::Failed);
-        assert!(check.actionable());
-        assert!(!check.recheckable());
     }
 
     #[test]

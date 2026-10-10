@@ -3,8 +3,8 @@
     "Id": "security-notifications",
     "Zh": "安全通知与托盘图标",
     "En": "Security notifications and tray icon",
-    "PurposeZh": "防护状态通知、保护关闭提醒和安全中心托盘图标。",
-    "PurposeEn": "Protection status notifications, protection-off alerts and the security tray icon.",
+    "PurposeZh": "关闭防护状态提醒、保护关闭提示和安全中心托盘图标。",
+    "PurposeEn": "Turn off protection status alerts, protection-off reminders and the security tray icon.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -55,14 +55,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "其他应用的通知弹窗、声音和通知中心由 Windows 管理。",
+    "ImpactEn": "Windows continues to manage other application notifications, sounds and Notification Center."
   },
   {
     "Id": "network-prompts",
     "Zh": "网络安全提示",
     "En": "Network security prompts",
-    "PurposeZh": "关闭防火墙通知和新网络提示，保留 Windows 界面的手动控制。",
-    "PurposeEn": "Turns off firewall notifications and new-network prompts while preserving manual controls.",
+    "PurposeZh": "关闭防火墙通知和连接新网络时的提示。",
+    "PurposeEn": "Turn off firewall notifications and prompts for new networks.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -117,8 +119,8 @@
     "Id": "firewall",
     "Zh": "防火墙",
     "En": "Firewall",
-    "PurposeZh": "关闭防火墙，保留 Windows 界面的手动控制。",
-    "PurposeEn": "Turns off the firewall while preserving manual controls.",
+    "PurposeZh": "关闭域、专用和公用网络的 Windows 防火墙。",
+    "PurposeEn": "Turn off Windows Firewall for domain, private and public networks.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -165,8 +167,8 @@
     "Id": "uac",
     "Zh": "用户账户控制（UAC）",
     "En": "User Account Control (UAC)",
-    "PurposeZh": "控制应用获得管理员权限的方式。",
-    "PurposeEn": "Controls how applications obtain administrator privileges.",
+    "PurposeZh": "关闭用户账户控制，取消应用请求管理员权限时的确认。",
+    "PurposeEn": "Turn off User Account Control and administrator approval prompts.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -205,14 +207,16 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "更改系统级权限控制，不仅是隐藏提示。",
+    "ImpactEn": "Changes system-level privilege control, beyond hiding approval prompts."
   },
   {
     "Id": "smartscreen",
     "Zh": "应用与下载信誉检查",
     "En": "App and download reputation",
-    "PurposeZh": "检查下载文件及应用的来源与信誉。",
-    "PurposeEn": "Checks the source and reputation of downloads and apps.",
+    "PurposeZh": "关闭 Windows 对应用和下载文件的信誉检查。",
+    "PurposeEn": "Turn off Windows reputation checks for applications and downloaded files.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -255,8 +259,8 @@
     "Id": "edge-smartscreen",
     "Zh": "Edge 信誉检查",
     "En": "Edge reputation checks",
-    "PurposeZh": "检查 Edge 中的网站和下载文件信誉。",
-    "PurposeEn": "Checks website and download reputation in Microsoft Edge.",
+    "PurposeZh": "关闭 Edge 对网站、下载文件和潜在不需要应用的信誉检查。",
+    "PurposeEn": "Turn off Edge reputation checks for websites, downloads and potentially unwanted applications.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -287,8 +291,8 @@
     "Id": "open-file-warning",
     "Zh": "下载文件安全提示",
     "En": "Downloaded file warnings",
-    "PurposeZh": "标记下载文件来源并显示打开文件安全提示。",
-    "PurposeEn": "Marks downloaded file origins and displays security prompts.",
+    "PurposeZh": "停止为新下载的文件标记来源，并减少打开文件时的安全提示。",
+    "PurposeEn": "Stop marking the origin of newly downloaded files and reduce file-opening security prompts.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -313,14 +317,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "不会移除现有文件的来源标记。",
+    "ImpactEn": "Existing file origin markers are not removed."
   },
   {
     "Id": "smart-app-control",
     "Zh": "智能应用控制",
     "En": "Smart App Control",
-    "PurposeZh": "阻止不可信或危险的应用执行。",
-    "PurposeEn": "Blocks untrusted or dangerous apps from running.",
+    "PurposeZh": "关闭智能应用控制对应用运行的拦截。",
+    "PurposeEn": "Turn off Smart App Control application blocking.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -344,8 +350,8 @@
     "Id": "applocker",
     "Zh": "AppLocker 应用限制",
     "En": "AppLocker application restrictions",
-    "PurposeZh": "识别应用程序并执行 AppLocker 的运行限制。",
-    "PurposeEn": "Identifies applications and enforces AppLocker execution restrictions.",
+    "PurposeZh": "禁用应用标识服务，停止 AppLocker 应用限制。",
+    "PurposeEn": "Disable the Application Identity service used to enforce AppLocker restrictions.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -366,8 +372,8 @@
     "Id": "userchoice-protection",
     "Zh": "默认应用与任务栏保护",
     "En": "Default app and taskbar protection",
-    "PurposeZh": "保护默认应用和部分任务栏设置，限制其他程序修改。",
-    "PurposeEn": "Protects default apps and some taskbar settings from changes by other programs.",
+    "PurposeZh": "禁用对默认应用和部分任务栏设置的修改保护。",
+    "PurposeEn": "Disable change protection for default applications and some taskbar settings.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -392,8 +398,8 @@
     "Id": "defender",
     "Zh": "服务与驱动",
     "En": "Services and drivers",
-    "PurposeZh": "Defender 的恶意软件扫描、网络检查和端点防护服务。",
-    "PurposeEn": "Defender services for malware scanning, network inspection and endpoint protection.",
+    "PurposeZh": "禁用 Defender 的杀毒、网络检查和端点防护服务与驱动。",
+    "PurposeEn": "Disable Defender antivirus, network inspection and endpoint protection services and drivers.",
     "GroupZh": "Defender",
     "GroupEn": "Defender",
     "Ops": [
@@ -460,8 +466,8 @@
     "Id": "tamper",
     "Zh": "篡改防护",
     "En": "Tamper protection",
-    "PurposeZh": "阻止其他程序修改 Defender 的防护配置。",
-    "PurposeEn": "Prevents programs from changing Defender settings.",
+    "PurposeZh": "关闭对 Defender 设置的篡改防护。",
+    "PurposeEn": "Turn off tamper protection for Defender settings.",
     "GroupZh": "Defender",
     "GroupEn": "Defender",
     "Ops": [
@@ -485,8 +491,8 @@
     "Id": "realtime",
     "Zh": "实时扫描",
     "En": "Real-time scanning",
-    "PurposeZh": "实时扫描文件、脚本和程序行为。",
-    "PurposeEn": "Scans files, scripts and program behavior in real time.",
+    "PurposeZh": "关闭 Defender 对文件、脚本和程序行为的实时扫描。",
+    "PurposeEn": "Turn off Defender real-time scanning of files, scripts and application behavior.",
     "GroupZh": "Defender",
     "GroupEn": "Defender",
     "Ops": [
@@ -538,8 +544,8 @@
     "Id": "cloud-defense",
     "Zh": "云保护",
     "En": "Cloud protection",
-    "PurposeZh": "向云端查询威胁信息并提交可疑样本。",
-    "PurposeEn": "Checks cloud threat data and submits suspicious samples.",
+    "PurposeZh": "关闭 Defender 云端威胁查询、样本提交和首次发现拦截。",
+    "PurposeEn": "Turn off Defender cloud threat checks, sample submission and block at first sight.",
     "GroupZh": "Defender",
     "GroupEn": "Defender",
     "Ops": [
@@ -577,8 +583,8 @@
     "Id": "pua",
     "Zh": "不需要的应用拦截",
     "En": "Unwanted app blocking",
-    "PurposeZh": "拦截捆绑软件及其他潜在不需要的应用。",
-    "PurposeEn": "Blocks bundled software and potentially unwanted apps.",
+    "PurposeZh": "关闭对捆绑软件等潜在不需要应用的拦截。",
+    "PurposeEn": "Turn off blocking of bundled software and other potentially unwanted applications.",
     "GroupZh": "Defender",
     "GroupEn": "Defender",
     "Ops": [
@@ -602,8 +608,8 @@
     "Id": "network-protection",
     "Zh": "恶意网址拦截",
     "En": "Malicious website blocking",
-    "PurposeZh": "阻止程序访问恶意或危险网络地址。",
-    "PurposeEn": "Blocks apps from accessing malicious network addresses.",
+    "PurposeZh": "关闭 Defender 对恶意网址的访问拦截。",
+    "PurposeEn": "Turn off Defender blocking of malicious network addresses.",
     "GroupZh": "Defender",
     "GroupEn": "Defender",
     "Ops": [
@@ -627,8 +633,8 @@
     "Id": "controlled-folders",
     "Zh": "受控文件夹访问",
     "En": "Controlled folder access",
-    "PurposeZh": "限制应用修改受保护文件夹，防范勒索软件。",
-    "PurposeEn": "Restricts changes to protected folders to limit ransomware.",
+    "PurposeZh": "关闭受控文件夹访问对应用修改文件的限制。",
+    "PurposeEn": "Turn off Controlled Folder Access restrictions on application file changes.",
     "GroupZh": "Defender",
     "GroupEn": "Defender",
     "Ops": [
@@ -652,8 +658,8 @@
     "Id": "asr",
     "Zh": "攻击面减少规则",
     "En": "Attack surface reduction",
-    "PurposeZh": "限制常见恶意行为和高风险程序操作。",
-    "PurposeEn": "Blocks common malicious behavior and risky program actions.",
+    "PurposeZh": "关闭攻击面减少规则对程序行为的限制。",
+    "PurposeEn": "Turn off Attack Surface Reduction restrictions on application behavior.",
     "GroupZh": "Defender",
     "GroupEn": "Defender",
     "Ops": [
@@ -695,8 +701,8 @@
     "Id": "defender-tasks",
     "Zh": "定时扫描",
     "En": "Scheduled scans",
-    "PurposeZh": "定时扫描、维护 Defender 扫描缓存和清理记录。",
-    "PurposeEn": "Runs scheduled scans and maintains Defender scan data.",
+    "PurposeZh": "禁用 Defender 的定时扫描、扫描缓存维护和记录清理任务。",
+    "PurposeEn": "Disable Defender scheduled scanning, scan cache maintenance and history cleanup tasks.",
     "GroupZh": "Defender",
     "GroupEn": "Defender",
     "Ops": [
@@ -717,8 +723,8 @@
     "Id": "install-tencent.wetype",
     "Zh": "微信输入法",
     "En": "WeType",
-    "PurposeZh": "中文输入与词库同步。",
-    "PurposeEn": "Chinese text input and dictionary sync.",
+    "PurposeZh": "安装微信输入法，用于中文输入与词库同步。",
+    "PurposeEn": "Install WeType for Chinese text input and dictionary sync.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -741,8 +747,8 @@
     "Id": "install-xpfftq032ptphf",
     "Zh": "UniGetUI",
     "En": "UniGetUI",
-    "PurposeZh": "管理、安装和更新软件包。",
-    "PurposeEn": "Manage, install and update software packages.",
+    "PurposeZh": "安装 UniGetUI，用于管理、安装和更新软件包。",
+    "PurposeEn": "Install UniGetUI to manage, install and update software packages.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -766,8 +772,8 @@
     "Id": "install-twpayne.chezmoi",
     "Zh": "chezmoi",
     "En": "chezmoi",
-    "PurposeZh": "管理并同步个人配置文件。",
-    "PurposeEn": "Manage and sync personal configuration files.",
+    "PurposeZh": "安装 chezmoi，用于管理和同步个人配置文件。",
+    "PurposeEn": "Install chezmoi to manage and sync personal configuration files.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -790,8 +796,8 @@
     "Id": "install-git.git",
     "Zh": "Git",
     "En": "Git",
-    "PurposeZh": "跟踪代码版本和管理代码仓库。",
-    "PurposeEn": "Track code versions and manage repositories.",
+    "PurposeZh": "安装 Git，用于代码版本管理。",
+    "PurposeEn": "Install Git for source code version control.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -814,8 +820,8 @@
     "Id": "install-astral-sh.uv",
     "Zh": "uv",
     "En": "uv",
-    "PurposeZh": "管理 Python 项目、环境与依赖。",
-    "PurposeEn": "Manage Python projects, environments and dependencies.",
+    "PurposeZh": "安装 uv，用于管理 Python 项目、环境与依赖。",
+    "PurposeEn": "Install uv to manage Python projects, environments and dependencies.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -838,8 +844,8 @@
     "Id": "install-autohotkey.autohotkey",
     "Zh": "AutoHotkey",
     "En": "AutoHotkey",
-    "PurposeZh": "自定义快捷键和桌面自动化。",
-    "PurposeEn": "Custom keyboard shortcuts and desktop automation.",
+    "PurposeZh": "安装 AutoHotkey，用于自定义快捷键和桌面自动化。",
+    "PurposeEn": "Install AutoHotkey for custom keyboard shortcuts and desktop automation.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -862,8 +868,8 @@
     "Id": "install-rustlang.rustup",
     "Zh": "rustup",
     "En": "rustup",
-    "PurposeZh": "安装和管理 Rust 工具链。",
-    "PurposeEn": "Install and manage Rust toolchains.",
+    "PurposeZh": "安装 rustup，用于安装和管理 Rust 工具链。",
+    "PurposeEn": "Install rustup to install and manage Rust toolchains.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -886,8 +892,8 @@
     "Id": "install-microsoft.visualstudiocode",
     "Zh": "VS Code",
     "En": "VS Code",
-    "PurposeZh": "代码编辑、调试与扩展工具。",
-    "PurposeEn": "Code editing, debugging and extensions.",
+    "PurposeZh": "安装 VS Code，用于代码编辑、调试与扩展开发。",
+    "PurposeEn": "Install VS Code for code editing, debugging and extensions.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -910,8 +916,8 @@
     "Id": "install-github.cli",
     "Zh": "GitHub CLI",
     "En": "GitHub CLI",
-    "PurposeZh": "在终端中管理 GitHub 仓库、Issue 和 PR。",
-    "PurposeEn": "Manage GitHub repositories, issues and pull requests from the terminal.",
+    "PurposeZh": "安装 GitHub CLI，用于在终端管理仓库、Issue 和 PR。",
+    "PurposeEn": "Install GitHub CLI to manage repositories, issues and pull requests from the terminal.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -934,8 +940,8 @@
     "Id": "install-9plm9xgg6vks",
     "Zh": "ChatGPT",
     "En": "ChatGPT",
-    "PurposeZh": "ChatGPT 桌面应用，用于对话、写作与代码辅助。",
-    "PurposeEn": "The ChatGPT desktop app for conversations, writing and coding assistance.",
+    "PurposeZh": "安装 ChatGPT 桌面应用，用于对话、写作与代码辅助。",
+    "PurposeEn": "Install the ChatGPT desktop app for conversations, writing and coding assistance.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -959,8 +965,8 @@
     "Id": "install-openjs.nodejs",
     "Zh": "Node.js",
     "En": "Node.js",
-    "PurposeZh": "JavaScript 运行环境与 npm 包管理。",
-    "PurposeEn": "JavaScript runtime and npm package management.",
+    "PurposeZh": "安装 Node.js JavaScript 运行环境和 npm 包管理器。",
+    "PurposeEn": "Install the Node.js JavaScript runtime and npm package manager.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -983,8 +989,8 @@
     "Id": "install-python.python.3.14",
     "Zh": "Python 3.14",
     "En": "Python 3.14",
-    "PurposeZh": "Python 语言运行环境。",
-    "PurposeEn": "The Python language runtime.",
+    "PurposeZh": "安装 Python 3.14 语言运行环境。",
+    "PurposeEn": "Install the Python 3.14 language runtime.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1007,8 +1013,8 @@
     "Id": "install-sharkdp.fd",
     "Zh": "fd",
     "En": "fd",
-    "PurposeZh": "在终端中快速查找文件。",
-    "PurposeEn": "Find files quickly from the terminal.",
+    "PurposeZh": "安装 fd，用于在终端快速查找文件。",
+    "PurposeEn": "Install fd to find files quickly from the terminal.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1031,8 +1037,8 @@
     "Id": "install-sxyazi.yazi",
     "Zh": "Yazi",
     "En": "Yazi",
-    "PurposeZh": "终端文件管理与文件预览。",
-    "PurposeEn": "Terminal file management and previews.",
+    "PurposeZh": "安装 Yazi，用于终端文件管理与预览。",
+    "PurposeEn": "Install Yazi for terminal file management and previews.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1055,8 +1061,8 @@
     "Id": "install-microsoft.powershell",
     "Zh": "PowerShell",
     "En": "PowerShell",
-    "PurposeZh": "命令行脚本与系统管理。",
-    "PurposeEn": "Command-line scripting and system administration.",
+    "PurposeZh": "安装 PowerShell，用于命令行脚本与系统管理。",
+    "PurposeEn": "Install PowerShell for scripting and system administration.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1079,8 +1085,8 @@
     "Id": "install-junegunn.fzf",
     "Zh": "fzf",
     "En": "fzf",
-    "PurposeZh": "在终端中交互式模糊查找。",
-    "PurposeEn": "Interactive fuzzy finding in the terminal.",
+    "PurposeZh": "安装 fzf，用于终端交互式模糊查找。",
+    "PurposeEn": "Install fzf for interactive fuzzy finding in the terminal.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1103,8 +1109,8 @@
     "Id": "install-ajeetdsouza.zoxide",
     "Zh": "zoxide",
     "En": "zoxide",
-    "PurposeZh": "根据使用记录快速跳转目录。",
-    "PurposeEn": "Jump to directories based on usage history.",
+    "PurposeZh": "安装 zoxide，用于根据使用记录快速跳转目录。",
+    "PurposeEn": "Install zoxide to jump to directories based on usage history.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1127,8 +1133,8 @@
     "Id": "install-neovim.neovim",
     "Zh": "Neovim",
     "En": "Neovim",
-    "PurposeZh": "可扩展的终端文本编辑器。",
-    "PurposeEn": "An extensible terminal text editor.",
+    "PurposeZh": "安装 Neovim 终端文本编辑器。",
+    "PurposeEn": "Install the Neovim terminal text editor.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1151,8 +1157,8 @@
     "Id": "install-google.androidcli",
     "Zh": "Android SDK CLI",
     "En": "Android SDK CLI",
-    "PurposeZh": "Android SDK 命令行工具与开发环境管理。",
-    "PurposeEn": "Android SDK command-line tools and environment management.",
+    "PurposeZh": "安装 Android SDK 命令行工具，用于管理开发环境。",
+    "PurposeEn": "Install Android SDK command-line tools to manage the development environment.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1175,8 +1181,8 @@
     "Id": "install-netease.uuremote",
     "Zh": "UU 远程",
     "En": "UU Remote",
-    "PurposeZh": "远程访问和控制电脑。",
-    "PurposeEn": "Remote access and control for PCs.",
+    "PurposeZh": "安装 UU 远程，用于远程访问和控制电脑。",
+    "PurposeEn": "Install UU Remote to access and control computers remotely.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1199,8 +1205,8 @@
     "Id": "install-microsoft.windowsterminal",
     "Zh": "Windows Terminal",
     "En": "Windows Terminal",
-    "PurposeZh": "多标签终端窗口。",
-    "PurposeEn": "A terminal with multiple tabs.",
+    "PurposeZh": "安装 Windows Terminal 多标签终端。",
+    "PurposeEn": "Install Windows Terminal, a terminal with multiple tabs.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1223,8 +1229,8 @@
     "Id": "install-tailscale.tailcat",
     "Zh": "tailcat",
     "En": "tailcat",
-    "PurposeZh": "通过加密的点对点连接传输数据、转发端口和远程访问。",
-    "PurposeEn": "Transfer data, forward ports, and access remote systems through encrypted peer-to-peer connections.",
+    "PurposeZh": "安装 tailcat，用于加密点对点数据传输、端口转发和远程访问。",
+    "PurposeEn": "Install tailcat for encrypted peer-to-peer transfers, port forwarding and remote access.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1247,8 +1253,8 @@
     "Id": "remove-news",
     "Zh": "资讯",
     "En": "News",
-    "PurposeZh": "新闻资讯与内容推荐。",
-    "PurposeEn": "News feeds and content recommendations.",
+    "PurposeZh": "卸载新闻资讯与内容推荐应用。",
+    "PurposeEn": "Uninstall the news and content recommendation application.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1273,8 +1279,8 @@
     "Id": "remove-weather",
     "Zh": "天气",
     "En": "Weather",
-    "PurposeZh": "天气预报与天气资讯。",
-    "PurposeEn": "Weather forecasts and information.",
+    "PurposeZh": "卸载天气预报应用。",
+    "PurposeEn": "Uninstall the weather forecast application.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1299,8 +1305,8 @@
     "Id": "remove-xbox",
     "Zh": "Xbox 应用与游戏栏",
     "En": "Xbox apps and Game Bar",
-    "PurposeZh": "Xbox 应用、账户功能与游戏栏。",
-    "PurposeEn": "Xbox apps, account features and Game Bar.",
+    "PurposeZh": "卸载 Xbox 应用与游戏栏。",
+    "PurposeEn": "Uninstall Xbox applications and Game Bar.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1327,8 +1333,8 @@
     "Id": "remove-security-ui",
     "Zh": "安全中心应用",
     "En": "Security app",
-    "PurposeZh": "查看和管理系统防护设置。",
-    "PurposeEn": "View and manage system protection settings.",
+    "PurposeZh": "卸载用于查看和管理系统防护的安全中心应用。",
+    "PurposeEn": "Uninstall the Windows Security application used to view and manage protection settings.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1355,8 +1361,8 @@
     "Id": "remove-widgets",
     "Zh": "小组件运行库",
     "En": "Widgets runtimes",
-    "PurposeZh": "小组件与资讯面板的运行组件。",
-    "PurposeEn": "Runtime components for Widgets and news feeds.",
+    "PurposeZh": "卸载小组件与资讯面板的运行组件。",
+    "PurposeEn": "Uninstall runtime components for Widgets and news feeds.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1383,8 +1389,8 @@
     "Id": "remove-games",
     "Zh": "纸牌与微软游戏",
     "En": "Solitaire and Microsoft games",
-    "PurposeZh": "纸牌和微软内置游戏。",
-    "PurposeEn": "Solitaire and Microsoft built-in games.",
+    "PurposeZh": "卸载纸牌和微软内置游戏。",
+    "PurposeEn": "Uninstall Solitaire and Microsoft built-in games.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1413,8 +1419,8 @@
     "Id": "remove-edge-game-assist",
     "Zh": "Edge Game Assist",
     "En": "Edge Game Assist",
-    "PurposeZh": "卸载 Edge 游戏助手；需要时可从 Edge 菜单重新安装。",
-    "PurposeEn": "Uninstalls Edge Game Assist; it can be reinstalled from the Edge menu.",
+    "PurposeZh": "卸载 Edge 游戏助手。",
+    "PurposeEn": "Uninstall Edge Game Assist.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1433,14 +1439,16 @@
     "Restart": false,
     "Page": "Remove",
     "Intent": "Remove",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "需要时可从 Edge 菜单重新安装。",
+    "ImpactEn": "It can be reinstalled from the Edge menu."
   },
   {
     "Id": "remove-compatibility",
     "Zh": "额外兼容性组件",
     "En": "Extra compatibility components",
-    "PurposeZh": "额外的应用兼容性增强与修复数据库。",
-    "PurposeEn": "Additional app compatibility enhancements and fix databases.",
+    "PurposeZh": "卸载额外的应用兼容性组件和修复数据库。",
+    "PurposeEn": "Uninstall additional application compatibility components and fix databases.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1470,8 +1478,8 @@
     "Id": "remove-clipchamp",
     "Zh": "Clipchamp",
     "En": "Clipchamp",
-    "PurposeZh": "视频剪辑与录制。",
-    "PurposeEn": "Video editing and recording.",
+    "PurposeZh": "卸载 Clipchamp 视频剪辑应用。",
+    "PurposeEn": "Uninstall the Clipchamp video editing application.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1496,8 +1504,8 @@
     "Id": "remove-notes",
     "Zh": "便签",
     "En": "Sticky Notes",
-    "PurposeZh": "桌面便签与便签同步。",
-    "PurposeEn": "Desktop sticky notes and note sync.",
+    "PurposeZh": "卸载桌面便签应用。",
+    "PurposeEn": "Uninstall the Sticky Notes application.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1522,8 +1530,8 @@
     "Id": "remove-todo",
     "Zh": "待办",
     "En": "To Do",
-    "PurposeZh": "待办事项与任务同步。",
-    "PurposeEn": "To-do lists and task sync.",
+    "PurposeZh": "卸载微软待办应用。",
+    "PurposeEn": "Uninstall the Microsoft To Do application.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1548,8 +1556,8 @@
     "Id": "remove-feedback",
     "Zh": "反馈中心",
     "En": "Feedback Hub",
-    "PurposeZh": "向微软提交系统反馈与问题报告。",
-    "PurposeEn": "Submit system feedback and issue reports to Microsoft.",
+    "PurposeZh": "卸载用于提交系统反馈的反馈中心。",
+    "PurposeEn": "Uninstall Feedback Hub, used to submit system feedback.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1574,8 +1582,8 @@
     "Id": "remove-help",
     "Zh": "获取帮助",
     "En": "Get Help",
-    "PurposeZh": "系统帮助与在线支持。",
-    "PurposeEn": "System help and online support.",
+    "PurposeZh": "卸载获取帮助与在线支持应用。",
+    "PurposeEn": "Uninstall the Get Help and online support application.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1600,8 +1608,8 @@
     "Id": "remove-pcmanager",
     "Zh": "微软电脑管家",
     "En": "Microsoft PC Manager",
-    "PurposeZh": "微软电脑管家与系统清理入口。",
-    "PurposeEn": "Microsoft PC Manager and system cleanup tools.",
+    "PurposeZh": "卸载微软电脑管家。",
+    "PurposeEn": "Uninstall Microsoft PC Manager.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1631,8 +1639,8 @@
     "Id": "remove-quick-assist",
     "Zh": "快速助手",
     "En": "Quick Assist",
-    "PurposeZh": "通过微软远程协助连接共享桌面。",
-    "PurposeEn": "Share the desktop through Microsoft remote assistance.",
+    "PurposeZh": "卸载快速助手远程协助应用。",
+    "PurposeEn": "Uninstall the Quick Assist remote assistance application.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1657,8 +1665,8 @@
     "Id": "remove-powerautomate",
     "Zh": "Power Automate",
     "En": "Power Automate",
-    "PurposeZh": "桌面操作与业务流程自动化。",
-    "PurposeEn": "Desktop task and workflow automation.",
+    "PurposeZh": "卸载 Power Automate 桌面自动化应用。",
+    "PurposeEn": "Uninstall the Power Automate desktop automation application.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1683,8 +1691,8 @@
     "Id": "remove-phone",
     "Zh": "手机连接与跨设备应用",
     "En": "Phone Link and cross-device apps",
-    "PurposeZh": "手机连接、跨设备同步与任务接续。",
-    "PurposeEn": "Phone Link, cross-device sync and task resumption.",
+    "PurposeZh": "卸载手机连接和跨设备应用。",
+    "PurposeEn": "Uninstall Phone Link and cross-device applications.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1710,8 +1718,8 @@
     "Id": "remove-family",
     "Zh": "家庭安全",
     "En": "Family Safety",
-    "PurposeZh": "家庭账户、家长控制与使用时间管理。",
-    "PurposeEn": "Family accounts, parental controls and screen time management.",
+    "PurposeZh": "卸载家庭安全和家长控制应用。",
+    "PurposeEn": "Uninstall Family Safety and parental control applications.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1736,8 +1744,8 @@
     "Id": "remove-outlook",
     "Zh": "Outlook 与邮件",
     "En": "Outlook and Mail",
-    "PurposeZh": "邮件、日历与账户同步。",
-    "PurposeEn": "Email, calendars and account sync.",
+    "PurposeZh": "卸载 Outlook、邮件与日历应用。",
+    "PurposeEn": "Uninstall Outlook, Mail and Calendar applications.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1763,8 +1771,8 @@
     "Id": "remove-devhome",
     "Zh": "Dev Home",
     "En": "Dev Home",
-    "PurposeZh": "开发环境配置与开发项目管理。",
-    "PurposeEn": "Developer environment setup and project management.",
+    "PurposeZh": "卸载 Dev Home 开发环境管理应用。",
+    "PurposeEn": "Uninstall the Dev Home developer environment application.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1789,8 +1797,8 @@
     "Id": "remove-ai",
     "Zh": "微软 AI 应用",
     "En": "Microsoft AI apps",
-    "PurposeZh": "Copilot 与系统内置 AI 应用。",
-    "PurposeEn": "Copilot and built-in AI apps.",
+    "PurposeZh": "卸载 Copilot 和微软内置 AI 应用。",
+    "PurposeEn": "Uninstall Copilot and Microsoft built-in AI applications.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1823,8 +1831,8 @@
     "Id": "remove-onedrive",
     "Zh": "OneDrive",
     "En": "OneDrive",
-    "PurposeZh": "云端文件同步与备份。",
-    "PurposeEn": "Cloud file sync and backup.",
+    "PurposeZh": "卸载 OneDrive 云端文件同步应用。",
+    "PurposeEn": "Uninstall the OneDrive cloud file sync application.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1846,8 +1854,8 @@
     "Id": "mouse",
     "Zh": "鼠标速度与滚轮",
     "En": "Mouse speed and scrolling",
-    "PurposeZh": "关闭增强指针精度，速度 20，滚轮每次 6 行。",
-    "PurposeEn": "Turns off pointer acceleration; sets speed to 20 and scrolling to 6 lines.",
+    "PurposeZh": "关闭增强指针精度，鼠标速度设为 20，滚轮每次滚动 6 行。",
+    "PurposeEn": "Turn off pointer acceleration, set pointer speed to 20 and scroll 6 lines at a time.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1899,8 +1907,8 @@
     "Id": "keyboard",
     "Zh": "键盘重复与辅助按键",
     "En": "Keyboard repeat and accessibility",
-    "PurposeZh": "重复延迟 140 ms，间隔 16 ms；关闭粘滞键、慢速键、重复按键过滤及辅助按键提示。",
-    "PurposeEn": "Repeat delay 140 ms, interval 16 ms; turns off Sticky Keys, SlowKeys, BounceKeys and accessibility key alerts.",
+    "PurposeZh": "重复延迟设为 140 毫秒、间隔设为 16 毫秒；关闭粘滞键、筛选键及辅助按键提示。",
+    "PurposeEn": "Set repeat delay to 140 ms and interval to 16 ms; turn off Sticky Keys, Filter Keys and accessibility key alerts.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -1959,8 +1967,8 @@
     "Id": "cursor",
     "Zh": "黑色指针，大小 3",
     "En": "Black pointer, size 3",
-    "PurposeZh": "使用系统设置中的第二个黑色样式，大小设为 3。",
-    "PurposeEn": "Uses the second, black pointer style in Windows Settings at size 3.",
+    "PurposeZh": "将鼠标指针设为黑色，大小设为 3。",
+    "PurposeEn": "Use a black mouse pointer at size 3.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2131,8 +2139,8 @@
     "Id": "appearance",
     "Zh": "浅色主题，无透明效果",
     "En": "Light theme, no transparency",
-    "PurposeZh": "系统和应用使用浅色主题，关闭透明效果。",
-    "PurposeEn": "Uses light mode for Windows and apps, with transparency disabled.",
+    "PurposeZh": "将系统和应用设为浅色主题，关闭透明效果。",
+    "PurposeEn": "Use light mode for Windows and applications, with transparency turned off.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2170,8 +2178,8 @@
     "Id": "visual-effects",
     "Zh": "视觉效果",
     "En": "Visual effects",
-    "PurposeZh": "仅保留平滑字体边缘、拖动时显示窗口内容、显示缩略图。",
-    "PurposeEn": "Keeps font smoothing, window contents while dragging and thumbnails.",
+    "PurposeZh": "关闭大部分视觉效果，仅保留字体平滑、窗口拖动内容和缩略图。",
+    "PurposeEn": "Turn off most visual effects, keeping font smoothing, window contents while dragging and thumbnails.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2268,7 +2276,7 @@
     "Zh": "全局 UTF-8",
     "En": "System UTF-8",
     "PurposeZh": "启用“使用 Unicode UTF-8 提供全球语言支持”。",
-    "PurposeEn": "Enables Unicode UTF-8 for worldwide language support.",
+    "PurposeEn": "Enable Unicode UTF-8 for worldwide language support.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2306,8 +2314,8 @@
     "Id": "input-method",
     "Zh": "仅使用微信输入法",
     "En": "Use only WeType",
-    "PurposeZh": "仅保留微信输入法，从输入列表移除微软拼音和其他输入方式。",
-    "PurposeEn": "Keeps WeType as the only input method, removing Microsoft Pinyin and other input methods.",
+    "PurposeZh": "仅保留微信输入法，移除微软拼音、美式键盘及其他输入方式。",
+    "PurposeEn": "Keep WeType as the only input method, removing Microsoft Pinyin, the US keyboard and other input methods.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2329,8 +2337,8 @@
     "Id": "power",
     "Zh": "电源按钮与自动休眠",
     "En": "Power buttons and sleep",
-    "PurposeZh": "插电与电池均不自动息屏、睡眠或休眠；电源按钮、睡眠按钮与合盖均无操作。",
-    "PurposeEn": "No display timeout, sleep or hibernation on AC or battery; power button, sleep button and lid do nothing.",
+    "PurposeZh": "关闭插电和电池模式的自动息屏、睡眠与休眠；电源按钮、睡眠按钮和合盖设为无操作。",
+    "PurposeEn": "Turn off automatic display timeout, sleep and hibernation on AC and battery; set power button, sleep button and lid actions to Do nothing.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2431,8 +2439,8 @@
     "Id": "hibernation",
     "Zh": "系统休眠",
     "En": "Hibernation",
-    "PurposeZh": "关闭休眠能力并移除 hiberfil.sys，同时关闭依赖休眠的快速启动；不影响虚拟内存。",
-    "PurposeEn": "Disables hibernation and its hiberfil.sys file, including Fast Startup; virtual memory is unaffected.",
+    "PurposeZh": "关闭系统休眠并释放休眠文件占用的磁盘空间。",
+    "PurposeEn": "Turn off hibernation and free the disk space used by its file.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2447,14 +2455,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "删除 hiberfil.sys，并关闭依赖休眠的快速启动；虚拟内存不受影响。",
+    "ImpactEn": "Removes hiberfil.sys and disables Fast Startup; virtual memory is unaffected."
   },
   {
     "Id": "start-menu",
     "Zh": "开始菜单布局",
     "En": "Start menu layout",
-    "PurposeZh": "隐藏最近使用与推荐，全部应用使用列表，清空固定区。 保留设置界面的手动控制。",
-    "PurposeEn": "Hides recent items and recommendations, uses an app list and clears pinned apps. Keeps manual controls available in Settings.",
+    "PurposeZh": "关闭最近使用和推荐内容，将全部应用设为列表并清空固定区。",
+    "PurposeEn": "Turn off recent items and recommendations, use an app list and clear pinned applications.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2530,8 +2540,8 @@
     "Id": "desktop-icons",
     "Zh": "桌面图标与文件",
     "En": "Desktop icons and files",
-    "PurposeZh": "桌面仅保留此电脑与回收站；其他文件和快捷方式移入回收站。",
-    "PurposeEn": "Keeps only This PC and Recycle Bin on the desktop; moves other files and shortcuts to Recycle Bin.",
+    "PurposeZh": "桌面仅保留此电脑与回收站，将其他文件和快捷方式移入回收站。",
+    "PurposeEn": "Keep only This PC and Recycle Bin on the desktop; move other files and shortcuts to Recycle Bin.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2556,8 +2566,8 @@
     "Id": "taskbar-layout",
     "Zh": "任务栏对齐与合并",
     "En": "Taskbar alignment and grouping",
-    "PurposeZh": "开始菜单与任务栏靠左；主屏与其他屏幕仅在任务栏已满时合并按钮。",
-    "PurposeEn": "Aligns Start and taskbar left; combines buttons only when full on all displays.",
+    "PurposeZh": "任务栏靠左对齐，所有屏幕仅在任务栏已满时合并按钮。",
+    "PurposeEn": "Align the taskbar left and combine buttons only when full on all displays.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2595,8 +2605,8 @@
     "Id": "taskbar-buttons",
     "Zh": "任务栏搜索与任务视图",
     "En": "Taskbar Search and Task View",
-    "PurposeZh": "隐藏任务栏搜索和桌面切换按钮。",
-    "PurposeEn": "Hides the taskbar Search and Task View buttons.",
+    "PurposeZh": "隐藏任务栏搜索和任务视图按钮。",
+    "PurposeEn": "Hide the taskbar Search and Task View buttons.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2627,8 +2637,8 @@
     "Id": "taskbar-pins",
     "Zh": "任务栏固定图标",
     "En": "Pinned taskbar apps",
-    "PurposeZh": "清空 Windows 保存的任务栏固定项，仍可从 Windows 界面重新固定应用。",
-    "PurposeEn": "Clears saved taskbar pins while allowing applications to be pinned again.",
+    "PurposeZh": "清空任务栏中已保存的固定应用。",
+    "PurposeEn": "Clear applications saved as taskbar pins.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2648,14 +2658,16 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Shell"
+    "Refresh": "Shell",
+    "ImpactZh": "已打开的窗口仍会显示在任务栏；应用可重新固定。",
+    "ImpactEn": "Open windows still appear on the taskbar; applications can be pinned again."
   },
   {
     "Id": "tray-icons",
     "Zh": "展开托盘图标",
     "En": "Show all tray icons",
-    "PurposeZh": "展开当前以及新增、更新后的应用托盘图标。",
-    "PurposeEn": "Shows all app tray icons, including newly added or updated icons.",
+    "PurposeZh": "展开所有应用托盘图标，包括新增或更新后的图标。",
+    "PurposeEn": "Show all application tray icons, including newly added or updated icons.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2677,8 +2689,8 @@
     "Id": "bluetooth-icon",
     "Zh": "蓝牙托盘图标",
     "En": "Bluetooth tray icon",
-    "PurposeZh": "隐藏任务栏中的蓝牙图标。",
-    "PurposeEn": "Hides the Bluetooth icon from the system tray.",
+    "PurposeZh": "隐藏蓝牙托盘图标。",
+    "PurposeEn": "Hide the Bluetooth system tray icon.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2703,7 +2715,7 @@
     "Zh": "语言栏与输入指示器",
     "En": "Language bar and input indicator",
     "PurposeZh": "隐藏浮动语言栏和任务栏输入指示器。",
-    "PurposeEn": "Hides the floating language bar and taskbar input indicator.",
+    "PurposeEn": "Hide the floating language bar and taskbar input indicator.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2739,8 +2751,8 @@
     "Id": "file-visibility",
     "Zh": "文件扩展名与隐藏文件",
     "En": "Extensions and hidden files",
-    "PurposeZh": "显示文件扩展名与普通隐藏文件；受保护的系统文件继续隐藏。",
-    "PurposeEn": "Shows file extensions and ordinary hidden files; keeps protected system files hidden.",
+    "PurposeZh": "显示文件扩展名与普通隐藏文件。",
+    "PurposeEn": "Show file extensions and ordinary hidden files.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2772,14 +2784,16 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Explorer"
+    "Refresh": "Explorer",
+    "ImpactZh": "受保护的系统文件继续隐藏。",
+    "ImpactEn": "Protected system files remain hidden."
   },
   {
     "Id": "this-pc",
     "Zh": "此电脑与驱动器",
     "En": "This PC and drives",
-    "PurposeZh": "文件资源管理器默认打开此电脑，保留 Windows 的文件夹显示方式。",
-    "PurposeEn": "Opens File Explorer at This PC without forcing folders to be hidden.",
+    "PurposeZh": "将文件资源管理器的默认打开位置设为此电脑。",
+    "PurposeEn": "Set File Explorer to open at This PC by default.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2844,7 +2858,7 @@
     "Zh": "快捷方式名称",
     "En": "Shortcut names",
     "PurposeZh": "创建快捷方式时不添加“快捷方式”后缀。",
-    "PurposeEn": "Creates shortcuts without the Shortcut suffix.",
+    "PurposeEn": "Create shortcuts without adding the Shortcut suffix.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2873,8 +2887,8 @@
     "Id": "classic-menu",
     "Zh": "右键菜单样式",
     "En": "Context menu style",
-    "PurposeZh": "在 Windows 10 经典菜单与 Windows 11 菜单之间切换。",
-    "PurposeEn": "Switches between the Windows 10 classic menu and the Windows 11 menu.",
+    "PurposeZh": "在 Windows 11 右键菜单和 Windows 10 经典菜单之间切换。",
+    "PurposeEn": "Switch between the Windows 11 context menu and the Windows 10 classic menu.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2898,8 +2912,8 @@
     "Id": "desktop-picture",
     "Zh": "桌面图片背景",
     "En": "Desktop picture background",
-    "PurposeZh": "使用图片背景，保留 Windows 聚焦与背景设置的选择。",
-    "PurposeEn": "Uses a picture background while preserving Spotlight and background choices.",
+    "PurposeZh": "将桌面背景类型设为图片。",
+    "PurposeEn": "Set the desktop background type to Picture.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2935,8 +2949,8 @@
     "Id": "lockscreen-spotlight",
     "Zh": "锁屏聚焦",
     "En": "Lock screen Spotlight",
-    "PurposeZh": "关闭锁屏聚焦，保留锁屏背景的手动选择。",
-    "PurposeEn": "Turns off lock screen Spotlight while preserving manual background choices.",
+    "PurposeZh": "关闭锁屏 Windows 聚焦和推荐内容。",
+    "PurposeEn": "Turn off Windows Spotlight and recommendations on the lock screen.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2979,8 +2993,8 @@
     "Id": "vbs",
     "Zh": "虚拟化安全（VBS）",
     "En": "Virtualization security (VBS)",
-    "PurposeZh": "通过虚拟化隔离敏感系统数据。",
-    "PurposeEn": "Isolates sensitive system data using virtualization.",
+    "PurposeZh": "关闭用于隔离敏感系统数据的虚拟化安全。",
+    "PurposeEn": "Turn off virtualization-based security used to isolate sensitive system data.",
     "GroupZh": "核心隔离",
     "GroupEn": "Core isolation",
     "Ops": [
@@ -3025,8 +3039,8 @@
     "Id": "hvci",
     "Zh": "内存完整性（HVCI）",
     "En": "Memory integrity (HVCI)",
-    "PurposeZh": "检查内核代码完整性，限制不可信驱动执行。",
-    "PurposeEn": "Checks kernel code integrity and blocks untrusted drivers.",
+    "PurposeZh": "关闭内存完整性对内核代码和驱动的检查。",
+    "PurposeEn": "Turn off Memory Integrity checks on kernel code and drivers.",
     "GroupZh": "核心隔离",
     "GroupEn": "Core isolation",
     "Ops": [
@@ -3057,8 +3071,8 @@
     "Id": "credential-guard",
     "Zh": "凭据保护",
     "En": "Credential Guard",
-    "PurposeZh": "隔离登录凭据，降低凭据被窃取的风险。",
-    "PurposeEn": "Isolates sign-in credentials to reduce credential theft.",
+    "PurposeZh": "关闭用于隔离登录凭据的凭据保护。",
+    "PurposeEn": "Turn off Credential Guard isolation of sign-in credentials.",
     "GroupZh": "核心隔离",
     "GroupEn": "Core isolation",
     "Ops": [
@@ -3096,8 +3110,8 @@
     "Id": "lsa",
     "Zh": "LSA 进程保护",
     "En": "LSA protection",
-    "PurposeZh": "关闭 LSA 启动保护，重启后检查 LSASS 实际保护级别；不停止当前登录进程。",
-    "PurposeEn": "Disables LSA protection for the next boot and verifies the live protection level; does not stop LSASS.",
+    "PurposeZh": "关闭 LSA 登录安全进程的启动保护。",
+    "PurposeEn": "Turn off startup protection for the LSA sign-in security process.",
     "GroupZh": "核心隔离",
     "GroupEn": "Core isolation",
     "Ops": [
@@ -3129,14 +3143,16 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "不停止正在运行的登录安全进程。",
+    "ImpactEn": "The running sign-in security process is not stopped."
   },
   {
     "Id": "kernel-cet",
     "Zh": "内核堆栈保护",
     "En": "Kernel stack protection",
-    "PurposeZh": "保护内核调用栈，阻止返回地址被篡改。",
-    "PurposeEn": "Protects kernel return addresses against tampering.",
+    "PurposeZh": "关闭内核调用栈的返回地址保护。",
+    "PurposeEn": "Turn off return-address protection for the kernel call stack.",
     "GroupZh": "核心隔离",
     "GroupEn": "Core isolation",
     "Ops": [
@@ -3167,8 +3183,8 @@
     "Id": "secure-launch",
     "Zh": "系统启动防护",
     "En": "System launch protection",
-    "PurposeZh": "在启动时检查系统完整性，建立受保护的执行环境。",
-    "PurposeEn": "Checks system integrity at startup and establishes a protected environment.",
+    "PurposeZh": "关闭 System Guard 的启动完整性防护。",
+    "PurposeEn": "Turn off System Guard Secure Launch protection at startup.",
     "GroupZh": "核心隔离",
     "GroupEn": "Core isolation",
     "Ops": [
@@ -3199,8 +3215,8 @@
     "Id": "driver-blocklist",
     "Zh": "易受攻击驱动拦截",
     "En": "Vulnerable driver blocklist",
-    "PurposeZh": "阻止已知存在漏洞的驱动加载。",
-    "PurposeEn": "Blocks drivers with known security vulnerabilities.",
+    "PurposeZh": "关闭对已知存在漏洞驱动的加载拦截。",
+    "PurposeEn": "Turn off loading restrictions for drivers with known vulnerabilities.",
     "GroupZh": "核心隔离",
     "GroupEn": "Core isolation",
     "Ops": [
@@ -3224,8 +3240,8 @@
     "Id": "phishing-protection",
     "Zh": "增强钓鱼防护",
     "En": "Enhanced phishing protection",
-    "PurposeZh": "提醒危险的密码输入、密码重复使用及不安全的密码保存。",
-    "PurposeEn": "Warns about unsafe password entry, password reuse and unsafe password storage.",
+    "PurposeZh": "关闭危险密码输入、密码重复使用及不安全保存密码的提醒。",
+    "PurposeEn": "Turn off warnings for unsafe password entry, password reuse and unsafe password storage.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -3256,8 +3272,8 @@
     "Id": "security-center",
     "Zh": "安全中心服务",
     "En": "Security Center services",
-    "PurposeZh": "汇总杀毒、防火墙等防护状态，供安全中心显示。",
-    "PurposeEn": "Collects antivirus and firewall status for the security app.",
+    "PurposeZh": "禁用汇总杀毒和防火墙状态的安全中心服务。",
+    "PurposeEn": "Disable Windows Security Center services that collect antivirus and firewall status.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -3282,8 +3298,8 @@
     "Id": "cpu-mitigations",
     "Zh": "CPU 漏洞防护",
     "En": "CPU vulnerability protection",
-    "PurposeZh": "缓解 Spectre、Meltdown 等推测执行漏洞。",
-    "PurposeEn": "Mitigates speculative execution flaws such as Spectre and Meltdown.",
+    "PurposeZh": "关闭可配置的 Spectre、Meltdown 等 CPU 漏洞防护。",
+    "PurposeEn": "Turn off configurable CPU mitigations for Spectre, Meltdown and related vulnerabilities.",
     "GroupZh": "缓解",
     "GroupEn": "Mitigations",
     "Ops": [
@@ -3314,8 +3330,8 @@
     "Id": "process-mitigations",
     "Zh": "程序漏洞防护",
     "En": "Exploit Protection",
-    "PurposeZh": "关闭全局及当前 Windows 可执行文件的启动保护配置，包括 CET 和重定向检查；重启生效。64 位 DEP 等强制保护可能保留，检测同时显示实际运行状态。",
-    "PurposeEn": "Disables global and current Windows image startup mitigations, including CET and redirection checks, after restart. Mandatory protections such as 64-bit DEP may remain; checks include live state.",
+    "PurposeZh": "关闭全局及 Windows 程序可配置的漏洞防护启动设置。",
+    "PurposeEn": "Turn off configurable global and Windows application exploit protection startup settings.",
     "GroupZh": "缓解",
     "GroupEn": "Mitigations",
     "Ops": [
@@ -3329,14 +3345,16 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "已运行的进程保留原保护；Windows 强制或程序自行启用的保护可能保留。",
+    "ImpactEn": "Running processes retain their protections; Windows-mandated or application-enabled protections may remain."
   },
   {
     "Id": "dep",
     "Zh": "DEP 数据执行保护",
     "En": "Data execution prevention",
-    "PurposeZh": "关闭可配置的 DEP 启动策略；Windows 对 64 位程序强制保留 DEP。",
-    "PurposeEn": "Turns off the configurable DEP boot policy; Windows mandates DEP for 64-bit programs.",
+    "PurposeZh": "关闭可配置的数据执行保护（DEP）启动策略。",
+    "PurposeEn": "Turn off the configurable Data Execution Prevention (DEP) boot policy.",
     "GroupZh": "缓解",
     "GroupEn": "Mitigations",
     "Ops": [
@@ -3352,14 +3370,16 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "Windows 强制为 64 位程序启用 DEP。",
+    "ImpactEn": "Windows mandates DEP for 64-bit applications."
   },
   {
     "Id": "sehop-kernel",
     "Zh": "异常处理与服务进程保护",
     "En": "Exception and service protection",
-    "PurposeZh": "保护异常处理链和系统服务进程。",
-    "PurposeEn": "Protects exception chains and system service processes.",
+    "PurposeZh": "关闭内核异常处理链和系统服务进程的额外防护。",
+    "PurposeEn": "Turn off additional protection for kernel exception chains and system service processes.",
     "GroupZh": "缓解",
     "GroupEn": "Mitigations",
     "Ops": [
@@ -3390,8 +3410,8 @@
     "Id": "driver-signing",
     "Zh": "驱动签名检查",
     "En": "Driver signature checks",
-    "PurposeZh": "写入禁用驱动完整性检查的启动参数，重启后检查实际内核状态；Secure Boot 或 Windows 自身约束可能仍保留检查。",
-    "PurposeEn": "Disables boot integrity checks and verifies live kernel state after restart; Secure Boot or Windows restrictions may retain enforcement.",
+    "PurposeZh": "设置启动参数，关闭可调整的驱动完整性检查。",
+    "PurposeEn": "Set the boot option to turn off configurable driver integrity checks.",
     "GroupZh": "缓解",
     "GroupEn": "Mitigations",
     "Ops": [
@@ -3407,14 +3427,16 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "实际检查受 Windows 启动验证和安全启动约束。",
+    "ImpactEn": "Actual enforcement depends on Windows boot verification and Secure Boot."
   },
   {
     "Id": "time-sync",
     "Zh": "时间同步自动启动",
     "En": "Automatic time synchronization",
-    "PurposeZh": "将 Windows Time 设为自动启动并立即运行，移除服务触发器，保留现有校时服务器；可在服务管理中修改。",
-    "PurposeEn": "Sets Windows Time to Automatic and starts it, removing service triggers while keeping the time server; editable in Services.",
+    "PurposeZh": "将 Windows 时间服务设为自动启动并运行，保留当前校时服务器。",
+    "PurposeEn": "Set Windows Time to Automatic and start it, keeping the current time server.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -3440,8 +3462,8 @@
     "Id": "windows-update",
     "Zh": "系统更新长期暂停",
     "En": "Long-term update pause",
-    "PurposeZh": "将系统更新暂停期限设为 7000 天，保留更新页面与手动恢复更新的能力。",
-    "PurposeEn": "Pauses updates for 7000 days while keeping Windows Update available for manual use.",
+    "PurposeZh": "将 Windows 系统更新暂停期限设为 7000 天。",
+    "PurposeEn": "Pause Windows system updates for 7000 days.",
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
@@ -3486,14 +3508,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Apply",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "可在 Windows 更新页面手动恢复更新。",
+    "ImpactEn": "Updates can be resumed manually in Windows Update."
   },
   {
     "Id": "driver-updates",
     "Zh": "自动驱动更新",
     "En": "Automatic driver updates",
-    "PurposeZh": "排除 Windows Update 质量更新中的驱动，并关闭设备安装时的在线驱动搜索；仍可手动安装驱动。",
-    "PurposeEn": "Excludes drivers from Windows quality updates and turns off online device setup searches; manual driver installation remains available.",
+    "PurposeZh": "排除 Windows 更新中的驱动，并关闭设备安装时的在线驱动搜索。",
+    "PurposeEn": "Exclude drivers from Windows updates and turn off online driver searches during device setup.",
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
@@ -3528,14 +3552,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "仍可手动安装驱动。",
+    "ImpactEn": "Drivers can still be installed manually."
   },
   {
     "Id": "system-restore",
     "Zh": "系统还原",
     "En": "System Restore",
-    "PurposeZh": "关闭所有磁盘的系统保护，停止自动创建还原点，保留系统属性中的重新开启入口。",
-    "PurposeEn": "Turns off System Protection on all drives and stops automatic restore point creation while preserving the controls to enable it again.",
+    "PurposeZh": "关闭所有磁盘的系统保护，停止自动创建还原点。",
+    "PurposeEn": "Turn off System Protection on all drives and stop automatic restore point creation.",
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
@@ -3578,14 +3604,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "可在系统属性中重新开启系统保护。",
+    "ImpactEn": "System Protection can be enabled again in System Properties."
   },
   {
     "Id": "automatic-encryption",
     "Zh": "自动设备加密",
     "En": "Automatic device encryption",
-    "PurposeZh": "在符合条件的设备上自动启用磁盘加密。",
-    "PurposeEn": "Encrypts drives automatically on eligible devices.",
+    "PurposeZh": "阻止 Windows 在符合条件的设备上自动开启磁盘加密。",
+    "PurposeEn": "Prevent Windows from automatically enabling disk encryption on eligible devices.",
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
@@ -3603,14 +3631,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "不会解密已加密的磁盘。",
+    "ImpactEn": "Already encrypted drives are not decrypted."
   },
   {
     "Id": "telemetry",
     "Zh": "诊断数据与遥测后台",
     "En": "Diagnostic data and telemetry",
-    "PurposeZh": "关闭可选诊断数据、遥测服务和相关计划任务；不终止当前服务，重启生效。",
-    "PurposeEn": "Disables optional diagnostics, telemetry services and their scheduled tasks without stopping current services; restart to apply.",
+    "PurposeZh": "关闭可选诊断数据、遥测和错误报告后台服务及相关计划任务。",
+    "PurposeEn": "Turn off optional diagnostic data, telemetry and error reporting services and related scheduled tasks.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -3684,14 +3714,16 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Apply",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "保留 Windows 必需的诊断数据。",
+    "ImpactEn": "Required Windows diagnostic data is retained."
   },
   {
     "Id": "advertising",
     "Zh": "广告与个性化推荐",
     "En": "Ads and personalized content",
-    "PurposeZh": "关闭广告标识与个性化推荐，保留隐私设置的手动开关。",
-    "PurposeEn": "Turns off advertising ID and tailored experiences while keeping privacy controls available.",
+    "PurposeZh": "关闭广告标识和基于诊断数据的个性化推荐。",
+    "PurposeEn": "Turn off advertising ID and tailored experiences based on diagnostic data.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -3732,8 +3764,8 @@
     "Id": "windows-suggestions",
     "Zh": "系统推广与建议",
     "En": "System promotions and suggestions",
-    "PurposeZh": "显示系统推广、欢迎页面、设置建议与账户提醒。",
-    "PurposeEn": "Shows promotions, welcome screens, Settings suggestions and account reminders.",
+    "PurposeZh": "关闭系统推广、欢迎页面、设置建议和账户提醒。",
+    "PurposeEn": "Turn off system promotions, welcome screens, Settings suggestions and account reminders.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -3834,8 +3866,8 @@
     "Id": "app-launch-tracking",
     "Zh": "应用启动跟踪",
     "En": "App launch tracking",
-    "PurposeZh": "记录程序启动频率，个性化开始菜单与搜索排序。",
-    "PurposeEn": "Tracks app launch frequency to personalize Start and search ranking.",
+    "PurposeZh": "停止记录应用启动频率，关闭相关的开始菜单和搜索个性化。",
+    "PurposeEn": "Stop tracking application launch frequency for Start and search personalization.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -3859,8 +3891,8 @@
     "Id": "feedback-prompts",
     "Zh": "体验反馈邀请",
     "En": "Feedback invitations",
-    "PurposeZh": "关闭体验反馈邀请，保留诊断与反馈设置的手动选择。",
-    "PurposeEn": "Turns off feedback requests while preserving Diagnostics and Feedback choices.",
+    "PurposeZh": "关闭邀请用户提交体验反馈的提示。",
+    "PurposeEn": "Turn off invitations to submit experience feedback.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -3897,8 +3929,8 @@
     "Id": "location",
     "Zh": "位置服务",
     "En": "Location services",
-    "PurposeZh": "关闭位置访问及应用请求位置的通知，保留 Windows 设置中的手动开关。",
-    "PurposeEn": "Turns off location access and location request notifications while keeping the Windows Settings switches available.",
+    "PurposeZh": "关闭位置访问和应用请求位置时的通知。",
+    "PurposeEn": "Turn off location access and notifications for application location requests.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -3952,14 +3984,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "保留 Windows 设置中的位置开关。",
+    "ImpactEn": "Location switches remain available in Windows Settings."
   },
   {
     "Id": "svc-whesvc",
     "Zh": "性能诊断追踪",
     "En": "Performance diagnostic tracing",
-    "PurposeZh": "监测系统卡顿等性能问题并记录诊断日志。",
-    "PurposeEn": "Monitors performance problems such as sluggishness and records diagnostic logs.",
+    "PurposeZh": "禁用监测系统卡顿等性能问题的诊断追踪服务。",
+    "PurposeEn": "Disable the diagnostic tracing service that monitors performance problems such as sluggishness.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -3980,8 +4014,8 @@
     "Id": "svc-wuqisvc",
     "Zh": "使用与质量数据",
     "En": "Usage and quality data",
-    "PurposeZh": "收集使用情况与体验质量数据，用于体验改进和自愈。",
-    "PurposeEn": "Collects usage and experience quality data for improvements and self-healing.",
+    "PurposeZh": "禁用收集使用情况和体验质量数据的后台服务。",
+    "PurposeEn": "Disable the background service that collects usage and experience quality data.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -4002,8 +4036,8 @@
     "Id": "svc-scpolicysvc",
     "Zh": "智能卡移除策略",
     "En": "Smart card removal policy",
-    "PurposeZh": "在移除智能卡时执行锁定或注销策略。",
-    "PurposeEn": "Locks or signs out when a smart card is removed.",
+    "PurposeZh": "禁用智能卡移除时自动锁定或注销的策略服务。",
+    "PurposeEn": "Disable the service that locks or signs out when a smart card is removed.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -4024,8 +4058,8 @@
     "Id": "search-highlights",
     "Zh": "搜索热点",
     "En": "Search highlights",
-    "PurposeZh": "关闭搜索热点，允许从搜索设置重新开启。",
-    "PurposeEn": "Turns off search highlights; users can enable them again in Search settings.",
+    "PurposeZh": "关闭 Windows 搜索中的热点和推荐内容。",
+    "PurposeEn": "Turn off highlights and recommendations in Windows Search.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4059,8 +4093,8 @@
     "Id": "widgets",
     "Zh": "小组件入口",
     "En": "Widgets button",
-    "PurposeZh": "隐藏小组件入口，保留任务栏设置中的开关。",
-    "PurposeEn": "Hides the Widgets button while preserving the taskbar switch.",
+    "PurposeZh": "隐藏任务栏小组件入口。",
+    "PurposeEn": "Hide the taskbar Widgets button.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4088,14 +4122,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Apply",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "仅隐藏入口；卸载运行库是独立项目。",
+    "ImpactEn": "Only hides the button; uninstalling the runtime is a separate item."
   },
   {
     "Id": "svc-wsearch",
     "Zh": "文件搜索索引",
     "En": "File search indexing",
-    "PurposeZh": "在后台建立文件索引，加快文件内容搜索。",
-    "PurposeEn": "Indexes files in the background for faster content searches.",
+    "PurposeZh": "禁用 Windows 文件搜索索引服务。",
+    "PurposeEn": "Disable the Windows file search indexing service.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4110,14 +4146,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "文件仍可搜索，但内容搜索可能变慢。",
+    "ImpactEn": "Files remain searchable, but content searches may be slower."
   },
   {
     "Id": "svc-sysmain",
     "Zh": "应用启动预读",
     "En": "App launch preloading",
-    "PurposeZh": "关闭应用启动预读、预启动和预读记录，恢复 SysMain 自动启动。内存压缩与内存页合并保留系统设置。",
-    "PurposeEn": "Disables application prefetching, prelaunch and operation recording, restoring automatic SysMain startup. Retains Windows memory compression and page combining settings.",
+    "PurposeZh": "关闭应用启动预读、预启动和预读记录，保留 SysMain 自动运行。",
+    "PurposeEn": "Turn off application prefetching, prelaunch and operation recording while keeping SysMain running automatically.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4149,14 +4187,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "内存压缩与内存页合并保持 Windows 当前设置。",
+    "ImpactEn": "Memory compression and page combining retain their current Windows settings."
   },
   {
     "Id": "svc-pcasvc",
     "Zh": "程序兼容性助手",
     "En": "Program Compatibility Assistant",
-    "PurposeZh": "监测应用兼容性并显示兼容性提示。",
-    "PurposeEn": "Monitors app compatibility and displays compatibility prompts.",
+    "PurposeZh": "禁用应用兼容性监测和提示服务。",
+    "PurposeEn": "Disable the application compatibility monitoring and prompt service.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4177,8 +4217,8 @@
     "Id": "svc-dps",
     "Zh": "诊断策略",
     "En": "Diagnostic Policy Service",
-    "PurposeZh": "自动检测和排查系统问题。 禁用后续启动，当前服务保留到重启。",
-    "PurposeEn": "Automatically detects and troubleshoots system problems. Future starts are disabled; current services remain until restart.",
+    "PurposeZh": "禁用自动检测和排查系统问题的诊断策略服务。",
+    "PurposeEn": "Disable the Diagnostic Policy service used to detect and troubleshoot system problems.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4200,8 +4240,8 @@
     "Id": "svc-wdiservicehost",
     "Zh": "诊断服务主机",
     "En": "Diagnostic Service Host",
-    "PurposeZh": "为自动诊断运行后台服务。 禁用后续启动，当前服务保留到重启。",
-    "PurposeEn": "Hosts background services for automatic diagnostics. Future starts are disabled; current services remain until restart.",
+    "PurposeZh": "禁用运行自动诊断的服务主机。",
+    "PurposeEn": "Disable the service host for automatic diagnostics.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4223,8 +4263,8 @@
     "Id": "svc-wdisystemhost",
     "Zh": "诊断系统主机",
     "En": "Diagnostic System Host",
-    "PurposeZh": "为自动诊断运行系统服务。 禁用后续启动，当前服务保留到重启。",
-    "PurposeEn": "Hosts system services for automatic diagnostics. Future starts are disabled; current services remain until restart.",
+    "PurposeZh": "禁用运行自动诊断的系统服务主机。",
+    "PurposeEn": "Disable the system service host for automatic diagnostics.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4246,8 +4286,8 @@
     "Id": "svc-diagsvc",
     "Zh": "诊断执行服务",
     "En": "Diagnostic Execution Service",
-    "PurposeZh": "运行自动诊断和故障排查。 禁用后续启动，当前服务保留到重启。",
-    "PurposeEn": "Runs automatic diagnostics and troubleshooting. Future starts are disabled; current services remain until restart.",
+    "PurposeZh": "禁用自动诊断和故障排查执行服务。",
+    "PurposeEn": "Disable the service that executes automatic diagnostics and troubleshooting.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4269,8 +4309,8 @@
     "Id": "inventory-telemetry",
     "Zh": "清单采集与兼容性评估",
     "En": "Inventory and compatibility checks",
-    "PurposeZh": "关闭清单采集服务，解除强制策略，可通过服务管理器恢复。",
-    "PurposeEn": "Disables the inventory service, removes forced policy and allows restoration through Services.",
+    "PurposeZh": "禁用应用清单采集与兼容性评估服务。",
+    "PurposeEn": "Disable the application inventory and compatibility assessment service.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4299,10 +4339,10 @@
   },
   {
     "Id": "windows-backup",
-    "Zh": "备份与文件历史记录用户控制",
-    "En": "Backup and File History controls",
-    "PurposeZh": "解除旧版对备份、文件历史记录和设置同步的锁定，由 Windows 界面管理备份。",
-    "PurposeEn": "Removes old restrictions on backup, File History and settings sync; Windows manages backup choices.",
+    "Zh": "备份与文件历史记录",
+    "En": "Backup and File History",
+    "PurposeZh": "允许通过 Windows 界面管理备份、文件历史记录和设置同步。",
+    "PurposeEn": "Allow backup, File History and settings sync to be managed through Windows controls.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4370,8 +4410,8 @@
     "Id": "delivery-optimization",
     "Zh": "传递优化",
     "En": "Delivery Optimization",
-    "PurposeZh": "关闭从其他设备下载，保留正常下载和 Windows 设置中的手动开关。",
-    "PurposeEn": "Turns off peer downloads while preserving normal downloads and the Windows Settings switch.",
+    "PurposeZh": "关闭从其他设备下载 Windows 和商店更新的点对点共享。",
+    "PurposeEn": "Turn off peer-to-peer sharing for Windows and Store update downloads.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4396,14 +4436,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Apply",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "普通下载仍可使用，可在 Windows 设置中重新开启共享。",
+    "ImpactEn": "Normal downloads remain available; peer sharing can be enabled again in Windows Settings."
   },
   {
     "Id": "remote-desktop",
     "Zh": "远程桌面",
     "En": "Remote Desktop",
-    "PurposeZh": "关闭远程桌面，保留服务供 Windows 设置手动开启。",
-    "PurposeEn": "Turns off Remote Desktop while keeping its services available for manual use.",
+    "PurposeZh": "关闭远程桌面连接。",
+    "PurposeEn": "Turn off Remote Desktop connections.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4436,14 +4478,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Apply",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "可在 Windows 设置中重新开启。",
+    "ImpactEn": "It can be enabled again in Windows Settings."
   },
   {
     "Id": "remote-assistance",
     "Zh": "远程协助",
     "En": "Remote Assistance",
-    "PurposeZh": "关闭远程协助，保留系统属性中的手动开关。",
-    "PurposeEn": "Turns off Remote Assistance while preserving the System Properties switch.",
+    "PurposeZh": "关闭 Windows 远程协助。",
+    "PurposeEn": "Turn off Windows Remote Assistance.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4471,14 +4515,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Apply",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "可在系统属性中重新开启。",
+    "ImpactEn": "It can be enabled again in System Properties."
   },
   {
     "Id": "privacy-access",
     "Zh": "应用隐私权限与同步",
     "En": "App privacy permissions and sync",
-    "PurposeZh": "关闭语音、输入个性化及应用诊断访问，保留各项隐私开关；同步由 Windows 备份设置控制。",
-    "PurposeEn": "Turns off speech, input personalization and app diagnostics while preserving privacy and backup controls.",
+    "PurposeZh": "关闭在线语音识别、输入个性化和应用诊断信息访问。",
+    "PurposeEn": "Turn off online speech recognition, input personalization and access to application diagnostic information.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4577,8 +4623,8 @@
     "Id": "phishing-services",
     "Zh": "钓鱼防护后台",
     "En": "Phishing protection background",
-    "PurposeZh": "监测恶意站点和密码泄露并显示安全警报。",
-    "PurposeEn": "Monitors malicious sites and credential exposure and displays security alerts.",
+    "PurposeZh": "禁用监测恶意站点和密码泄露的钓鱼防护后台服务。",
+    "PurposeEn": "Disable phishing protection background services that monitor malicious sites and exposed credentials.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4603,8 +4649,8 @@
     "Id": "connected-devices",
     "Zh": "跨设备与附近共享",
     "En": "Cross-device and nearby sharing",
-    "PurposeZh": "关闭跨设备和附近共享，并禁用连接、手机及跨设备用户服务的后续启动，重启生效。",
-    "PurposeEn": "Disables cross-device and nearby sharing and future starts of connected-device, phone and per-user cross-device services; restart to apply.",
+    "PurposeZh": "关闭跨设备共享、附近共享和相关连接后台服务。",
+    "PurposeEn": "Turn off cross-device sharing, Nearby Sharing and related connection services.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4651,8 +4697,8 @@
     "Id": "phone-resume",
     "Zh": "跨设备任务接续",
     "En": "Cross-device task resumption",
-    "PurposeZh": "关闭跨设备任务接续，解除旧策略和执行权限拦截，保留手动开关。",
-    "PurposeEn": "Turns off cross-device resume and removes old policy and execution restrictions while preserving manual controls.",
+    "PurposeZh": "关闭在此电脑上接续其他设备任务的功能。",
+    "PurposeEn": "Turn off resuming tasks from other devices on this computer.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4710,8 +4756,8 @@
     "Id": "clipboard-history",
     "Zh": "剪贴板历史与同步",
     "En": "Clipboard history and sync",
-    "PurposeZh": "关闭剪贴板历史，保留剪贴板服务及手动开关。",
-    "PurposeEn": "Turns off clipboard history while keeping its service and manual switch available.",
+    "PurposeZh": "关闭剪贴板历史记录。",
+    "PurposeEn": "Turn off clipboard history.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4750,8 +4796,8 @@
     "Id": "game-recording",
     "Zh": "游戏录制后台",
     "En": "Game recording background",
-    "PurposeZh": "关闭游戏录制，保留录制服务及捕获设置中的开关。",
-    "PurposeEn": "Turns off game capture while keeping its service and manual capture controls available.",
+    "PurposeZh": "关闭游戏录制和后台捕获。",
+    "PurposeEn": "Turn off game recording and background capture.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4792,8 +4838,8 @@
     "Id": "recall-component",
     "Zh": "Recall 可选组件",
     "En": "Recall optional component",
-    "PurposeZh": "提供 Recall 屏幕快照与历史回顾功能。",
-    "PurposeEn": "Provides Recall snapshots and activity history.",
+    "PurposeZh": "禁用 Recall 屏幕快照与历史回顾可选组件。",
+    "PurposeEn": "Disable the Recall optional component for snapshots and activity history.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4815,8 +4861,8 @@
     "Id": "fast-startup",
     "Zh": "快速启动",
     "En": "Fast Startup",
-    "PurposeZh": "关机时保存内核会话，加快下次启动。",
-    "PurposeEn": "Saves the kernel session at shutdown for faster startup.",
+    "PurposeZh": "关闭关机时保存内核会话的快速启动。",
+    "PurposeEn": "Turn off Fast Startup, which saves the kernel session at shutdown.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4840,8 +4886,8 @@
     "Id": "reserved-storage",
     "Zh": "系统保留存储",
     "En": "Reserved Storage",
-    "PurposeZh": "为系统更新和临时文件预留磁盘空间。",
-    "PurposeEn": "Reserves disk space for system updates and temporary files.",
+    "PurposeZh": "关闭为系统更新和临时文件预留的存储空间。",
+    "PurposeEn": "Turn off storage reserved for system updates and temporary files.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4863,8 +4909,8 @@
     "Id": "edge-background",
     "Zh": "Edge 预启动与后台运行",
     "En": "Edge prelaunch and background",
-    "PurposeZh": "提供可覆盖的默认关闭值，用户可在 Edge 设置中修改预启动和后台运行。",
-    "PurposeEn": "Sets overridable off defaults for startup boost and background mode; users can change them in Edge Settings.",
+    "PurposeZh": "将 Edge 启动增强和关闭后后台运行的默认值设为关闭。",
+    "PurposeEn": "Set Edge startup boost and background mode defaults to off.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4909,14 +4955,16 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Apply",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "可在 Edge 设置中更改。",
+    "ImpactEn": "These options can be changed in Edge Settings."
   },
   {
     "Id": "search-web",
     "Zh": "搜索联网结果",
     "En": "Web search results",
-    "PurposeZh": "关闭 Windows 搜索的联网建议与网页结果；保留本地搜索，不拦截 SearchHost 或卸载商店。商店结果能否独立保留取决于 Windows 版本。",
-    "PurposeEn": "Disables online suggestions and web results without blocking SearchHost, local search or Store. Separate Store results depend on Windows version.",
+    "PurposeZh": "关闭 Windows 搜索中的联网建议和网页结果。",
+    "PurposeEn": "Turn off online suggestions and web results in Windows Search.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4934,14 +4982,16 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "保留本地搜索；商店结果可能随 Windows 版本一并关闭。",
+    "ImpactEn": "Local search remains available; Store results may also be hidden, depending on Windows version."
   },
   {
     "Id": "user-data-services",
     "Zh": "联系人与用户数据后台",
     "En": "Contacts and user data services",
-    "PurposeZh": "禁用联系人索引及用户数据存储、访问服务的后续启动，重启生效；使用这些服务的联系人或日历应用将不可同步。",
-    "PurposeEn": "Disables future starts of contact indexing and user data storage/access services after restart; apps relying on these services cannot sync contacts or calendars.",
+    "PurposeZh": "禁用联系人索引及用户数据存储和访问后台服务。",
+    "PurposeEn": "Disable background services for contact indexing and user data storage and access.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4970,14 +5020,16 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "依赖这些服务的联系人和日历应用无法同步。",
+    "ImpactEn": "Contacts and calendar applications that depend on these services cannot sync."
   },
   {
     "Id": "print-services",
     "Zh": "打印后台",
     "En": "Print services",
-    "PurposeZh": "禁用打印后台及打印工作流用户服务的后续启动，重启生效；实体打印和打印到 PDF 均不再可用。",
-    "PurposeEn": "Disables print spooler and per-user print workflow services after restart, including physical printing and Print to PDF.",
+    "PurposeZh": "禁用打印后台和打印工作流服务。",
+    "PurposeEn": "Disable the print spooler and print workflow services.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -4999,14 +5051,16 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "实体打印和打印到 PDF 均不可用。",
+    "ImpactEn": "Physical printing and Print to PDF become unavailable."
   },
   {
     "Id": "device-discovery",
     "Zh": "网络设备发现",
     "En": "Network device discovery",
-    "PurposeZh": "关闭 SSDP、UPnP、网络功能发现及 WPS 配置服务；保留 USB 即插即用、无线网络和蓝牙，重启生效。",
-    "PurposeEn": "Disables SSDP, UPnP, network function discovery and WPS configuration after restart; preserves USB Plug and Play, Wi-Fi and Bluetooth.",
+    "PurposeZh": "禁用网络设备发现、UPnP 和 WPS 配置服务。",
+    "PurposeEn": "Disable network device discovery, UPnP and WPS configuration services.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -5042,14 +5096,16 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "保留 USB 即插即用、无线网络和蓝牙连接。",
+    "ImpactEn": "USB Plug and Play, Wi-Fi and Bluetooth connections remain available."
   },
   {
     "Id": "data-usage",
     "Zh": "流量统计后台",
     "En": "Data usage reporting",
-    "PurposeZh": "禁用网络流量统计服务的后续启动；保留网络连接和流量传输，重启生效。",
-    "PurposeEn": "Disables future starts of data usage reporting after restart, preserving networking and traffic transmission.",
+    "PurposeZh": "禁用网络流量使用统计后台服务。",
+    "PurposeEn": "Disable background network data usage reporting.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -5065,6 +5121,8 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "网络连接和数据传输不受影响。",
+    "ImpactEn": "Network connections and data transfer are unaffected."
   }
 ]

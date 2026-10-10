@@ -9,6 +9,8 @@ pub struct Feature {
     pub en: String,
     pub purpose_zh: String,
     pub purpose_en: String,
+    pub impact_zh: String,
+    pub impact_en: String,
     pub group_zh: String,
     pub group_en: String,
     pub probe: String,
@@ -28,6 +30,8 @@ impl Default for Feature {
             en: String::new(),
             purpose_zh: String::new(),
             purpose_en: String::new(),
+            impact_zh: String::new(),
+            impact_en: String::new(),
             group_zh: String::new(),
             group_en: String::new(),
             probe: String::new(),
@@ -65,6 +69,9 @@ impl Feature {
                 }
             }
         }
+    }
+    pub fn impact(&self, zh: bool) -> &str {
+        choose(zh, &self.impact_zh, &self.impact_en)
     }
     pub fn security(&self) -> bool {
         self.page == "System"
@@ -205,83 +212,219 @@ impl Check {
     pub fn recheckable(&self) -> bool {
         matches!(self.state, Status::Unknown | Status::Restricted)
     }
-    pub fn explanation(&self, zh: bool) -> Option<&str> {
-        Some(match self.state {
+    pub fn summary(&self, f: &Feature, zh: bool) -> &str {
+        match self.state {
+            Status::PendingCheck => choose(
+                zh,
+                "尚未读取当前设置。",
+                "Current settings have not been checked yet.",
+            ),
+            Status::Checking => choose(zh, "正在读取当前设置。", "Reading current settings."),
+            Status::Ready if f.toggle() => choose(
+                zh,
+                "当前配置为 Windows 11 右键菜单。",
+                "The Windows 11 context menu is selected.",
+            ),
+            Status::Done if f.toggle() => choose(
+                zh,
+                "当前配置为 Windows 10 经典右键菜单。",
+                "The Windows 10 classic context menu is selected.",
+            ),
+            Status::Ready => match f.intent.as_str() {
+                "Install" => choose(zh, "尚未安装此应用。", "This application is not installed."),
+                "Remove" => choose(
+                    zh,
+                    "检测到可卸载的应用或组件。",
+                    "An application or component is available to uninstall.",
+                ),
+                _ => choose(
+                    zh,
+                    "当前设置尚未完全符合此项目的目标。",
+                    "Current settings do not fully match this item's target.",
+                ),
+            },
+            Status::Done => match f.intent.as_str() {
+                "Install" => choose(zh, "此应用已安装。", "This application is installed."),
+                "Remove" => choose(
+                    zh,
+                    "未检测到此应用或组件。",
+                    "This application or component is not installed.",
+                ),
+                _ => choose(
+                    zh,
+                    "当前设置已符合此项目的目标。",
+                    "Current settings match this item's target.",
+                ),
+            },
             Status::Unknown => choose(
                 zh,
-                "Windows 暂未返回此项状态，此项暂时跳过。按 Space 重新检测。",
-                "Windows has not returned this item's state. It is skipped for now; press Space to check again.",
+                "Windows 暂未提供可用的状态信息。",
+                "Windows has not provided usable status information.",
             ),
             Status::Restricted => choose(
                 zh,
-                "系统限制了此项状态的读取权限，此项暂时跳过。按 Space 重新检测。",
-                "Windows restricts access to this item's state. It is skipped for now; press Space to check again.",
+                "Windows 限制了此设置的读取权限。",
+                "Windows restricts access to this setting's status.",
             ),
             Status::Inactive => choose(
                 zh,
-                "Defender 服务当前未运行，Windows 不提供篡改防护的实时状态，此项自动跳过。",
-                "Defender is not running, so Windows does not report live tamper protection status. This item is skipped.",
+                "Defender 未运行，篡改防护的实时状态不可用。",
+                "Defender is not running, so live tamper protection status is unavailable.",
             ),
+            Status::Limited if !self.detail.is_empty() => "",
             Status::Limited => choose(
                 zh,
-                "关闭配置已写入，系统或程序仍保留部分保护；不会重复要求重启。",
-                "Disable settings are saved, but Windows or the application retains some protections; another restart is not requested.",
+                "可调整的配置已关闭，系统或程序仍保留部分防护。",
+                "Configurable settings are off; Windows or applications retain some protections.",
             ),
             Status::Absent => choose(
                 zh,
-                "当前没有需要处理的对象，此项自动跳过。",
-                "There is nothing to change on this system. This item is skipped.",
+                "当前系统未提供此功能，或没有需要处理的对象。",
+                "This feature is unavailable on this system, or there is nothing to change.",
             ),
             Status::Deferred => choose(
                 zh,
-                "重启返回正常模式后，再检测和执行此项。",
-                "This item will be checked and run after restarting into normal mode.",
+                "此项目需要在正常模式下执行。",
+                "This item requires normal mode.",
+            ),
+            Status::Running => match f.intent.as_str() {
+                "Install" => choose(zh, "正在安装此应用。", "Installing this application."),
+                "Remove" => choose(
+                    zh,
+                    "正在卸载应用或组件。",
+                    "Uninstalling the application or component.",
+                ),
+                _ => choose(
+                    zh,
+                    "正在应用此项目的设置。",
+                    "Applying this item's settings.",
+                ),
+            },
+            Status::Queued => choose(
+                zh,
+                "已加入执行队列，等待执行。",
+                "Queued and waiting to run.",
+            ),
+            Status::SafeQueued => choose(
+                zh,
+                "已加入安全模式执行队列。",
+                "Queued to run in Safe Mode.",
+            ),
+            Status::Restart => choose(
+                zh,
+                "配置已保存，等待重启生效。",
+                "Settings are saved and will take effect after restart.",
+            ),
+            Status::SignIn => choose(
+                zh,
+                "配置已保存，等待重新登录后更新界面。",
+                "Settings are saved; the interface will update after signing in again.",
+            ),
+            Status::Failed => choose(
+                zh,
+                "上次执行未完成，部分设置可能已应用。",
+                "The last run was incomplete; some settings may have been applied.",
+            ),
+        }
+    }
+    pub fn instruction(&self, f: &Feature, zh: bool) -> Option<&str> {
+        Some(match self.state {
+            Status::Ready | Status::Done if f.toggle() => choose(
+                zh,
+                "按 Space 切换菜单样式。",
+                "Press Space to switch the menu style.",
+            ),
+            Status::Ready | Status::PendingCheck | Status::Checking => {
+                if f.safe {
+                    choose(
+                        zh,
+                        "按 Space 执行；必要时进入安全模式。",
+                        "Press Space to run; Safe Mode will be used if needed.",
+                    )
+                } else if f.restart {
+                    choose(
+                        zh,
+                        "按 Space 执行；更改需要重启生效。",
+                        "Press Space to run; changes require a restart.",
+                    )
+                } else if matches!(f.refresh.as_str(), "Shell" | "Wallpaper") {
+                    choose(
+                        zh,
+                        "按 Space 执行；更改需要重新登录生效。",
+                        "Press Space to run; changes require signing in again.",
+                    )
+                } else {
+                    choose(zh, "按 Space 执行此项目。", "Press Space to run this item.")
+                }
+            }
+            Status::Failed => choose(zh, "按 Space 重试。", "Press Space to retry."),
+            Status::Unknown | Status::Restricted => choose(
+                zh,
+                "按 Space 重新检测；执行全部时暂时跳过此项目。",
+                "Press Space to check again; Run all skips this item for now.",
+            ),
+            Status::SafeQueued => choose(
+                zh,
+                "按 R 重启，进入安全模式后自动继续。",
+                "Press R to restart; execution continues in Safe Mode.",
+            ),
+            Status::Restart => choose(
+                zh,
+                "重启电脑以应用更改。",
+                "Restart the computer to apply changes.",
+            ),
+            Status::SignIn => choose(
+                zh,
+                "注销并重新登录以应用更改。",
+                "Sign out and sign in again to apply changes.",
+            ),
+            Status::Deferred => choose(
+                zh,
+                "返回正常模式后执行此项目。",
+                "Run this item after returning to normal mode.",
             ),
             _ => return None,
         })
     }
     pub fn label(&self, f: &Feature, zh: bool) -> String {
-        if self.state == Status::SignIn && f.toggle() {
-            return format!("{} · {}", self.detail, choose(zh, "重新登录", "Sign in"));
-        }
         match self.state {
             Status::PendingCheck => choose(zh, "待检测", "Awaiting check"),
             Status::Checking => choose(zh, "检测中", "Checking"),
-            Status::Ready if f.id == "taskbar-pins" => choose(zh, "可清理", "Can clear"),
+            Status::Ready if f.id == "taskbar-pins" => choose(zh, "待清理", "Needs cleanup"),
             Status::Done if f.id == "taskbar-pins" => choose(zh, "无固定项", "No pins"),
-            Status::Ready if f.id == "location" => choose(zh, "可关闭", "Can turn off"),
+            Status::Ready if f.id == "location" => choose(zh, "待关闭", "Needs disabling"),
             Status::Done if f.id == "location" => choose(zh, "已关闭", "Off"),
             Status::Ready if f.toggle() => "Windows 11",
             Status::Done if f.toggle() => "Windows 10",
             Status::Ready => match f.intent.as_str() {
-                "Install" => choose(zh, "可安装", "Can install"),
-                "Remove" => choose(zh, "可卸载", "Can remove"),
-                "Apply" => choose(zh, "可设置", "Can configure"),
-                _ => choose(zh, "可禁用", "Can disable"),
+                "Install" => choose(zh, "未安装", "Not installed"),
+                "Remove" => choose(zh, "已安装", "Installed"),
+                "Apply" => choose(zh, "待设置", "Needs configuration"),
+                _ => choose(zh, "待禁用", "Needs disabling"),
             },
-            Status::Done if f.id == "windows-update" => &self.detail,
             Status::Done => match f.intent.as_str() {
                 "Install" => choose(zh, "已安装", "Installed"),
-                "Remove" => choose(zh, "已清理", "Removed"),
+                "Remove" => choose(zh, "未安装", "Not installed"),
                 "Apply" => choose(zh, "已设置", "Configured"),
                 _ => choose(zh, "已禁用", "Disabled"),
             },
             Status::Running => choose(zh, "执行中", "Running"),
             Status::Queued => choose(zh, "等待执行", "Queued"),
-            Status::SafeQueued => choose(zh, "安全模式执行", "Apply in Safe Mode"),
-            Status::Restart => choose(zh, "重启生效", "Restart to apply"),
-            Status::SignIn => choose(zh, "重新登录生效", "Sign in to apply"),
-            Status::Failed => choose(zh, "未完成 · 可重试", "Incomplete · Retry"),
-            Status::Deferred => choose(zh, "返回正常模式执行", "Run in normal mode"),
-            Status::Unknown => choose(zh, "状态待确认 · 可重查", "Unconfirmed · Recheck"),
-            Status::Restricted => choose(zh, "读取受限 · 可重查", "Access restricted · Recheck"),
+            Status::SafeQueued => choose(zh, "待安全模式", "Needs Safe Mode"),
+            Status::Restart => choose(zh, "待重启", "Needs restart"),
+            Status::SignIn => choose(zh, "待重新登录", "Needs sign-in"),
+            Status::Failed => choose(zh, "执行未完成", "Incomplete"),
+            Status::Deferred => choose(zh, "待正常模式", "Needs normal mode"),
+            Status::Unknown => choose(zh, "状态待确认", "Unconfirmed"),
+            Status::Restricted => choose(zh, "读取受限", "Access restricted"),
             Status::Inactive => choose(zh, "未运行", "Not running"),
-            Status::Limited => choose(zh, "部分保护保留", "Protection kept"),
-            Status::Absent => choose(zh, "无需处理", "Nothing to change"),
+            Status::Limited => choose(zh, "部分防护保留", "Protection retained"),
+            Status::Absent => choose(zh, "无需处理", "Not applicable"),
         }
         .into()
     }
 }
+
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub struct ResultRecord {
     pub errors: Vec<String>,

@@ -215,6 +215,7 @@ fn frame_and_navigation_work_while_every_item_is_checking() -> anyhow::Result<()
             );
             assert_ne!(app.selected(), first);
             let bar = app.table.vscroll.area;
+            let before_page = app.table.selected().unwrap();
             rowselection::handle_events(
                 &mut app.table,
                 true,
@@ -225,7 +226,7 @@ fn frame_and_navigation_work_while_every_item_is_checking() -> anyhow::Result<()
                     modifiers: KeyModifiers::NONE,
                 }),
             );
-            assert!(app.table.selected().unwrap() > 20);
+            assert!(app.table.selected().unwrap() > before_page);
             assert!(!app.busy);
             app.command(&Command::All);
             assert!(app.states.iter().all(|s| s.state == Status::Queued));

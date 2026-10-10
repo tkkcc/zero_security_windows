@@ -21,18 +21,20 @@ No installation or separate runtime is needed. Only the context menu style switc
 
 Keys are case insensitive: **Space** runs or retries the selected item, **A** runs all, **R** restarts, and **Q** exits. Rows keep their positions during checks and retries. Local settings run before installations, with up to six concurrent jobs. Restart and sign-in settings are applied before the Safe Mode round trip; installers that explicitly require a restart still show that requirement.
 
-Items skipped because of the current environment show “Not running”, “Nothing to change”, or “Run in normal mode”, with an explanation below the table. For restricted or unconfirmed states, **Space** checks again without executing changes. Execution failures remain red and retryable. Original check diagnostics are saved in `%ProgramData%\ZeroSecurityWindows\checks.jsonl`.
+The right column shows short status labels. Select an item to see separate sections below the table: Purpose describes the target, Effect explains the scope or limitations, Status gives the current check results, and Action lists the available next step. Pause dates, saved taskbar pins and protection counts appear in Status.
 
-Location access and location request notifications are turned off while their Windows Settings switches remain available. Applying this item removes the forced-off policy left by older versions and restores the Geolocation Service to manual trigger start.
+“Not running”, “Not applicable” and “Needs normal mode” describe the current environment. “Access restricted” and “Unconfirmed” mean Windows has not supplied a usable result; press **Space** to check again. Check diagnostics are saved in `%ProgramData%\ZeroSecurityWindows\checks.jsonl`. Actual execution failures appear in red as “Incomplete”; press **Space** to retry.
 
-Windows Update uses a long-term pause while its settings page and manual controls remain available. The update item restores services, processes and tasks blocked by older versions. Delivery Optimization only disables peer sharing, preserving normal downloads.
+Location access and location request notifications are turned off while their Windows Settings switches remain available.
+
+Windows Update uses a long-term pause while its settings page and manual controls remain available. Delivery Optimization only disables peer sharing, preserving normal downloads.
 
 “App launch preloading” disables application prefetching, prelaunch and operation recording. SysMain starts automatically; memory compression and page combining retain Windows settings, with their current states shown below the table.
 
-General notifications are controlled by Windows and individual apps. The tool no longer changes banners, sounds, notification center, taskbar badges or lock-screen notifications.
+General notifications are controlled by Windows and individual applications.
 
-LSA checks the actual process protection type; an audit flag does not count as protection. DEP checks both the live boot policy and process state. Windows mandates DEP for 64-bit programs even when the configurable boot policy is off, so retained protection is reported without repeatedly requesting a restart.
+Security checks cover configurable settings and actual running protections. Windows-mandated or application-enabled protections may remain; these show “Protection retained” with specific results below the table. Windows mandates DEP for 64-bit applications.
 
-Ordinary privacy, desktop and connection controls remain editable in their GUI. Checks only read user changes. Relevant items retain necessary service configurations and manual controls; there is no separate legacy recovery item. Deep disabling of Defender services and drivers remains intentional. See the [GUI recovery audit](docs/GUI恢复检查.md) for the full scope.
+Ordinary privacy, desktop and connection controls remain editable in their GUI. Checks only read user changes. Defender services and drivers use deep disabling. See the [GUI recovery audit](docs/GUI恢复检查.md) for the full scope.
 
-“Pinned taskbar apps” checks pins saved by Windows, showing “Can clear” or “No pins” and listing their count and names below the table. Older hiding settings may temporarily keep saved pins invisible. Running windows also appear on the taskbar without necessarily being pinned.
+“Pinned taskbar apps” checks pins saved by Windows, showing “Needs cleanup” or “No pins” and listing their count and names below the table. Running windows also appear on the taskbar without necessarily being pinned.

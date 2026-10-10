@@ -22,7 +22,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
 
 const THEME_KEY: &str = r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
@@ -101,6 +101,11 @@ pub struct App {
     pub restart: bool,
     follow_top: bool,
     palette: Palette,
+}
+struct DetailSection {
+    label: &'static str,
+    text: String,
+    color: Color,
 }
 impl App {
     pub fn new(catalog: Vec<Feature>, zh: bool) -> Result<Self> {
@@ -201,6 +206,76 @@ impl App {
         }
         changed
     }
+    fn detail_sections(&self) -> Vec<DetailSection> {
+        let Some(i) = self.selected() else {
+            return vec![];
+        };
+        let f = &self.catalog[i];
+        let state = &self.states[i];
+        let mut sections = vec![DetailSection {
+            label: choose(self.zh, "功能", "Purpose"),
+            text: f.purpose(self.zh).into(),
+            color: self.palette.text,
+        }];
+        if !f.impact(self.zh).is_empty() {
+            sections.push(DetailSection {
+                label: choose(self.zh, "影响", "Effect"),
+                text: f.impact(self.zh).into(),
+                color: self.palette.muted,
+            });
+        }
+        let mut summary = state.summary(f, self.zh).to_owned();
+        if !state.detail.is_empty()
+            && !matches!(
+                state.state,
+                Status::Unknown | Status::Restricted | Status::Failed
+            )
+        {
+            if !summary.is_empty() {
+                summary.push('\n');
+            }
+            if state.state == Status::SignIn && f.toggle() {
+                summary.push_str(choose(self.zh, "目标菜单：", "Target menu: "));
+            }
+            summary.push_str(&state.detail);
+        }
+        sections.push(DetailSection {
+            label: choose(self.zh, "状态", "Status"),
+            text: summary,
+            color: self.palette.status(state.state),
+        });
+        if state.state == Status::Failed && !state.detail.is_empty() {
+            sections.push(DetailSection {
+                label: choose(self.zh, "错误", "Error"),
+                text: state.detail.clone(),
+                color: self.palette.red,
+            });
+        }
+        if !self.busy
+            && let Some(instruction) = state.instruction(f, self.zh)
+        {
+            sections.push(DetailSection {
+                label: choose(self.zh, "操作", "Action"),
+                text: instruction.into(),
+                color: self.palette.blue,
+            });
+        }
+        if state.recheckable() || state.state == Status::Failed {
+            sections.push(DetailSection {
+                label: choose(self.zh, "日志", "Log"),
+                text: store::root()
+                    .join(if state.recheckable() {
+                        "checks.jsonl"
+                    } else {
+                        "operations.jsonl"
+                    })
+                    .display()
+                    .to_string(),
+                color: self.palette.muted,
+            });
+        }
+        sections
+    }
     pub fn draw(&mut self, frame: &mut Frame) {
         let p = self.palette;
         let style = Style::default().fg(p.text).bg(p.base);
@@ -210,13 +285,18 @@ impl App {
             width: frame.area().width.saturating_sub(2),
             ..frame.area()
         };
-        let mut spans = vec![];
+        let mut spans = vec![Span::styled(
+            choose(self.zh, "↑↓ 选择项目", "↑↓ Select item"),
+            Style::default().fg(p.muted),
+        )];
         for (key, zh, en) in [
             if self
                 .selected()
                 .is_some_and(|i| self.states[i].recheckable())
             {
                 ("Space", "重新检测当前项", "Check item again")
+            } else if self.selected().is_some_and(|i| self.catalog[i].toggle()) {
+                ("Space", "切换菜单样式", "Switch menu style")
             } else {
                 ("Space", "执行当前项", "Run item")
             },
@@ -224,7 +304,10 @@ impl App {
             ("R", "重启", "Restart"),
             ("Q", "退出", "Exit"),
         ] {
-            if key == "R" && !self.restart {
+            if self.busy || key == "R" && !self.restart {
+                continue;
+            }
+            if key == "Space" && self.space_command().is_none() {
                 continue;
             }
             if !spans.is_empty() {
@@ -296,55 +379,36 @@ impl App {
         }
         let header = Paragraph::new(lines).wrap(Wrap { trim: false });
         let top = header.line_count(area.width) as u16;
-        let description = self.selected().map(|i| {
-            let f = &self.catalog[i];
-            let state = &self.states[i];
-            let mut lines = vec![Line::from(f.purpose(self.zh))];
-            if f.id == "taskbar-pins"
-                && matches!(state.state, Status::Ready | Status::Done | Status::SignIn)
-                && !state.detail.is_empty()
-            {
-                lines.push(Line::from(state.detail.as_str()));
-                if state.state != Status::Done {
-                    lines.push(Line::from(choose(
-                        self.zh,
-                        "固定项可能被旧设置隐藏；重新登录后刷新。当前打开的窗口也会显示在任务栏。",
-                        "Old settings may hide saved pins until sign-in. Running windows also appear on the taskbar.",
-                    )));
-                }
+        let sections = self.detail_sections();
+        let label_width = if self.zh { 6 } else { 8 };
+        let detail_width = area.width.saturating_sub(label_width);
+        let mut heights: Vec<_> = sections
+            .iter()
+            .map(|section| {
+                Paragraph::new(section.text.as_str())
+                    .wrap(Wrap { trim: true })
+                    .line_count(detail_width) as u16
+            })
+            .collect();
+        let available = area.height.saturating_sub(top + 5);
+        let mut shortened_error = None;
+        if let Some(error) = sections
+            .iter()
+            .position(|s| s.label == choose(self.zh, "错误", "Error"))
+        {
+            let others = heights.iter().sum::<u16>() - heights[error];
+            let room = available.saturating_sub(others).max(1);
+            if heights[error] > room {
+                heights[error] = room;
+                shortened_error = Some(error);
             }
-            if let Some(explanation) = state.explanation(self.zh) {
-                lines.push(Line::from(explanation));
-                if state.recheckable() {
-                    lines.push(Line::from(format!(
-                        "{}{}",
-                        choose(self.zh, "诊断日志：", "Diagnostic log: "),
-                        store::root().join("checks.jsonl").display(),
-                    )));
-                }
-            }
-            if state.state == Status::Failed && !state.detail.is_empty() {
-                lines.push(Line::styled(
-                    state.detail.as_str(),
-                    Style::default().fg(p.red),
-                ));
-            }
-            if matches!(state.state, Status::Limited | Status::Restart) && !state.detail.is_empty() {
-                lines.push(Line::from(state.detail.as_str()));
-            }
-            Paragraph::new(lines)
-                .style(Style::default().fg(p.muted))
-                .wrap(Wrap { trim: true })
-                .block(
-                    Block::default()
-                        .borders(Borders::TOP)
-                        .border_style(Style::default().fg(p.border)),
-                )
-        });
-        let bottom = description
-            .as_ref()
-            .map(|text| (text.line_count(area.width) as u16).min(6))
-            .unwrap_or(0);
+        }
+        let bottom = if sections.is_empty() {
+            0
+        } else {
+            1 + heights.iter().sum::<u16>()
+        };
+        let bottom = bottom.min(area.height.saturating_sub(top + 4));
         let layout = Layout::vertical([
             Constraint::Length(top),
             Constraint::Min(3),
@@ -362,13 +426,8 @@ impl App {
                     .style(Some(Style::default().fg(p.status(self.states[*i].state)))),
             ])
         });
-        let category = if self.zh { 12 } else { 20 };
-        let category = if area.width < 85 {
-            category.min(12)
-        } else {
-            category
-        };
-        let status = if area.width < 85 { 16 } else { 24 };
+        let category = if self.zh { 10 } else { 14 };
+        let status = if self.zh { 16 } else { 20 };
         let table = Table::default()
             .style(style)
             .rows(rows)
@@ -402,9 +461,48 @@ impl App {
                     .thumb_symbol(" ")
                     .thumb_style(style.bg(p.blue)),
             );
-        frame.render_stateful_widget(table, layout[1], &mut self.table);
-        if let Some(text) = description {
-            frame.render_widget(text, layout[2]);
+        let previous_height = self.table.area.height;
+        frame.render_stateful_widget(&table, layout[1], &mut self.table);
+        if previous_height != layout[1].height && self.table.scroll_to_selected() {
+            frame.render_stateful_widget(&table, layout[1], &mut self.table);
+        }
+        if bottom != 0 {
+            frame.render_widget(
+                Block::default()
+                    .borders(Borders::TOP)
+                    .border_style(Style::default().fg(p.border)),
+                layout[2],
+            );
+            let mut y = layout[2].y + 1;
+            for (index, (section, height)) in sections.iter().zip(heights).enumerate() {
+                let height = height.min(layout[2].bottom().saturating_sub(y));
+                frame.render_widget(
+                    Paragraph::new(section.label)
+                        .style(Style::default().fg(p.muted).add_modifier(Modifier::BOLD)),
+                    Rect::new(area.x, y, label_width, height.min(1)),
+                );
+                frame.render_widget(
+                    Paragraph::new(section.text.as_str())
+                        .wrap(Wrap { trim: true })
+                        .style(Style::default().fg(section.color)),
+                    Rect::new(area.x + label_width, y, detail_width, height),
+                );
+                if shortened_error == Some(index) && height != 0 {
+                    let line = Rect::new(area.x + label_width, y + height - 1, detail_width, 1);
+                    frame.render_widget(Clear, line);
+                    frame.render_widget(Block::default().style(style), line);
+                    frame.render_widget(
+                        Paragraph::new(choose(
+                            self.zh,
+                            "…完整错误见日志。",
+                            "…Full error details are in the log.",
+                        ))
+                        .style(Style::default().fg(p.muted)),
+                        line,
+                    );
+                }
+                y += height;
+            }
         }
     }
     fn receive(&mut self, msg: Message, epoch: usize) {
@@ -437,6 +535,7 @@ impl App {
                 ..
             } => {
                 self.busy = false;
+                self.countdown = None;
                 self.restart = restart;
                 if let Some(engine) = &self.engine
                     && let Some(pending) = engine.store.pending.lock().unwrap().as_ref()
@@ -474,12 +573,18 @@ impl App {
                 }
                 if failures > 0 {
                     self.message.push_str(&format!(
-                        " · {failures} {} {}",
-                        choose(self.zh, "项未完成，日志：", "incomplete; log:"),
-                        store::log_path().display()
+                        " · {failures} {}",
+                        choose(self.zh, "项执行未完成", "incomplete")
                     ))
                 }
-                if auto && (failures == 0 || native::safe_mode()) {
+                let unconfirmed = self.states.iter().filter(|s| s.recheckable()).count();
+                if unconfirmed > 0 {
+                    self.message.push_str(&format!(
+                        " · {unconfirmed} {}",
+                        choose(self.zh, "项状态待确认", "unconfirmed")
+                    ));
+                }
+                if auto && (failures == 0 && unconfirmed == 0 || native::safe_mode()) {
                     self.countdown = Some((Instant::now() + Duration::from_secs(10), restart))
                 }
                 self.reorder();
@@ -508,7 +613,6 @@ pub fn run(mode: String) -> Result<()> {
     native::open_console()?;
     let _guard = TerminalGuard;
     let mut terminal = ratatui::try_init()?;
-    native::hide_console_scrollbars();
     execute!(std::io::stdout(), EnableMouseCapture)?;
     let mut app = App::new(catalog()?, native::chinese())?;
     let Color::Rgb(r, g, b) = app.palette.base else {
@@ -516,6 +620,7 @@ pub fn run(mode: String) -> Result<()> {
     };
     let background = native::ConsoleBackground::new(r, g, b)?;
     terminal.draw(|frame| app.draw(frame))?;
+    native::hide_console_scrollbars();
     let (tx, rx) = mpsc::channel();
     let (commands, receiver) = mpsc::channel();
     let epoch = Arc::new(AtomicUsize::new(0));
@@ -594,6 +699,7 @@ fn event_loop(
         }
         if dirty {
             terminal.draw(|frame| app.draw(frame))?;
+            native::hide_console_scrollbars();
             dirty = false
         }
         if !event::poll(Duration::from_millis(20))? {
@@ -649,6 +755,161 @@ fn event_loop(
 mod tests {
     use super::*;
     #[test]
+    fn selected_item_details_are_separate_and_fit_a_small_terminal() -> Result<()> {
+        use ratatui::{Terminal, backend::TestBackend};
+        let compact = |s: &str| s.chars().filter(|c| !c.is_whitespace()).collect::<String>();
+        let mut previews = vec![];
+        for zh in [true, false] {
+            for (id, state, detail) in [
+                (
+                    "process-mitigations",
+                    Status::Limited,
+                    choose(
+                        zh,
+                        "启动配置已关闭。仍启用的防护（数量为已读取的 Windows 进程数）：\n数据执行保护 DEP：170；地址随机化 ASLR：8\n动态代码限制：3；严格句柄检查：71\n系统调用限制：1；扩展点限制：2\n控制流保护 CFG：1；代码签名限制：5\n字体加载限制：3；映像加载限制：4\n子进程限制：3；堆栈保护 CET：53\n重定向信任检查：12；异常处理链保护：170",
+                        "Startup settings are off. Retained protections (counts are inspected Windows processes):\nDEP: 170; ASLR: 8\nDynamic code: 3; Strict handle checks: 71\nWin32k restrictions: 1; Extension point restrictions: 2\nControl flow guard: 1; Code signing restrictions: 5\nFont restrictions: 3; Image loading restrictions: 4\nChild process restrictions: 3; Stack protection CET: 53\nRedirection trust checks: 12; Exception chain protection: 170",
+                    ),
+                ),
+                (
+                    "dep",
+                    Status::Limited,
+                    choose(
+                        zh,
+                        "启动策略已关闭；当前 64 位进程的 DEP 仍开启。",
+                        "The boot policy is off; DEP remains enabled for the current 64-bit process.",
+                    ),
+                ),
+                (
+                    "windows-update",
+                    Status::Done,
+                    choose(
+                        zh,
+                        "更新暂停至 2045-12-06",
+                        "Updates paused until 2045-12-06",
+                    ),
+                ),
+                (
+                    "svc-sysmain",
+                    Status::Done,
+                    choose(
+                        zh,
+                        "当前内存压缩：开启；内存页合并：开启。",
+                        "Memory compression: on; page combining: on.",
+                    ),
+                ),
+                ("classic-menu", Status::SignIn, "Windows 10"),
+                ("install-git.git", Status::Queued, ""),
+            ] {
+                for width in [80, 120] {
+                    let mut app = App::new(catalog()?, zh)?;
+                    let i = app.catalog.iter().position(|f| f.id == id).unwrap();
+                    let mut terminal = Terminal::new(TestBackend::new(width, 24))?;
+                    terminal.draw(|frame| app.draw(frame))?;
+                    app.focus(i);
+                    app.states[i] = Check {
+                        state,
+                        detail: detail.into(),
+                    };
+                    let sections = app.detail_sections();
+                    assert_eq!(sections[0].label, choose(zh, "功能", "Purpose"));
+                    assert!(
+                        sections
+                            .iter()
+                            .any(|s| s.label == choose(zh, "状态", "Status"))
+                    );
+                    assert!(
+                        !app.states[i].label(&app.catalog[i], zh).contains(detail)
+                            || detail.is_empty()
+                    );
+                    terminal.draw(|frame| app.draw(frame))?;
+                    let row = app.table.selected().unwrap();
+                    assert!(
+                        row >= app.table.row_offset()
+                            && row < app.table.row_offset() + app.table.vscroll.page_len()
+                    );
+                    let buffer = terminal.backend().buffer();
+                    let label_width: u16 = if zh { 6 } else { 8 };
+                    let rows: Vec<_> = (0..24).map(|y| {
+                        let mut remaining = 0;
+                        (0..width).map(|x| {
+                            let cell = &buffer[(x,y)];
+                            let text = if remaining != 0 { remaining -= 1; "" } else {
+                                remaining = Span::raw(cell.symbol()).width().saturating_sub(1);
+                                cell.symbol()
+                            };
+                            serde_json::json!({"text":text,"fg":format!("{:?}",cell.fg),"bg":format!("{:?}",cell.bg)})
+                        }).collect::<Vec<_>>()
+                    }).collect();
+                    let footer: String = rows[usize::from(app.table.table_area.bottom() + 1)..]
+                        .iter()
+                        .flat_map(|row| {
+                            row[usize::from(1 + label_width)..usize::from(width - 1)]
+                                .iter()
+                                .map(|cell| cell["text"].as_str().unwrap())
+                        })
+                        .collect();
+                    for section in sections {
+                        assert!(
+                            compact(&footer).contains(&compact(&section.text)),
+                            "{id}, width {width}, {}: {:?}",
+                            section.label,
+                            footer
+                        );
+                    }
+                    if width == 80 {
+                        previews.push(serde_json::json!({"id":id,"zh":zh,"width":width,"height":24,"rows": rows}));
+                    }
+                }
+            }
+        }
+        if let Ok(path) = std::env::var("ZSW_UI_PREVIEWS") {
+            std::fs::write(path, serde_json::to_string(&previews)?)?;
+        }
+        Ok(())
+    }
+    #[test]
+    fn long_errors_keep_the_retry_action_and_log_visible() -> Result<()> {
+        use ratatui::{Terminal, backend::TestBackend};
+        for zh in [true, false] {
+            let mut app = App::new(catalog()?, zh)?;
+            let i = app
+                .catalog
+                .iter()
+                .position(|f| f.id == "install-git.git")
+                .unwrap();
+            let mut terminal = Terminal::new(TestBackend::new(80, 24))?;
+            terminal.draw(|frame| app.draw(frame))?;
+            app.focus(i);
+            app.states[i] = Check {
+                state: Status::Failed,
+                detail: "Installer returned an error with detailed output.\n".repeat(30),
+            };
+            terminal.draw(|frame| app.draw(frame))?;
+            let buffer = terminal.backend().buffer();
+            let label_width = if zh { 6 } else { 8 };
+            let mut footer = String::new();
+            for y in app.table.table_area.bottom() + 1..24 {
+                let mut x = 1 + label_width;
+                while x < 79 {
+                    let symbol = buffer[(x, y)].symbol();
+                    footer.push_str(symbol);
+                    x += Span::raw(symbol).width().max(1) as u16;
+                }
+            }
+            let compact = |s: &str| s.chars().filter(|c| !c.is_whitespace()).collect::<String>();
+            assert!(compact(&footer).contains(&compact(
+                app.states[i].instruction(&app.catalog[i], zh).unwrap()
+            )));
+            assert!(compact(&footer).contains("operations.jsonl"));
+            assert!(compact(&footer).contains(&compact(choose(
+                zh,
+                "完整错误见日志",
+                "Full error details are in the log"
+            ))));
+        }
+        Ok(())
+    }
+    #[test]
     fn taskbar_states_show_saved_pin_details_in_the_rendered_view() -> Result<()> {
         use ratatui::{Terminal, backend::TestBackend};
         for zh in [true, false] {
@@ -661,12 +922,9 @@ mod tests {
             app.focus(i);
             let mut terminal = Terminal::new(TestBackend::new(120, 30))?;
             for (state, label) in [
-                (Status::Ready, choose(zh, "可清理", "Can clear")),
+                (Status::Ready, choose(zh, "待清理", "Needs cleanup")),
                 (Status::Done, choose(zh, "无固定项", "No pins")),
-                (
-                    Status::SignIn,
-                    choose(zh, "重新登录生效", "Sign in to apply"),
-                ),
+                (Status::SignIn, choose(zh, "待重新登录", "Needs sign-in")),
             ] {
                 let detail = if state == Status::Done {
                     "Windows has no saved taskbar pins."
@@ -759,7 +1017,10 @@ mod tests {
                 };
                 terminal.draw(|frame| app.draw(frame))?;
                 let buffer = terminal.backend().buffer();
-                assert!((1..89).any(|x| buffer[(x, 23)].fg == palette.red));
+                assert!(
+                    (app.table.table_area.bottom() + 1..24)
+                        .any(|y| (1..89).any(|x| buffer[(x, y)].fg == palette.red))
+                );
             }
         }
         Ok(())
@@ -824,11 +1085,16 @@ mod tests {
                 assert_eq!(buffer[(0, 0)].bg, palette.base);
                 assert!((0..100).any(|x| buffer[(x, 29)].symbol() != " "));
                 let area = app.table.table_area;
-                assert_eq!(area.bottom(), 28);
-                let footer: String = (1..99).map(|x| buffer[(x, 29)].symbol()).collect();
-                assert_eq!(
-                    without_spaces(&footer),
-                    without_spaces(app.catalog[0].purpose(zh))
+                let label_width = if zh { 6 } else { 8 };
+                let footer: String = (area.bottom() + 1..30)
+                    .flat_map(|y| (1 + label_width..99).map(move |x| buffer[(x, y)].symbol()))
+                    .collect();
+                assert!(
+                    without_spaces(&footer).contains(&without_spaces(app.catalog[0].purpose(zh)))
+                );
+                assert!(
+                    without_spaces(&footer)
+                        .contains(&without_spaces(app.states[0].summary(&app.catalog[0], zh)))
                 );
                 assert_eq!(
                     buffer[(area.x + 14, app.table.header_area.y)].bg,
@@ -855,12 +1121,11 @@ mod tests {
                 terminal.draw(|frame| app.draw(frame))?;
                 let buffer = terminal.backend().buffer();
                 let footer: String = (app.table.table_area.bottom() + 1..24)
-                    .flat_map(|y| (1..54).map(move |x| buffer[(x, y)].symbol()))
+                    .flat_map(|y| (1 + label_width..54).map(move |x| buffer[(x, y)].symbol()))
                     .collect();
-                assert_eq!(
-                    without_spaces(&footer),
-                    without_spaces(app.catalog[app.selected().unwrap()].purpose(zh))
-                );
+                assert!(without_spaces(&footer).contains(&without_spaces(
+                    app.catalog[app.selected().unwrap()].purpose(zh)
+                )));
             }
         }
         Ok(())
@@ -903,6 +1168,18 @@ mod tests {
             0,
         );
         assert!(app.countdown.is_some());
+        app.states[0] = Check::new(Status::Unknown);
+        app.receive(
+            Message::Finished {
+                processed: 1,
+                restart: false,
+                auto: true,
+                refresh: vec![],
+            },
+            0,
+        );
+        assert!(app.countdown.is_none());
+        assert!(app.message.contains("1 项状态待确认"));
         Ok(())
     }
     #[test]

@@ -77,7 +77,8 @@ def main():
             light = winreg.QueryValueEx(key, 'AppsUseLightTheme')[0]
         expected = 0xF5F1EF if light else 0x2E1E1E
         until = time.monotonic() + 5
-        while info().colors[index] != expected and time.monotonic() < until:
+        # 调色板与首帧绘制由控制台宿主异步处理，两者均就绪后再断言。
+        while (info().colors[index] != expected or u.GetWindowLongW(hwnd, -16) & 0x00300000) and time.monotonic() < until:
             time.sleep(.01)
         active = info()
         assert active.colors[index] == expected, 'Console padding has the wrong background'
