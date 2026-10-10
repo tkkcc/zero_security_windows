@@ -117,7 +117,8 @@ unsafe extern "system" {
         path: *mut u16,
         size: *mut u32,
     ) -> i32;
-    fn GetProcessInformation(process: Handle, class: u32, data: Handle, size: u32) -> i32;
+    fn GetSystemDEPPolicy() -> u32;
+    fn GetProcessMitigationPolicy(process: Handle, policy: u32, data: Handle, size: usize) -> i32;
     fn GetUserPreferredUILanguages(
         flags: u32,
         count: *mut u32,
@@ -135,6 +136,13 @@ unsafe extern "system" {
 #[link(name = "ntdll")]
 unsafe extern "system" {
     fn NtQuerySystemInformation(class: u32, data: Handle, size: u32, length: *mut u32) -> i32;
+    fn NtQueryInformationProcess(
+        process: Handle,
+        class: u32,
+        data: Handle,
+        size: u32,
+        length: *mut u32,
+    ) -> i32;
 }
 #[link(name = "user32")]
 unsafe extern "system" {
@@ -299,6 +307,10 @@ pub fn process_images() -> Result<Vec<(u32, String)>> {
     }
     Ok(images)
 }
+fn protection_active(protection: u8) -> bool {
+    // PS_PROTECTION: Type occupies bits 0..2; the audit bit is not protection.
+    protection & 7 != 0
+}
 pub fn lsa_protected() -> Result<bool> {
     let id = processes()?
         .into_iter()
@@ -308,16 +320,29 @@ pub fn lsa_protected() -> Result<bool> {
     unsafe {
         let process = OpenProcess(0x1000, 0, id);
         ensure!(!process.is_null(), "{}", std::io::Error::last_os_error());
-        let mut level = 0u32;
-        let result = ok(GetProcessInformation(
+        let mut protection = 0u8;
+        let status = NtQueryInformationProcess(
             process,
-            7,
-            (&mut level as *mut u32).cast(),
-            4,
-        ));
+            61,
+            (&mut protection as *mut u8).cast(),
+            1,
+            std::ptr::null_mut(),
+        );
         CloseHandle(process);
-        result?;
-        Ok(level != 0xfffffffe)
+        ensure!(status >= 0, "LSASS protection query: {status:08X}");
+        Ok(protection_active(protection))
+    }
+}
+pub fn dep() -> Result<(u32, bool)> {
+    unsafe {
+        let mut flags = [0u32; 2];
+        ok(GetProcessMitigationPolicy(
+            GetCurrentProcess(),
+            0,
+            flags.as_mut_ptr().cast(),
+            std::mem::size_of_val(&flags),
+        ))?;
+        Ok((GetSystemDEPPolicy(), flags[0] & 1 != 0))
     }
 }
 pub fn code_integrity() -> Result<bool> {
@@ -1230,6 +1255,12 @@ pub fn execute_blocked(path: &Path) -> Result<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn audit_only_lsa_is_not_a_protected_process() {
+        assert!(!protection_active(0x08));
+        assert!(protection_active(0x41));
+        assert!(protection_active(0x49));
+    }
     #[test]
     fn file_acl_repair_leaves_other_denied_rights_in_place() -> Result<()> {
         let file = std::env::temp_dir().join(format!("zsw-acl-repair-{}.tmp", std::process::id()));

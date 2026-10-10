@@ -3335,8 +3335,8 @@
     "Id": "dep",
     "Zh": "DEP 数据执行保护",
     "En": "Data execution prevention",
-    "PurposeZh": "阻止从数据内存页执行代码。",
-    "PurposeEn": "Prevents executable code from running in data memory pages.",
+    "PurposeZh": "关闭可配置的 DEP 启动策略；Windows 对 64 位程序强制保留 DEP。",
+    "PurposeEn": "Turns off the configurable DEP boot policy; Windows mandates DEP for 64-bit programs.",
     "GroupZh": "缓解",
     "GroupEn": "Mitigations",
     "Ops": [
@@ -3346,7 +3346,7 @@
         "Kind": "Bcd"
       }
     ],
-    "Probe": "",
+    "Probe": "dep",
     "Safe": false,
     "Manual": false,
     "Restart": true,

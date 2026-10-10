@@ -51,9 +51,7 @@ impl Engine {
                     state: Status::Failed,
                     detail: result.errors.join("; "),
                 }
-            } else if (result.restart || (f.restart && check.state == Status::Limited))
-                && result.boot == self.boot
-            {
+            } else if result.restart && result.boot == self.boot {
                 check.state = Status::Restart;
             } else if result.logon != 0
                 && check.state != Status::Restart
@@ -200,6 +198,28 @@ impl Engine {
                         ),
                         choose(self.zh, "。", "."),
                     ),
+                }));
+            }
+            "dep" => {
+                for op in self.expand(f)? {
+                    if !satisfied(&op, &self.read(&op)?) {
+                        return Ok(Some(Check::new(Status::Ready)));
+                    }
+                }
+                let (policy, enabled) = native::dep()?;
+                return Ok(Some(Check {
+                    state: if policy == 0 && !enabled {
+                        Status::Done
+                    } else {
+                        Status::Limited
+                    },
+                    detail: if policy != 0 {
+                        choose(self.zh, "关闭启动设置已保存，当前系统 DEP 策略仍开启；重启后按实际运行状态核验。", "The disable boot setting is saved, but the current system DEP policy remains enabled; verify its live state after restart.")
+                    } else if enabled {
+                        choose(self.zh, "DEP 启动策略已关闭；Windows 对 64 位程序强制保留 DEP，无法通过此设置关闭。", "The DEP boot policy is off; Windows mandates DEP for 64-bit programs, which this setting cannot disable.")
+                    } else {
+                        choose(self.zh, "DEP 启动策略及当前进程 DEP 已关闭。", "The DEP boot policy and current process DEP are off.")
+                    }.into(),
                 }));
             }
             "lsa" | "driver-signing" => {
@@ -452,6 +472,37 @@ impl Engine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn retained_dep_does_not_create_a_restart_request() -> Result<()> {
+        let engine = Engine::new()?;
+        let mut feature = engine.feature("dep")?.clone();
+        feature.id = "test-dep-restart".into();
+        feature.ops.clear();
+        let before = engine.check(&feature);
+        assert!(matches!(before.state, Status::Done | Status::Limited));
+        let mut results = engine.store.results.lock().unwrap();
+        results.insert(
+            feature.id.clone(),
+            ResultRecord {
+                boot: engine.boot,
+                ..Default::default()
+            },
+        );
+        drop(results);
+        let unchanged = engine.check(&feature);
+        assert_eq!(unchanged.state, before.state);
+        assert_eq!(unchanged.detail, before.detail);
+        engine
+            .store
+            .results
+            .lock()
+            .unwrap()
+            .get_mut(&feature.id)
+            .unwrap()
+            .restart = true;
+        assert_eq!(engine.check(&feature).state, Status::Restart);
+        Ok(())
+    }
     #[test]
     fn shell_refresh_keeps_the_saved_pin_explanation() -> Result<()> {
         let engine = Engine::new()?;

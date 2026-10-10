@@ -31,6 +31,8 @@ Windows Update uses a long-term pause while its settings page and manual control
 
 General notifications are controlled by Windows and individual apps. The tool no longer changes banners, sounds, notification center, taskbar badges or lock-screen notifications.
 
+LSA checks the actual process protection type; an audit flag does not count as protection. DEP checks both the live boot policy and process state. Windows mandates DEP for 64-bit programs even when the configurable boot policy is off, so retained protection is reported without repeatedly requesting a restart.
+
 Ordinary privacy, desktop and connection controls remain editable in their GUI. Checks only read user changes. Relevant items retain necessary service configurations and manual controls; there is no separate legacy recovery item. Deep disabling of Defender services and drivers remains intentional. See the [GUI recovery audit](docs/GUI恢复检查.md) for the full scope.
 
 “Pinned taskbar apps” checks pins saved by Windows, showing “Can clear” or “No pins” and listing their count and names below the table. Older hiding settings may temporarily keep saved pins invisible. Running windows also appear on the taskbar without necessarily being pinned.
