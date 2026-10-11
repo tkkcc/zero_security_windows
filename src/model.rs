@@ -11,6 +11,8 @@ pub struct Feature {
     pub purpose_en: String,
     pub impact_zh: String,
     pub impact_en: String,
+    pub result_zh: String,
+    pub result_en: String,
     pub group_zh: String,
     pub group_en: String,
     pub probe: String,
@@ -32,6 +34,8 @@ impl Default for Feature {
             purpose_en: String::new(),
             impact_zh: String::new(),
             impact_en: String::new(),
+            result_zh: String::new(),
+            result_en: String::new(),
             group_zh: String::new(),
             group_en: String::new(),
             probe: String::new(),
@@ -61,6 +65,9 @@ impl Feature {
     }
     pub fn impact(&self, zh: bool) -> &str {
         choose(zh, &self.impact_zh, &self.impact_en)
+    }
+    pub fn result(&self, zh: bool) -> &str {
+        choose(zh, &self.result_zh, &self.result_en)
     }
     pub fn security(&self) -> bool {
         self.page == "System"
@@ -201,7 +208,7 @@ impl Check {
     pub fn recheckable(&self) -> bool {
         self.state == Status::Unknown
     }
-    pub fn summary(&self, f: &Feature, zh: bool) -> &str {
+    pub fn summary<'a>(&self, f: &'a Feature, zh: bool) -> &'a str {
         match self.state {
             Status::PendingCheck => choose(
                 zh,
@@ -235,8 +242,8 @@ impl Check {
             Status::Done if f.security() && !self.detail.is_empty() => "",
             Status::Done if f.security() => choose(
                 zh,
-                "可配置的设置已达到此项目的优化目标。",
-                "Configurable settings meet this item's optimization target.",
+                "可配置的防护已关闭。",
+                "Configurable protection is turned off.",
             ),
             Status::Done => match f.intent.as_str() {
                 "Install" => choose(zh, "此应用已安装。", "This application is installed."),
@@ -245,11 +252,13 @@ impl Check {
                     "未检测到此应用或组件。",
                     "This application or component is not installed.",
                 ),
-                _ => choose(
-                    zh,
-                    "当前设置已符合此项目的目标。",
-                    "Current settings match this item's target.",
-                ),
+                "Disable" => choose(zh, "此功能已关闭。", "This feature is turned off."),
+                "Enable" => choose(zh, "此功能已开启。", "This feature is turned on."),
+                "Hide" => choose(zh, "对应入口已隐藏。", "The entry is hidden."),
+                "Show" => choose(zh, "对应内容已显示。", "The contents are visible."),
+                "Clean" => choose(zh, "清理已完成。", "Cleanup is complete."),
+                "Pause" => choose(zh, "系统更新已暂停。", "System updates are paused."),
+                _ => f.result(zh),
             },
             Status::Unknown => choose(
                 zh,
@@ -385,12 +394,22 @@ impl Check {
                 "Install" => choose(zh, "可安装", "Can install"),
                 "Remove" => choose(zh, "可卸载", "Can uninstall"),
                 "Apply" => choose(zh, "可设置", "Can configure"),
+                "Enable" => choose(zh, "可开启", "Can enable"),
+                "Hide" => choose(zh, "可隐藏", "Can hide"),
+                "Show" => choose(zh, "可显示", "Can show"),
+                "Clean" => choose(zh, "可清理", "Can clean up"),
+                "Pause" => choose(zh, "可暂停", "Can pause"),
                 _ => choose(zh, "可禁用", "Can disable"),
             },
             Status::Done => match f.intent.as_str() {
                 "Install" => choose(zh, "已安装", "Installed"),
                 "Remove" => choose(zh, "未安装", "Not installed"),
-                "Apply" => choose(zh, "已设置", "Configured"),
+                "Apply" => f.result(zh),
+                "Enable" => choose(zh, "已开启", "Enabled"),
+                "Hide" => choose(zh, "已隐藏", "Hidden"),
+                "Show" => choose(zh, "已显示", "Visible"),
+                "Clean" => choose(zh, "已清理", "Cleaned up"),
+                "Pause" => choose(zh, "已暂停", "Paused"),
                 _ => choose(zh, "已禁用", "Disabled"),
             },
             Status::Running => choose(zh, "执行中", "Running"),

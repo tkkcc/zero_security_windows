@@ -98,7 +98,7 @@ def main():
             time.sleep(.01)
         active = info()
         active_font = font()
-        assert active_font[0] in ('Microsoft YaHei UI', 'Consolas'), 'Modern font was not applied'
+        assert active_font[0] == 'Consolas', 'A fixed-pitch font was not applied'
         assert active_font[2] == 22, 'Console font size is too small'
         assert active.colors[index] == expected, 'Console padding has the wrong background'
         assert not u.IsWindowVisible(hwnd), 'App must not reveal the test console'

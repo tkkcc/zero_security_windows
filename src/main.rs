@@ -51,6 +51,9 @@ fn run() -> anyhow::Result<()> {
                 native::elevate(&args)?;
                 return Ok(());
             }
+            if native::modern_terminal(&args)? {
+                return Ok(());
+            }
             tui::run(args.first().cloned().unwrap_or_default())
         }
     }

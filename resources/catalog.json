@@ -112,7 +112,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
@@ -160,7 +160,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
@@ -1901,7 +1901,9 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Mouse"
+    "Refresh": "Mouse",
+    "ResultZh": "速度 20 · 无加速",
+    "ResultEn": "20 · no acceleration"
   },
   {
     "Id": "keyboard",
@@ -1961,7 +1963,9 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Keyboard"
+    "Refresh": "Keyboard",
+    "ResultZh": "快速重复",
+    "ResultEn": "Fast repeat"
   },
   {
     "Id": "cursor",
@@ -2133,7 +2137,9 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Cursors"
+    "Refresh": "Cursors",
+    "ResultZh": "黑色 · 大小 3",
+    "ResultEn": "Black · size 3"
   },
   {
     "Id": "appearance",
@@ -2172,7 +2178,9 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Appearance"
+    "Refresh": "Appearance",
+    "ResultZh": "浅色 · 不透明",
+    "ResultEn": "Light · opaque"
   },
   {
     "Id": "visual-effects",
@@ -2269,7 +2277,9 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Visuals"
+    "Refresh": "Visuals",
+    "ResultZh": "已精简",
+    "ResultEn": "Simplified"
   },
   {
     "Id": "utf8",
@@ -2307,7 +2317,7 @@
     "Manual": false,
     "Restart": true,
     "Page": "Desktop",
-    "Intent": "Apply",
+    "Intent": "Enable",
     "Refresh": ""
   },
   {
@@ -2331,12 +2341,14 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": ""
+    "Refresh": "",
+    "ResultZh": "仅微信输入法",
+    "ResultEn": "WeType only"
   },
   {
     "Id": "power",
-    "Zh": "电源按钮与自动休眠",
-    "En": "Power buttons and sleep",
+    "Zh": "自动睡眠与电源按钮",
+    "En": "Automatic sleep and power buttons",
     "PurposeZh": "关闭插电和电池模式的自动息屏、睡眠与休眠；电源按钮、睡眠按钮和合盖设为无操作。",
     "PurposeEn": "Turn off automatic display timeout, sleep and hibernation on AC and battery; set power button, sleep button and lid actions to Do nothing.",
     "GroupZh": "系统",
@@ -2433,7 +2445,9 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Power"
+    "Refresh": "Power",
+    "ResultZh": "自动睡眠关闭",
+    "ResultEn": "Auto sleep off"
   },
   {
     "Id": "hibernation",
@@ -2534,7 +2548,9 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Start"
+    "Refresh": "Start",
+    "ResultZh": "列表 · 无固定项",
+    "ResultEn": "List · no pins"
   },
   {
     "Id": "desktop-icons",
@@ -2559,12 +2575,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Desktop",
-    "Intent": "Apply",
+    "Intent": "Clean",
     "Refresh": "Explorer"
   },
   {
     "Id": "taskbar-layout",
-    "Zh": "任务栏对齐与合并",
+    "Zh": "任务栏靠左与合并",
     "En": "Taskbar alignment and grouping",
     "PurposeZh": "任务栏靠左对齐，所有屏幕仅在任务栏已满时合并按钮。",
     "PurposeEn": "Align the taskbar left and combine buttons only when full on all displays.",
@@ -2599,7 +2615,9 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Shell"
+    "Refresh": "Shell",
+    "ResultZh": "靠左 · 满时合并",
+    "ResultEn": "Left · combine full"
   },
   {
     "Id": "taskbar-buttons",
@@ -2630,7 +2648,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "Desktop",
-    "Intent": "Apply",
+    "Intent": "Hide",
     "Refresh": "Shell"
   },
   {
@@ -2657,7 +2675,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "Desktop",
-    "Intent": "Apply",
+    "Intent": "Clean",
     "Refresh": "Shell",
     "ImpactZh": "已打开的窗口仍会显示在任务栏；应用可重新固定。",
     "ImpactEn": "Open windows still appear on the taskbar; applications can be pinned again."
@@ -2682,7 +2700,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "Desktop",
-    "Intent": "Apply",
+    "Intent": "Show",
     "Refresh": ""
   },
   {
@@ -2707,7 +2725,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "Desktop",
-    "Intent": "Apply",
+    "Intent": "Hide",
     "Refresh": "Shell"
   },
   {
@@ -2744,7 +2762,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "Desktop",
-    "Intent": "Apply",
+    "Intent": "Hide",
     "Refresh": ""
   },
   {
@@ -2783,7 +2801,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "Desktop",
-    "Intent": "Apply",
+    "Intent": "Show",
     "Refresh": "Explorer",
     "ImpactZh": "受保护的系统文件继续隐藏。",
     "ImpactEn": "Protected system files remain hidden."
@@ -2851,12 +2869,14 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Explorer"
+    "Refresh": "Explorer",
+    "ResultZh": "默认打开此电脑",
+    "ResultEn": "Opens This PC"
   },
   {
     "Id": "shortcut-name",
-    "Zh": "快捷方式名称",
-    "En": "Shortcut names",
+    "Zh": "快捷方式名称后缀",
+    "En": "Shortcut name suffix",
     "PurposeZh": "创建快捷方式时不添加“快捷方式”后缀。",
     "PurposeEn": "Create shortcuts without adding the Shortcut suffix.",
     "GroupZh": "桌面",
@@ -2881,7 +2901,9 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Shell"
+    "Refresh": "Shell",
+    "ResultZh": "无名称后缀",
+    "ResultEn": "No suffix"
   },
   {
     "Id": "classic-menu",
@@ -2943,7 +2965,9 @@
     "Restart": false,
     "Page": "Desktop",
     "Intent": "Apply",
-    "Refresh": "Wallpaper"
+    "Refresh": "Wallpaper",
+    "ResultZh": "图片背景",
+    "ResultEn": "Picture background"
   },
   {
     "Id": "lockscreen-spotlight",
@@ -2986,7 +3010,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "Desktop",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
@@ -3448,7 +3472,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Enable",
     "Refresh": ""
   },
   {
@@ -3500,7 +3524,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Pause",
     "Refresh": "",
     "ImpactZh": "可在 Windows 更新页面手动恢复更新。",
     "ImpactEn": "Updates can be resumed manually in Windows Update."
@@ -3630,8 +3654,8 @@
   },
   {
     "Id": "telemetry",
-    "Zh": "诊断数据与遥测后台",
-    "En": "Diagnostic data and telemetry",
+    "Zh": "可选诊断与遥测后台",
+    "En": "Optional diagnostics and telemetry",
     "PurposeZh": "关闭可选诊断数据、遥测和错误报告后台服务及相关计划任务。",
     "PurposeEn": "Turn off optional diagnostic data, telemetry and error reporting services and related scheduled tasks.",
     "GroupZh": "隐私",
@@ -3706,7 +3730,7 @@
     "Manual": false,
     "Restart": true,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "保留 Windows 必需的诊断数据。",
     "ImpactEn": "Required Windows diagnostic data is retained."
@@ -3750,7 +3774,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
@@ -3915,7 +3939,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
@@ -4079,7 +4103,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
@@ -4114,7 +4138,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Hide",
     "Refresh": "",
     "ImpactZh": "仅隐藏入口；卸载运行库是独立项目。",
     "ImpactEn": "Only hides the button; uninstalling the runtime is a separate item."
@@ -4331,78 +4355,9 @@
     "Refresh": ""
   },
   {
-    "Id": "windows-backup",
-    "Zh": "备份与文件历史记录",
-    "En": "Backup and File History",
-    "PurposeZh": "允许通过 Windows 界面管理备份、文件历史记录和设置同步。",
-    "PurposeEn": "Allow backup, File History and settings sync to be managed through Windows controls.",
-    "GroupZh": "更新与还原",
-    "GroupEn": "Updates & restore",
-    "Ops": [
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\FileHistory",
-        "Name": "Disabled"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
-        "Name": "DisableApplicationSettingSync"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
-        "Name": "DisableApplicationSettingSyncUserOverride"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
-        "Name": "DisableSettingSync"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
-        "Name": "DisableSettingSyncUserOverride"
-      },
-      {
-        "Kind": "ServiceStart",
-        "Name": "SDRSVC",
-        "Value": 3
-      },
-      {
-        "Kind": "ServiceStart",
-        "Name": "wbengine",
-        "Value": 3
-      },
-      {
-        "Kind": "ServiceStart",
-        "Name": "fhsvc",
-        "Value": 3
-      },
-      {
-        "Kind": "UserServicesStart",
-        "Name": "CloudBackupRestoreSvc",
-        "Value": 3
-      },
-      {
-        "Kind": "RestoreTasks",
-        "Names": [
-          "windows-backup"
-        ]
-      }
-    ],
-    "Probe": "",
-    "Safe": false,
-    "Manual": false,
-    "Restart": false,
-    "Page": "System",
-    "Intent": "Apply",
-    "Refresh": ""
-  },
-  {
     "Id": "delivery-optimization",
-    "Zh": "传递优化",
-    "En": "Delivery Optimization",
+    "Zh": "更新点对点共享",
+    "En": "Peer-to-peer update sharing",
     "PurposeZh": "关闭从其他设备下载 Windows 和商店更新的点对点共享。",
     "PurposeEn": "Turn off peer-to-peer sharing for Windows and Store update downloads.",
     "GroupZh": "更新与还原",
@@ -4428,7 +4383,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "普通下载仍可使用，可在 Windows 设置中重新开启共享。",
     "ImpactEn": "Normal downloads remain available; peer sharing can be enabled again in Windows Settings."
@@ -4470,7 +4425,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "可在 Windows 设置中重新开启。",
     "ImpactEn": "It can be enabled again in Windows Settings."
@@ -4507,15 +4462,15 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "可在系统属性中重新开启。",
     "ImpactEn": "It can be enabled again in System Properties."
   },
   {
     "Id": "privacy-access",
-    "Zh": "应用隐私权限与同步",
-    "En": "App privacy permissions and sync",
+    "Zh": "在线语音与输入个性化",
+    "En": "Online speech and input personalization",
     "PurposeZh": "关闭在线语音识别、输入个性化和应用诊断信息访问。",
     "PurposeEn": "Turn off online speech recognition, input personalization and access to application diagnostic information.",
     "GroupZh": "隐私",
@@ -4609,7 +4564,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
@@ -4683,7 +4638,7 @@
     "Manual": false,
     "Restart": true,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
@@ -4742,13 +4697,13 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
     "Id": "clipboard-history",
-    "Zh": "剪贴板历史与同步",
-    "En": "Clipboard history and sync",
+    "Zh": "剪贴板历史记录",
+    "En": "Clipboard history",
     "PurposeZh": "关闭剪贴板历史记录。",
     "PurposeEn": "Turn off clipboard history.",
     "GroupZh": "隐私",
@@ -4782,7 +4737,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
@@ -4824,7 +4779,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": ""
   },
   {
@@ -4947,7 +4902,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Apply",
+    "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "可在 Edge 设置中更改。",
     "ImpactEn": "These options can be changed in Edge Settings."

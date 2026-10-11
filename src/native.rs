@@ -841,6 +841,72 @@ pub fn open_console() -> Result<()> {
     }
     Ok(())
 }
+pub fn modern_terminal(args: &[String]) -> Result<bool> {
+    use windows::Win32::System::Console::*;
+    if safe_mode() || std::env::var_os("WT_SESSION").is_some() {
+        return Ok(false);
+    }
+    unsafe {
+        if !GetConsoleWindow().0.is_null() || AttachConsole(ATTACH_PARENT_PROCESS).is_ok() {
+            return Ok(false);
+        }
+    }
+    let terminal = PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap())
+        .join("Microsoft/WindowsApps/wt.exe");
+    if !terminal.is_file() {
+        return Ok(false);
+    }
+    let directory = PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap())
+        .join("Microsoft/Windows Terminal/Fragments/ZeroSecurityWindows");
+    std::fs::create_dir_all(&directory)?;
+    let background = if crate::registry::number(
+        r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+        "AppsUseLightTheme",
+        1,
+    )? == 0
+    {
+        "#1e1e2e"
+    } else {
+        "#eff1f5"
+    };
+    let profile = serde_json::json!({"profiles": [{
+        "guid": "{d37280f8-2c93-4ad6-a436-d72a719c686d}",
+        "name": "Zero Security Windows",
+        "hidden": true,
+        "font": {"face": "Consolas", "size": 14},
+        "intenseTextStyle": "bold",
+        "padding": "12",
+        "background": background,
+        "scrollbarState": "hidden"
+    }]});
+    std::fs::write(
+        directory.join("profile.json"),
+        serde_json::to_vec_pretty(&profile)?,
+    )?;
+    let status = Command::new(terminal)
+        .args([
+            "--window",
+            "new",
+            "new-tab",
+            "--profile",
+            "{d37280f8-2c93-4ad6-a436-d72a719c686d}",
+            "--title",
+            "Zero Security Windows",
+            "--suppressApplicationTitle",
+            "cmd.exe",
+            "/d",
+            "/c",
+            "start",
+            "",
+            "/wait",
+        ])
+        .arg(std::env::current_exe()?)
+        .args(args)
+        .creation_flags(0x08000000)
+        .status()?;
+    anyhow::ensure!(status.success(), "Windows Terminal launch failed: {status}");
+    Ok(true)
+}
 pub fn hide_console_scrollbars() {
     unsafe {
         let window = windows::Win32::System::Console::GetConsoleWindow();
@@ -858,7 +924,7 @@ pub struct ConsoleFont {
     original: windows::Win32::System::Console::CONSOLE_FONT_INFOEX,
 }
 impl ConsoleFont {
-    pub fn new(zh: bool) -> Option<Self> {
+    pub fn new() -> Option<Self> {
         use windows::Win32::System::Console::*;
         unsafe {
             let output = GetStdHandle(STD_OUTPUT_HANDLE).ok()?;
@@ -874,7 +940,7 @@ impl ConsoleFont {
                 FontWeight: 400,
                 ..Default::default()
             };
-            let face = wide(if zh { "Microsoft YaHei UI" } else { "Consolas" });
+            let face = wide("Consolas");
             font.FaceName[..face.len()].copy_from_slice(&face);
             // 字体属于窗口显示设置；终端宿主不支持时仍正常运行。
             SetCurrentConsoleFontEx(output, false, &font).ok()?;

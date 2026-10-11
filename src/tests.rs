@@ -586,7 +586,6 @@ fn repair_ordinary_gui_controls_on_this_machine() -> anyhow::Result<()> {
         "feedback-prompts",
         "search-highlights",
         "widgets",
-        "windows-backup",
         "delivery-optimization",
         "remote-desktop",
         "privacy-access",
