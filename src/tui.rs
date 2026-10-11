@@ -13,7 +13,7 @@ use rat_widget::{
     button::{self, Button, ButtonState},
     event::{ButtonOutcome, TabbedOutcome},
     scrolled::{Scroll, ScrollbarPolicy},
-    tabbed::{self, Tabbed, TabbedState},
+    tabbed::{self, TabType, Tabbed, TabbedState},
     table::{
         Table, TableState,
         selection::{RowSelection, rowselection},
@@ -23,9 +23,9 @@ use rat_widget::{
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Constraint, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     text::Line,
-    widgets::{Block, BorderType, Borders, Clear, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
 
 const THEME_KEY: &str = r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
@@ -468,7 +468,7 @@ impl App {
         }
         let header = Paragraph::new(lines).wrap(Wrap { trim: false });
         let header_height = header.line_count(area.width) as u16;
-        let top = toolbar_height + header_height;
+        let top = toolbar_height + header_height + 1;
         let sections = self.detail_sections();
         let label_width = if self.zh { 6 } else { 8 };
         let detail_width = area.width.saturating_sub(label_width);
@@ -510,13 +510,16 @@ impl App {
             frame.render_stateful_widget(
                 Button::new(label)
                     .style(style.fg(foreground))
-                    .hover_style(style.fg(p.blue).bg(p.surface))
-                    .armed_style(style.fg(p.base).bg(p.blue))
-                    .block(
-                        Block::bordered()
-                            .border_type(BorderType::Rounded)
-                            .border_style(style.fg(if enabled { p.blue } else { p.border })),
-                    ),
+                    .hover_style(
+                        style
+                            .fg(foreground)
+                            .bg(if enabled { p.surface } else { p.base }),
+                    )
+                    .armed_style(if enabled {
+                        style.fg(p.base).bg(p.blue)
+                    } else {
+                        style.fg(p.muted)
+                    }),
                 rect,
                 &mut self.buttons[index],
             );
@@ -528,15 +531,16 @@ impl App {
         self.tabs.select(Some(self.category));
         frame.render_stateful_widget(
             Tabbed::new()
+                .tab_type(TabType::Glued)
                 .tabs(
                     self.categories
                         .iter()
                         .map(|i| self.catalog[*i].category(self.zh)),
                 )
-                .style(style.fg(p.border))
+                .style(style)
                 .tab_style(style.fg(p.muted))
                 .hover_style(style.fg(p.blue))
-                .select_style(style.fg(p.blue).bg(p.surface).add_modifier(Modifier::BOLD)),
+                .select_style(style.fg(p.blue).bg(p.surface)),
             layout[1],
             &mut self.tabs,
         );
@@ -558,18 +562,11 @@ impl App {
                     choose(self.zh, "项目", "Item"),
                     choose(self.zh, "状态", "Status"),
                 ])
-                .style(Some(
-                    Style::default()
-                        .fg(p.muted)
-                        .bg(p.base)
-                        .add_modifier(Modifier::BOLD),
-                )),
+                .style(Some(Style::default().fg(p.muted).bg(p.base))),
             )
             .widths([Constraint::Fill(1), Constraint::Length(status)])
             .column_spacing(2)
-            .select_row_style(Some(
-                Style::default().bg(p.surface).add_modifier(Modifier::BOLD),
-            ))
+            .select_row_style(Some(Style::default().bg(p.surface)))
             .show_row_focus(false)
             .vscroll(
                 Scroll::vertical()
@@ -593,8 +590,7 @@ impl App {
             for (index, (section, height)) in sections.iter().zip(heights).enumerate() {
                 let height = height.min(layout[2].bottom().saturating_sub(y));
                 frame.render_widget(
-                    Paragraph::new(section.label)
-                        .style(Style::default().fg(p.muted).add_modifier(Modifier::BOLD)),
+                    Paragraph::new(section.label).style(Style::default().fg(p.muted)),
                     Rect::new(area.x, y, label_width, height.min(1)),
                 );
                 frame.render_widget(
@@ -636,31 +632,31 @@ impl App {
             (
                 0,
                 KeyCode::Char(' '),
-                format!("{item}  Space"),
+                format!(" Space {item} "),
                 self.space_command().is_some(),
             ),
             (
                 1,
                 KeyCode::Char('c'),
-                choose(self.zh, "执行本类别  C", "Run category  C").into(),
+                choose(self.zh, " C 执行本类别 ", " C Run category ").into(),
                 self.key_command(KeyCode::Char('c')).is_some(),
             ),
             (
                 2,
                 KeyCode::Char('a'),
-                choose(self.zh, "执行全部类别  A", "Run all categories  A").into(),
+                choose(self.zh, " A 执行全部类别 ", " A Run all categories ").into(),
                 self.key_command(KeyCode::Char('a')).is_some(),
             ),
             (
                 3,
                 KeyCode::Char('r'),
-                choose(self.zh, "重启  R", "Restart  R").into(),
+                choose(self.zh, " R 重启 ", " R Restart ").into(),
                 self.restart,
             ),
             (
                 4,
                 KeyCode::Char('q'),
-                choose(self.zh, "退出  Q", "Exit  Q").into(),
+                choose(self.zh, " Q 退出 ", " Q Exit ").into(),
                 true,
             ),
         ]
@@ -675,13 +671,13 @@ impl App {
         self.button_specs()
             .into_iter()
             .map(|(i, _, label, enabled)| {
-                let width = (Line::from(label.as_str()).width() as u16 + 4).min(area.width);
+                let width = (Line::from(label.as_str()).width() as u16).min(area.width);
                 if x > area.x && x + width > area.right() {
                     x = area.x;
-                    y += 3;
+                    y += 1;
                 }
-                let rect = Rect::new(x, y, width, 3);
-                x += width + 1;
+                let rect = Rect::new(x, y, width, 1);
+                x += width + 2;
                 (i, label, rect, enabled)
             })
             .collect()
@@ -1104,7 +1100,7 @@ mod tests {
             Event::Mouse(MouseEvent {
                 kind,
                 column: area.x + 1,
-                row: area.y + 1,
+                row: area.y,
                 modifiers: KeyModifiers::NONE,
             })
         };

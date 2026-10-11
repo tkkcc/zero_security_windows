@@ -2347,10 +2347,10 @@
   },
   {
     "Id": "power",
-    "Zh": "自动睡眠与电源按钮",
-    "En": "Automatic sleep and power buttons",
-    "PurposeZh": "关闭插电和电池模式的自动息屏、睡眠与休眠；电源按钮、睡眠按钮和合盖设为无操作。",
-    "PurposeEn": "Turn off automatic display timeout, sleep and hibernation on AC and battery; set power button, sleep button and lid actions to Do nothing.",
+    "Zh": "自动息屏与睡眠",
+    "En": "Automatic display timeout and sleep",
+    "PurposeZh": "关闭插电和使用电池时的自动息屏、自动睡眠与自动休眠。",
+    "PurposeEn": "Turn off automatic display timeout, sleep and hibernation on AC and battery power.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -2395,7 +2395,27 @@
         "Source": "DC",
         "Value": 0,
         "Kind": "Power"
-      },
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Desktop",
+    "Intent": "Disable",
+    "Refresh": "Power",
+    "ImpactZh": "保留手动睡眠；系统休眠能力由“系统休眠”项单独控制。",
+    "ImpactEn": "Manual sleep remains available. Hibernation availability is controlled by the separate Hibernation item."
+  },
+  {
+    "Id": "power-buttons",
+    "Zh": "电源按键与合盖动作",
+    "En": "Power buttons and lid actions",
+    "PurposeZh": "将短按电源键、按睡眠键和合盖动作设为“不采取任何操作”，插电和使用电池时均适用。",
+    "PurposeEn": "Set a short press of the power button, the sleep button and closing the lid to Do nothing on AC and battery power.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
       {
         "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
         "Name": "7648efa3-dd9c-4e3e-b566-50f929386280",
@@ -2446,8 +2466,10 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Power",
-    "ResultZh": "自动睡眠关闭",
-    "ResultEn": "Auto sleep off"
+    "ResultZh": "不采取任何操作",
+    "ResultEn": "Do nothing",
+    "ImpactZh": "仍可通过开始菜单关机或进入睡眠。",
+    "ImpactEn": "Shutdown and sleep remain available from the Start menu."
   },
   {
     "Id": "hibernation",
