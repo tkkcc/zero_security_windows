@@ -11,7 +11,7 @@
 - **软件管理**：清理内置应用，安装常用工具。
 - **清晰反馈**：中英文界面，实时显示每项操作的进度与结果。
 
-[下载最新版](https://github.com/tkkcc/zero_security_windows/releases/latest/download/zero_security_windows.exe) · [使用指南](docs/使用.md) · [开发文档](docs/开发.md)
+[下载最新版](https://github.com/tkkcc/zero_security_windows/releases/latest/download/zero_security_windows.exe) · [开发文档](docs/开发.md)
 
 ## English
 
@@ -24,4 +24,4 @@ A lightweight Windows optimization tool that brings system cleanup, desktop cust
 - **Software management**: Remove built-in apps and install everyday tools.
 - **Clear feedback**: Chinese and English interfaces with live progress and results for each action.
 
-[Download the latest version](https://github.com/tkkcc/zero_security_windows/releases/latest/download/zero_security_windows.exe) · [User guide (中文)](docs/使用.md) · [Development documentation (中文)](docs/开发.md)
+[Download the latest version](https://github.com/tkkcc/zero_security_windows/releases/latest/download/zero_security_windows.exe) · [Development documentation (中文)](docs/开发.md)
