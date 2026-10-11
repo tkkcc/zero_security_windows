@@ -4185,14 +4185,15 @@
     "Id": "svc-wsearch",
     "Zh": "文件搜索索引",
     "En": "File search indexing",
-    "PurposeZh": "禁用 Windows 文件搜索索引服务。",
-    "PurposeEn": "Disable the Windows file search indexing service.",
+    "PurposeZh": "将 Windows 文件搜索索引服务设为手动启动。",
+    "PurposeEn": "Set Windows file search indexing to manual startup.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "WSearch"
+        "Kind": "ServiceStart",
+        "Name": "WSearch",
+        "Value": 3
       }
     ],
     "Probe": "",
@@ -4200,10 +4201,120 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Disable",
+    "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "文件仍可搜索，但内容搜索可能变慢。",
-    "ImpactEn": "Files remain searchable, but content searches may be slower."
+    "ImpactZh": "保留索引能力，系统或应用仍可请求启动服务。",
+    "ImpactEn": "Indexing remains available when the system or an application requests the service.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
+  },
+  {
+    "Id": "svc-trkwks",
+    "Zh": "文件链接跟踪",
+    "En": "File link tracking",
+    "PurposeZh": "将追踪 NTFS 快捷方式和文档链接的服务设为手动启动。",
+    "PurposeEn": "Set the service tracking NTFS shortcuts and document links to manual startup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "ServiceStart",
+        "Name": "TrkWks",
+        "Value": 3
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Configure",
+    "Refresh": "",
+    "ImpactZh": "系统或应用仍可请求启动；目标文件移动后的链接追踪可能受服务启动时机影响。",
+    "ImpactEn": "The system or apps can still request the service; link tracking after moving files may depend on when it starts.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
+  },
+  {
+    "Id": "svc-ikeext",
+    "Zh": "IPsec 密钥交换",
+    "En": "IPsec key exchange",
+    "PurposeZh": "将 IPsec 身份验证和密钥交换服务设为手动启动。",
+    "PurposeEn": "Set IPsec authentication and key exchange to manual startup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "ServiceStart",
+        "Name": "IKEEXT",
+        "Value": 3
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Configure",
+    "Refresh": "",
+    "ImpactZh": "保留现有触发器和 IPsec、VPN 所需的服务能力。",
+    "ImpactEn": "Keep existing triggers and the service available for IPsec and VPN connections.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
+  },
+  {
+    "Id": "svc-lanmanserver",
+    "Zh": "网络文件与打印共享",
+    "En": "Network file and printer sharing",
+    "PurposeZh": "将接收网络文件、打印和命名管道共享请求的服务设为手动启动。",
+    "PurposeEn": "Set the service handling incoming network file, printer and named pipe sharing to manual startup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "ServiceStart",
+        "Name": "LanmanServer",
+        "Value": 3
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Configure",
+    "Refresh": "",
+    "ImpactZh": "保留现有 RPC 和命名管道触发器；共享请求仍可启动服务。",
+    "ImpactEn": "Keep existing RPC and named pipe triggers so sharing requests can start the service.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
+  },
+  {
+    "Id": "svc-mapsbroker",
+    "Zh": "离线地图服务",
+    "En": "Offline maps service",
+    "PurposeZh": "将离线地图访问服务设为手动启动。",
+    "PurposeEn": "Set the service providing access to offline maps to manual startup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
+    "Ops": [
+      {
+        "Kind": "ServiceStart",
+        "Name": "MapsBroker",
+        "Value": 3
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Configure",
+    "Refresh": "",
+    "ImpactZh": "保留应用按需访问已下载地图的能力。",
+    "ImpactEn": "Keep application access to downloaded maps available on demand.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
   },
   {
     "Id": "svc-sysmain",
@@ -4252,14 +4363,15 @@
     "Id": "svc-pcasvc",
     "Zh": "程序兼容性助手",
     "En": "Program Compatibility Assistant",
-    "PurposeZh": "禁用应用兼容性监测和提示服务。",
-    "PurposeEn": "Disable the application compatibility monitoring and prompt service.",
+    "PurposeZh": "将程序兼容性助手设为手动启动。",
+    "PurposeEn": "Set Program Compatibility Assistant to manual startup.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "PcaSvc"
+        "Kind": "ServiceStart",
+        "Name": "PcaSvc",
+        "Value": 3
       }
     ],
     "Probe": "",
@@ -4267,100 +4379,120 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Disable",
-    "Refresh": ""
+    "Intent": "Configure",
+    "Refresh": "",
+    "ImpactZh": "保留程序兼容性检查和提示能力。",
+    "ImpactEn": "Program compatibility checks and prompts remain available.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
   },
   {
     "Id": "svc-dps",
     "Zh": "诊断策略",
     "En": "Diagnostic Policy Service",
-    "PurposeZh": "禁用自动检测和排查系统问题的诊断策略服务。",
-    "PurposeEn": "Disable the Diagnostic Policy service used to detect and troubleshoot system problems.",
-    "GroupZh": "隐私",
-    "GroupEn": "Privacy",
+    "PurposeZh": "将系统故障排查的诊断策略服务设为手动启动。",
+    "PurposeEn": "Set the Diagnostic Policy service to manual startup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
     "Ops": [
       {
         "Kind": "ServiceStart",
         "Name": "DPS",
-        "Value": 4
+        "Value": 3
       }
     ],
     "Probe": "",
     "Safe": false,
     "Manual": false,
-    "Restart": true,
+    "Restart": false,
     "Page": "System",
-    "Intent": "Disable",
-    "Refresh": ""
+    "Intent": "Configure",
+    "Refresh": "",
+    "ImpactZh": "保留系统故障排查能力。",
+    "ImpactEn": "System troubleshooting remains available.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
   },
   {
     "Id": "svc-wdiservicehost",
     "Zh": "诊断服务主机",
     "En": "Diagnostic Service Host",
-    "PurposeZh": "禁用运行自动诊断的服务主机。",
-    "PurposeEn": "Disable the service host for automatic diagnostics.",
-    "GroupZh": "隐私",
-    "GroupEn": "Privacy",
+    "PurposeZh": "将故障排查的诊断服务主机设为手动启动。",
+    "PurposeEn": "Set Diagnostic Service Host to manual startup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
     "Ops": [
       {
         "Kind": "ServiceStart",
         "Name": "WdiServiceHost",
-        "Value": 4
+        "Value": 3
       }
     ],
     "Probe": "",
     "Safe": false,
     "Manual": false,
-    "Restart": true,
+    "Restart": false,
     "Page": "System",
-    "Intent": "Disable",
-    "Refresh": ""
+    "Intent": "Configure",
+    "Refresh": "",
+    "ImpactZh": "保留故障排查需要的服务主机。",
+    "ImpactEn": "Keep the service host available for troubleshooting.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
   },
   {
     "Id": "svc-wdisystemhost",
     "Zh": "诊断系统主机",
     "En": "Diagnostic System Host",
-    "PurposeZh": "禁用运行自动诊断的系统服务主机。",
-    "PurposeEn": "Disable the system service host for automatic diagnostics.",
-    "GroupZh": "隐私",
-    "GroupEn": "Privacy",
+    "PurposeZh": "将故障排查的诊断系统主机设为手动启动。",
+    "PurposeEn": "Set Diagnostic System Host to manual startup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
     "Ops": [
       {
         "Kind": "ServiceStart",
         "Name": "WdiSystemHost",
-        "Value": 4
+        "Value": 3
       }
     ],
     "Probe": "",
     "Safe": false,
     "Manual": false,
-    "Restart": true,
+    "Restart": false,
     "Page": "System",
-    "Intent": "Disable",
-    "Refresh": ""
+    "Intent": "Configure",
+    "Refresh": "",
+    "ImpactZh": "保留故障排查需要的系统服务主机。",
+    "ImpactEn": "Keep the system service host available for troubleshooting.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
   },
   {
     "Id": "svc-diagsvc",
     "Zh": "诊断执行服务",
     "En": "Diagnostic Execution Service",
-    "PurposeZh": "禁用自动诊断和故障排查执行服务。",
-    "PurposeEn": "Disable the service that executes automatic diagnostics and troubleshooting.",
-    "GroupZh": "隐私",
-    "GroupEn": "Privacy",
+    "PurposeZh": "将故障排查的诊断执行服务设为手动启动。",
+    "PurposeEn": "Set Diagnostic Execution Service to manual startup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
     "Ops": [
       {
         "Kind": "ServiceStart",
         "Name": "diagsvc",
-        "Value": 4
+        "Value": 3
       }
     ],
     "Probe": "",
     "Safe": false,
     "Manual": false,
-    "Restart": true,
+    "Restart": false,
     "Page": "System",
-    "Intent": "Disable",
-    "Refresh": ""
+    "Intent": "Configure",
+    "Refresh": "",
+    "ImpactZh": "保留诊断和故障排查的执行能力。",
+    "ImpactEn": "Diagnostic and troubleshooting actions remain available.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
   },
   {
     "Id": "inventory-telemetry",
@@ -4982,27 +5114,27 @@
     "Id": "user-data-services",
     "Zh": "联系人与用户数据后台",
     "En": "Contacts and user data services",
-    "PurposeZh": "禁用联系人索引及用户数据存储和访问后台服务。",
-    "PurposeEn": "Disable background services for contact indexing and user data storage and access.",
-    "GroupZh": "隐私",
-    "GroupEn": "Privacy",
+    "PurposeZh": "将联系人索引、用户数据存储和访问服务设为手动启动。",
+    "PurposeEn": "Set contact indexing, user data storage and access services to manual startup.",
+    "GroupZh": "系统",
+    "GroupEn": "System",
     "Ops": [
       {
         "Kind": "UserServicesStart",
         "Name": "PimIndexMaintenanceSvc",
-        "Value": 4,
+        "Value": 3,
         "Source": "NextBoot"
       },
       {
         "Kind": "UserServicesStart",
         "Name": "UnistoreSvc",
-        "Value": 4,
+        "Value": 3,
         "Source": "NextBoot"
       },
       {
         "Kind": "UserServicesStart",
         "Name": "UserDataSvc",
-        "Value": 4,
+        "Value": 3,
         "Source": "NextBoot"
       }
     ],
@@ -5011,29 +5143,31 @@
     "Manual": false,
     "Restart": true,
     "Page": "System",
-    "Intent": "Disable",
+    "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "依赖这些服务的联系人和日历应用无法同步。",
-    "ImpactEn": "Contacts and calendar applications that depend on these services cannot sync."
+    "ImpactZh": "保留联系人和日历等应用的数据访问能力；用户服务配置重启后生效。",
+    "ImpactEn": "Keep data access available for contacts and calendar apps; user service configuration takes effect after a restart.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
   },
   {
     "Id": "print-services",
     "Zh": "打印后台",
     "En": "Print services",
-    "PurposeZh": "禁用打印后台和打印工作流服务。",
-    "PurposeEn": "Disable the print spooler and print workflow services.",
+    "PurposeZh": "保留打印后台自动启动，将打印工作流服务设为手动启动。",
+    "PurposeEn": "Keep the print spooler starting automatically and set print workflow services to manual startup.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
         "Kind": "ServiceStart",
         "Name": "Spooler",
-        "Value": 4
+        "Value": 2
       },
       {
         "Kind": "UserServicesStart",
         "Name": "PrintWorkflowUserSvc",
-        "Value": 4,
+        "Value": 3,
         "Source": "NextBoot"
       }
     ],
@@ -5042,10 +5176,12 @@
     "Manual": false,
     "Restart": true,
     "Page": "System",
-    "Intent": "Disable",
+    "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "实体打印和打印到 PDF 均不可用。",
-    "ImpactEn": "Physical printing and Print to PDF become unavailable."
+    "ImpactZh": "打印接口不能按需启动打印后台，因此保持自动；打印工作流的用户服务配置重启后生效。",
+    "ImpactEn": "Printing APIs cannot start the spooler on demand, so it stays automatic; user print workflow service configuration takes effect after a restart.",
+    "ResultZh": "打印后台自动，工作流手动",
+    "ResultEn": "Spooler automatic; workflow manual"
   },
   {
     "Id": "device-discovery",
@@ -5101,25 +5237,27 @@
     "Id": "data-usage",
     "Zh": "流量统计后台",
     "En": "Data usage reporting",
-    "PurposeZh": "禁用网络流量使用统计后台服务。",
-    "PurposeEn": "Disable background network data usage reporting.",
+    "PurposeZh": "将网络流量统计服务设为手动启动。",
+    "PurposeEn": "Set network data usage reporting to manual startup.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
         "Kind": "ServiceStart",
         "Name": "DusmSvc",
-        "Value": 4
+        "Value": 3
       }
     ],
     "Probe": "",
     "Safe": false,
     "Manual": false,
-    "Restart": true,
+    "Restart": false,
     "Page": "System",
-    "Intent": "Disable",
+    "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "网络连接和数据传输不受影响。",
-    "ImpactEn": "Network connections and data transfer are unaffected."
+    "ImpactZh": "保留 Windows 数据使用量统计能力。",
+    "ImpactEn": "Keep Windows data usage reporting available.",
+    "ResultZh": "已设为手动启动",
+    "ResultEn": "Manual startup configured"
   }
 ]

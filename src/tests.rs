@@ -740,30 +740,51 @@ fn repair_editable_settings_dependencies_on_this_machine() -> anyhow::Result<()>
 }
 
 #[test]
-#[ignore = "将本机普通设置依赖服务改为手动；只更改启动方式，不停止服务或重启"]
-fn apply_manual_ui_dependency_services_on_this_machine() -> anyhow::Result<()> {
+#[ignore = "将本机普通功能服务改为手动；只更改启动方式，不停止服务或重启"]
+fn apply_manual_function_services_on_this_machine() -> anyhow::Result<()> {
     let engine = Engine::new()?;
     for id in [
         "windows-update",
         "telemetry",
         "connected-devices",
         "clipboard-history",
+        "location",
+        "delivery-optimization",
+        "remote-desktop",
+        "game-recording",
+        "device-discovery",
+        "svc-wsearch",
+        "svc-pcasvc",
+        "svc-dps",
+        "svc-wdiservicehost",
+        "svc-wdisystemhost",
+        "svc-diagsvc",
+        "user-data-services",
+        "print-services",
+        "data-usage",
+        "svc-trkwks",
+        "svc-ikeext",
+        "svc-lanmanserver",
+        "svc-mapsbroker",
     ] {
         let mut feature = engine.feature(id)?.clone();
         feature.ops.retain(|op| {
             matches!(op.kind.as_str(), "ServiceStart" | "UserServicesStart")
-                && matches!(
-                    op.name.as_str(),
-                    "UsoSvc" | "DiagTrack" | "CDPSvc" | "CDPUserSvc" | "cbdhsvc"
-                )
+                && (op.value == json!(3) || op.name == "Spooler")
         });
         feature.probe.clear();
         feature.refresh.clear();
+        let running_before: Vec<_> = engine
+            .expand(&feature)?
+            .into_iter()
+            .filter(|op| op.kind == "ServiceStart")
+            .map(|op| Ok((op.name.clone(), native::service_running(&op.name)?)))
+            .collect::<anyhow::Result<_>>()?;
         let result = engine.execute(&feature, false, false, false)?;
         println!("{id}: {result:?}");
         anyhow::ensure!(result.errors.is_empty(), "{id}: {:?}", result.errors);
         for op in engine.expand(&feature)? {
-            anyhow::ensure!(op.value == json!(3));
+            anyhow::ensure!(op.value == json!(if op.name == "Spooler" { 2 } else { 3 }));
             anyhow::ensure!(
                 crate::engine::satisfied(&op, &engine.read(&op)?),
                 "{id}: {} {}",
@@ -771,6 +792,17 @@ fn apply_manual_ui_dependency_services_on_this_machine() -> anyhow::Result<()> {
                 op.name,
             );
         }
+        for (name, running) in running_before {
+            if running {
+                anyhow::ensure!(native::service_running(&name)?, "Stopped service: {name}");
+            }
+        }
+        let repeated = engine.execute(&feature, false, false, false)?;
+        anyhow::ensure!(repeated.errors.is_empty(), "{id}: {:?}", repeated.errors);
+        anyhow::ensure!(
+            !repeated.changed,
+            "Repeat changed service configuration: {id}"
+        );
     }
     Ok(())
 }
