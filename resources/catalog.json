@@ -3543,7 +3543,7 @@
       {
         "Kind": "ServiceStart",
         "Name": "UsoSvc",
-        "Value": 2
+        "Value": 3
       },
       {
         "Kind": "ServiceStart",
@@ -3742,7 +3742,7 @@
       {
         "Kind": "ServiceStart",
         "Name": "DiagTrack",
-        "Value": 2
+        "Value": 3
       },
       {
         "Kind": "ServiceStart",
@@ -4659,12 +4659,12 @@
       {
         "Kind": "ServiceStart",
         "Name": "CDPSvc",
-        "Value": 2
+        "Value": 3
       },
       {
         "Kind": "UserServicesStart",
         "Name": "CDPUserSvc",
-        "Value": 2,
+        "Value": 3,
         "Source": "NextBoot"
       },
       {
@@ -4771,7 +4771,7 @@
       {
         "Kind": "UserServicesStart",
         "Name": "cbdhsvc",
-        "Value": 2
+        "Value": 3
       }
     ],
     "Probe": "",

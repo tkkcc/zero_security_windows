@@ -1513,7 +1513,7 @@ mod tests {
         fn DeleteService(service: Handle) -> i32;
     }
     #[test]
-    fn a_temporary_service_can_be_disabled_without_starting_it() -> Result<()> {
+    fn a_temporary_service_can_be_disabled_and_restored_to_manual_without_starting() -> Result<()> {
         unsafe {
             let manager = OpenSCManagerW(std::ptr::null(), std::ptr::null(), 2);
             ensure!(!manager.is_null(), "{}", std::io::Error::last_os_error());
@@ -1548,6 +1548,16 @@ mod tests {
                         0
                     )?,
                     4
+                );
+                assert!(!service_running(&name)?);
+                assert_eq!(service_start(&name, Some(3))?, 3);
+                assert_eq!(
+                    crate::registry::number(
+                        &format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{name}"),
+                        "Start",
+                        0
+                    )?,
+                    3
                 );
                 assert!(!service_running(&name)?);
                 Ok(())
