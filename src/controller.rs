@@ -168,6 +168,7 @@ fn checks(engine: Arc<Engine>, tx: Sender<Message>, epoch: Arc<AtomicUsize>, ind
 fn affected(engine: &Engine, command: &Command) -> Vec<usize> {
     let touched: Vec<&Feature> = match command {
         Command::One(i) => vec![&engine.catalog[*i]],
+        Command::Items(indices) => indices.iter().map(|i| &engine.catalog[*i]).collect(),
         _ => return vec![],
     };
     engine
@@ -320,6 +321,14 @@ fn batch(
         Command::Items(indices) => indices.clone(),
         _ => order(&engine.catalog),
     };
+    let resume_ids = if all {
+        vec![]
+    } else {
+        indices
+            .iter()
+            .map(|i| engine.catalog[*i].id.clone())
+            .collect()
+    };
     let _ = tx.send(Message::Queued(indices.clone()));
     let safe = std::sync::Mutex::new(Vec::new());
     let final_item = |f: &Feature| matches!(f.id.as_str(), "input-method" | "desktop-icons");
@@ -384,19 +393,12 @@ fn batch(
         {
             workflow::safe_complete(engine)?;
         }
-        let ids = if all {
-            vec![]
-        } else {
-            indices
-                .iter()
-                .map(|i| engine.catalog[*i].id.clone())
-                .collect()
-        };
-        workflow::prepare_normal(engine, all, &ids)?;
+        workflow::prepare_normal(engine, all, &resume_ids)?;
     } else if !safe.is_empty() {
         workflow::prepare_safe(engine, &safe, all)?;
+        workflow::prepare_normal(engine, all, &resume_ids)?;
     } else if workflow::requires_restart(engine) {
-        workflow::prepare_normal(engine, all, &[])?;
+        workflow::prepare_normal(engine, all, &resume_ids)?;
     }
     // All local restart/sign-in settings have been applied before crossing the boot boundary.
     let boot_pending = engine.store.pending.lock().unwrap().is_some();
@@ -434,15 +436,7 @@ fn batch(
             Ok(true)
         })?;
         if workflow::requires_restart(engine) {
-            let ids = if all {
-                vec![]
-            } else {
-                indices
-                    .iter()
-                    .map(|i| engine.catalog[*i].id.clone())
-                    .collect()
-            };
-            workflow::prepare_normal(engine, all, &ids)?;
+            workflow::prepare_normal(engine, all, &resume_ids)?;
         }
     }
     if boot_pending && !matches!(command, Command::One(_)) {

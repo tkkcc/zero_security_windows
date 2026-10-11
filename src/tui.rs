@@ -6,7 +6,10 @@ use crate::{
 };
 use anyhow::Result;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+    event::{
+        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, MouseButton,
+        MouseEventKind,
+    },
     execute,
 };
 use rat_widget::{
@@ -22,7 +25,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, Paragraph, Tabs, Wrap},
 };
 
 const THEME_KEY: &str = r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
@@ -99,6 +102,11 @@ pub struct App {
     pub engine: Option<Arc<Engine>>,
     pub countdown: Option<(Instant, bool)>,
     pub restart: bool,
+    categories: Vec<usize>,
+    category: usize,
+    tables: Vec<TableState<RowSelection>>,
+    tab_area: Rect,
+    tab_areas: Vec<(usize, Rect)>,
     follow_top: bool,
     palette: Palette,
 }
@@ -109,6 +117,33 @@ struct DetailSection {
 }
 impl App {
     pub fn new(catalog: Vec<Feature>, zh: bool) -> Result<Self> {
+        let mut categories: Vec<usize> = vec![];
+        for (i, f) in catalog.iter().enumerate().filter(|(_, f)| !f.manual) {
+            if !categories
+                .iter()
+                .any(|n| catalog[*n].group_zh == f.group_zh)
+            {
+                categories.push(i);
+            }
+        }
+        const ORDER: &[&str] = &[
+            "安全",
+            "Defender",
+            "核心隔离",
+            "漏洞防护",
+            "隐私",
+            "系统",
+            "桌面",
+            "更新与还原",
+            "卸载",
+            "安装",
+        ];
+        categories.sort_by_key(|i| {
+            ORDER
+                .iter()
+                .position(|name| *name == catalog[*i].group_zh)
+                .unwrap_or(ORDER.len())
+        });
         let mut app = Self {
             states: vec![Check::new(Status::PendingCheck); catalog.len()],
             catalog,
@@ -120,6 +155,18 @@ impl App {
             engine: None,
             countdown: None,
             restart: false,
+            tables: (0..categories.len())
+                .map(|_| {
+                    let mut table = TableState::<RowSelection>::default();
+                    table.selection.set_scroll_selected(true);
+                    table.select(Some(0));
+                    table
+                })
+                .collect(),
+            categories,
+            category: 0,
+            tab_area: Rect::default(),
+            tab_areas: vec![],
             follow_top: true,
             palette: Palette::system()?,
         };
@@ -136,10 +183,7 @@ impl App {
     pub fn reorder(&mut self) {
         let selected = self.selected();
         let row = self.table.selected();
-        self.visible = controller::order(&self.catalog)
-            .into_iter()
-            .filter(|i| self.states[*i].visible(&self.catalog[*i]))
-            .collect();
+        self.visible = self.category_items();
         if self.follow_top && !self.busy {
             self.table.select((!self.visible.is_empty()).then_some(0));
             self.table.set_row_offset(0);
@@ -155,12 +199,59 @@ impl App {
             self.table.scroll_to_selected();
         }
     }
+    fn category_items(&self) -> Vec<usize> {
+        self.catalog
+            .iter()
+            .enumerate()
+            .filter(|(i, f)| {
+                self.states[*i].visible(f)
+                    && self
+                        .categories
+                        .get(self.category)
+                        .is_some_and(|n| self.catalog[*n].group_zh == f.group_zh)
+            })
+            .map(|(i, _)| i)
+            .collect()
+    }
     #[cfg(test)]
     pub fn focus(&mut self, i: usize) {
+        if let Some(category) = self
+            .categories
+            .iter()
+            .position(|n| self.catalog[*n].group_zh == self.catalog[i].group_zh)
+        {
+            self.switch_category(category);
+        }
         if let Some(row) = self.visible.iter().position(|v| *v == i) {
             self.follow_top = false;
             self.table.select(Some(row));
             self.table.scroll_to_selected();
+        }
+    }
+    fn switch_category(&mut self, category: usize) -> bool {
+        if category == self.category {
+            return false;
+        }
+        std::mem::swap(&mut self.table, &mut self.tables[self.category]);
+        self.category = category;
+        self.follow_top = false;
+        self.visible = self.category_items();
+        std::mem::swap(&mut self.table, &mut self.tables[category]);
+        true
+    }
+    fn category_command(&self) -> Command {
+        Command::Items(self.visible.clone())
+    }
+    fn key_command(&self, key: KeyCode) -> Option<Command> {
+        if self.busy {
+            return None;
+        }
+        match key {
+            KeyCode::Char('a' | 'A') => Some(Command::All),
+            KeyCode::Char('c' | 'C') => Some(self.category_command()),
+            KeyCode::Char(' ') => self.space_command(),
+            KeyCode::Char('r' | 'R') if self.restart => Some(Command::Restart),
+            _ => None,
         }
     }
     pub fn command(&mut self, command: &Command) {
@@ -177,6 +268,7 @@ impl App {
             let chosen = match command {
                 Command::All => true,
                 Command::One(n) => i == *n,
+                Command::Items(indices) => indices.contains(&i),
                 _ => false,
             };
             if chosen && self.states[i].actionable() {
@@ -197,6 +289,28 @@ impl App {
         }
     }
     fn navigate(&mut self, event: &Event) -> bool {
+        let target = match event {
+            Event::Key(key) => match key.code {
+                KeyCode::Left | KeyCode::BackTab => {
+                    Some((self.category + self.categories.len() - 1) % self.categories.len())
+                }
+                KeyCode::Right | KeyCode::Tab => Some((self.category + 1) % self.categories.len()),
+                _ => None,
+            },
+            Event::Mouse(mouse)
+                if mouse.kind == MouseEventKind::Down(MouseButton::Left)
+                    && self.tab_area.contains((mouse.column, mouse.row).into()) =>
+            {
+                self.tab_areas
+                    .iter()
+                    .find(|(_, area)| area.contains((mouse.column, mouse.row).into()))
+                    .map(|(i, _)| *i)
+            }
+            _ => None,
+        };
+        if let Some(category) = target {
+            return self.switch_category(category);
+        }
         let before = self.table.selected();
         let outcome = rowselection::handle_events(&mut self.table, true, event);
         let changed =
@@ -289,7 +403,7 @@ impl App {
             ..frame.area()
         };
         let mut spans = vec![Span::styled(
-            choose(self.zh, "↑↓ 选择项目", "↑↓ Select item"),
+            choose(self.zh, "←→ 切换类别  ↑↓ 选择项目", "←→ Category  ↑↓ Item"),
             Style::default().fg(p.muted),
         )];
         for (key, zh, en) in [
@@ -303,7 +417,8 @@ impl App {
             } else {
                 ("Space", "执行当前项", "Run item")
             },
-            ("A", "执行全部", "Run all"),
+            ("C", "执行本类别", "Run category"),
+            ("A", "执行全部类别", "Run all categories"),
             ("R", "重启", "Restart"),
             ("Q", "退出", "Exit"),
         ] {
@@ -381,7 +496,8 @@ impl App {
             );
         }
         let header = Paragraph::new(lines).wrap(Wrap { trim: false });
-        let top = header.line_count(area.width) as u16;
+        let header_height = header.line_count(area.width) as u16;
+        let top = header_height + 1;
         let sections = self.detail_sections();
         let label_width = if self.zh { 6 } else { 8 };
         let detail_width = area.width.saturating_sub(label_width);
@@ -418,25 +534,25 @@ impl App {
             Constraint::Length(bottom),
         ])
         .split(area);
-        frame.render_widget(header, layout[0]);
+        frame.render_widget(header, Rect::new(area.x, area.y, area.width, header_height));
+        self.draw_tabs(
+            frame,
+            Rect::new(area.x, area.y + header_height, area.width, 1),
+        );
         let rows = self.visible.iter().map(|i| {
             let f = &self.catalog[*i];
             Row::new([
-                Cell::from(f.category(self.zh).to_owned())
-                    .style(Some(Style::default().fg(p.muted))),
                 Cell::from(f.name(self.zh).to_owned()),
                 Cell::from(self.states[*i].label(f, self.zh))
                     .style(Some(Style::default().fg(p.status(self.states[*i].state)))),
             ])
         });
-        let category = if self.zh { 10 } else { 14 };
         let status = if self.zh { 16 } else { 20 };
         let table = Table::default()
             .style(style)
             .rows(rows)
             .header(
                 Row::new([
-                    choose(self.zh, "类别", "Category"),
                     choose(self.zh, "项目", "Item"),
                     choose(self.zh, "状态", "Status"),
                 ])
@@ -447,11 +563,7 @@ impl App {
                         .add_modifier(Modifier::BOLD),
                 )),
             )
-            .widths([
-                Constraint::Length(category),
-                Constraint::Fill(1),
-                Constraint::Length(status),
-            ])
+            .widths([Constraint::Fill(1), Constraint::Length(status)])
             .column_spacing(2)
             .select_row_style(Some(
                 Style::default().bg(p.surface).add_modifier(Modifier::BOLD),
@@ -464,9 +576,8 @@ impl App {
                     .thumb_symbol(" ")
                     .thumb_style(style.bg(p.blue)),
             );
-        let previous_height = self.table.area.height;
         frame.render_stateful_widget(&table, layout[1], &mut self.table);
-        if previous_height != layout[1].height && self.table.scroll_to_selected() {
+        if self.table.scroll_to_selected() {
             frame.render_stateful_widget(&table, layout[1], &mut self.table);
         }
         if bottom != 0 {
@@ -505,6 +616,56 @@ impl App {
                     );
                 }
                 y += height;
+            }
+        }
+    }
+    fn draw_tabs(&mut self, frame: &mut Frame, area: Rect) {
+        self.tab_area = area;
+        self.tab_areas.clear();
+        let titles: Vec<_> = self
+            .categories
+            .iter()
+            .map(|i| Line::from(self.catalog[*i].category(self.zh)))
+            .collect();
+        let widths: Vec<_> = titles
+            .iter()
+            .map(|title| title.width() as u16 + 2)
+            .collect();
+        let available = area.width.saturating_sub(4);
+        let mut start = 0;
+        while start < self.category && widths[start..=self.category].iter().sum::<u16>() > available
+        {
+            start += 1;
+        }
+        let mut end = start;
+        let mut used = 0;
+        while end < titles.len() && used + widths[end] <= available {
+            used += widths[end];
+            end += 1;
+        }
+        let mut x = area.x + 2;
+        for (i, width) in widths.iter().enumerate().take(end).skip(start) {
+            self.tab_areas.push((i, Rect::new(x, area.y, *width, 1)));
+            x += width;
+        }
+        let p = self.palette;
+        let style = Style::default().fg(p.muted).bg(p.base);
+        frame.render_widget(
+            Tabs::new(titles[start..end].to_vec())
+                .select(self.category - start)
+                .divider("")
+                .style(style)
+                .highlight_style(style.fg(p.blue).bg(p.surface).add_modifier(Modifier::BOLD)),
+            Rect::new(area.x + 2, area.y, available, 1),
+        );
+        for (shown, x, symbol, category) in [
+            (start > 0, area.x, "‹", start.saturating_sub(1)),
+            (end < titles.len(), area.right().saturating_sub(2), "›", end),
+        ] {
+            if shown {
+                let rect = Rect::new(x, area.y, 2, 1);
+                frame.render_widget(Paragraph::new(symbol).style(style.fg(p.blue)), rect);
+                self.tab_areas.push((category, rect));
             }
         }
     }
@@ -741,13 +902,10 @@ fn event_loop(
                 dirty = true;
                 continue;
             }
-            let command = match key.code {
-                KeyCode::Char('q' | 'Q') | KeyCode::Esc if !app.busy => return Ok(()),
-                KeyCode::Char('r' | 'R') if !app.busy && app.restart => Some(Command::Restart),
-                KeyCode::Char('a' | 'A') if !app.busy => Some(Command::All),
-                KeyCode::Char(' ') if !app.busy => app.space_command(),
-                _ => None,
-            };
+            if matches!(key.code, KeyCode::Char('q' | 'Q') | KeyCode::Esc) && !app.busy {
+                return Ok(());
+            }
+            let command = app.key_command(key.code);
             if let Some(command) = command {
                 app.command(&command);
                 commands.send(command)?;
@@ -768,6 +926,145 @@ fn event_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn category_execution_is_scoped_and_all_execution_crosses_tabs() -> Result<()> {
+        let mut app = App::new(catalog()?, true)?;
+        let mut seen = vec![];
+        for category in 0..app.categories.len() {
+            app.switch_category(category);
+            let group = &app.catalog[app.categories[category]].group_zh;
+            assert!(
+                app.visible
+                    .iter()
+                    .all(|i| app.catalog[*i].group_zh == *group)
+            );
+            assert!(app.visible.windows(2).all(|pair| pair[0] < pair[1]));
+            seen.extend_from_slice(&app.visible);
+            for key in ['c', 'C'] {
+                assert!(
+                    matches!(app.key_command(KeyCode::Char(key)), Some(Command::Items(indices)) if indices == app.visible)
+                );
+            }
+        }
+        seen.sort();
+        assert_eq!(
+            seen,
+            app.catalog
+                .iter()
+                .enumerate()
+                .filter(|(_, f)| !f.manual)
+                .map(|(i, _)| i)
+                .collect::<Vec<_>>()
+        );
+        let indices = app.visible.clone();
+        app.states[indices[0]] = Check::new(Status::Done);
+        app.states[indices[1]] = Check::new(Status::Failed);
+        app.command(&app.key_command(KeyCode::Char('c')).unwrap());
+        for (i, state) in app.states.iter().enumerate() {
+            assert_eq!(
+                state.state,
+                if i == indices[0] {
+                    Status::Done
+                } else if indices.contains(&i) {
+                    Status::Queued
+                } else {
+                    Status::PendingCheck
+                }
+            );
+        }
+        app.busy = false;
+        for key in ['a', 'A'] {
+            assert!(matches!(
+                app.key_command(KeyCode::Char(key)),
+                Some(Command::All)
+            ));
+        }
+        app.command(&Command::All);
+        assert!(
+            app.states
+                .iter()
+                .all(|s| matches!(s.state, Status::Queued | Status::Done))
+        );
+        Ok(())
+    }
+    #[test]
+    fn tab_navigation_keeps_each_selection_and_scroll_during_updates() -> Result<()> {
+        use crossterm::event::{KeyEvent, MouseEvent};
+        use ratatui::{Terminal, backend::TestBackend};
+        let mut app = App::new(catalog()?, true)?;
+        let mut terminal = Terminal::new(TestBackend::new(80, 20))?;
+        app.focus(
+            app.catalog
+                .iter()
+                .position(|f| f.id == "search-web")
+                .unwrap(),
+        );
+        terminal.draw(|frame| app.draw(frame))?;
+        let (category, selected, offset) = (app.category, app.selected(), app.table.row_offset());
+        assert!(offset > 0);
+        let next = Event::Key(KeyEvent::new(KeyCode::Right, KeyModifiers::NONE));
+        assert!(app.navigate(&next));
+        terminal.draw(|frame| app.draw(frame))?;
+        let other_selected = app.selected();
+        app.busy = true;
+        app.receive(
+            Message::State(selected.unwrap(), Check::new(Status::Running), 0),
+            0,
+        );
+        assert_eq!(app.selected(), other_selected);
+        assert!(app.navigate(&Event::Key(KeyEvent::new(
+            KeyCode::BackTab,
+            KeyModifiers::SHIFT
+        ))));
+        app.busy = false;
+        terminal.draw(|frame| app.draw(frame))?;
+        assert_eq!(
+            (app.category, app.selected(), app.table.row_offset()),
+            (category, selected, offset)
+        );
+        let (target, rect) = app
+            .tab_areas
+            .iter()
+            .find(|(i, _)| *i != category)
+            .copied()
+            .unwrap();
+        assert!(app.navigate(&Event::Mouse(MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: rect.x,
+            row: rect.y,
+            modifiers: KeyModifiers::NONE,
+        })));
+        assert_eq!(app.category, target);
+        Ok(())
+    }
+    #[test]
+    fn every_tab_is_reachable_and_its_title_fits_a_narrow_terminal() -> Result<()> {
+        use crossterm::event::KeyEvent;
+        use ratatui::{Terminal, backend::TestBackend};
+        for zh in [true, false] {
+            let mut app = App::new(catalog()?, zh)?;
+            let mut terminal = Terminal::new(TestBackend::new(55, 24))?;
+            for category in 0..app.categories.len() {
+                assert_eq!(app.category, category);
+                terminal.draw(|frame| app.draw(frame))?;
+                let (_, rect) = app.tab_areas.iter().find(|(i, _)| *i == category).unwrap();
+                let mut text = String::new();
+                let mut x = rect.x;
+                while x < rect.right() {
+                    let symbol = terminal.backend().buffer()[(x, rect.y)].symbol();
+                    text.push_str(symbol);
+                    x += Span::raw(symbol).width().max(1) as u16;
+                }
+                assert_eq!(
+                    text.trim(),
+                    app.catalog[app.categories[category]].category(zh)
+                );
+                assert!(app.navigate(&Event::Key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE))));
+            }
+            assert_eq!(app.category, 0);
+        }
+        Ok(())
+    }
     #[test]
     fn selected_item_details_are_separate_and_fit_a_small_terminal() -> Result<()> {
         use ratatui::{Terminal, backend::TestBackend};
@@ -1047,7 +1344,7 @@ mod tests {
     fn changing_the_palette_keeps_selection_and_scroll_position() -> Result<()> {
         use ratatui::{Terminal, backend::TestBackend};
         let mut app = App::new(catalog()?, true)?;
-        let mut terminal = Terminal::new(TestBackend::new(100, 30))?;
+        let mut terminal = Terminal::new(TestBackend::new(100, 24))?;
         terminal.draw(|frame| app.draw(frame))?;
         app.focus(app.catalog.len() - 1);
         terminal.draw(|frame| app.draw(frame))?;
@@ -1120,6 +1417,9 @@ mod tests {
                 );
                 assert_eq!(buffer[(area.x + 14, area.y)].bg, palette.surface);
                 assert_eq!(buffer[(area.x + 14, area.y + 1)].bg, palette.base);
+                app.focus(app.catalog.iter().position(|f| f.id == "mouse").unwrap());
+                terminal.backend_mut().resize(100, 24);
+                terminal.draw(|frame| app.draw(frame))?;
                 app.table.move_to(app.visible.len() - 1);
                 terminal.draw(|frame| app.draw(frame))?;
                 app.table.move_to(0);
@@ -1240,7 +1540,7 @@ mod tests {
     fn retry_keeps_the_selected_row_and_viewport_through_completion() -> Result<()> {
         use ratatui::{Terminal, backend::TestBackend};
         let mut app = App::new(catalog()?, true)?;
-        let mut terminal = Terminal::new(TestBackend::new(100, 30))?;
+        let mut terminal = Terminal::new(TestBackend::new(100, 24))?;
         app.receive(
             Message::Finished {
                 processed: 1,
@@ -1250,7 +1550,11 @@ mod tests {
             },
             0,
         );
-        let i = *app.visible.last().unwrap();
+        let i = app
+            .catalog
+            .iter()
+            .position(|f| f.id == "search-web")
+            .unwrap();
         app.states[i] = Check::new(Status::Failed);
         terminal.draw(|frame| app.draw(frame))?;
         app.focus(i);

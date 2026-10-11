@@ -179,7 +179,8 @@ fn frame_and_navigation_work_while_every_item_is_checking() -> anyhow::Result<()
     for zh in [true, false] {
         for width in [55, 100, 140] {
             let mut app = App::new(catalog()?, zh)?;
-            let mut terminal = Terminal::new(TestBackend::new(width, 30))?;
+            app.focus(app.catalog.iter().position(|f| f.id == "mouse").unwrap());
+            let mut terminal = Terminal::new(TestBackend::new(width, 24))?;
             terminal.draw(|f| app.draw(f))?;
             assert!(app.table.inner.height > 0);
             assert_eq!(app.table.vscroll.area.width, 1);

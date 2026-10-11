@@ -57,18 +57,7 @@ impl Feature {
         }
     }
     pub fn category(&self, zh: bool) -> &str {
-        match self.page.as_str() {
-            "Install" => choose(zh, "安装", "Install"),
-            "Remove" => choose(zh, "卸载", "Remove"),
-            "Desktop" => choose(zh, "桌面", "Desktop"),
-            _ => {
-                if zh {
-                    &self.group_zh
-                } else {
-                    &self.group_en
-                }
-            }
-        }
+        choose(zh, &self.group_zh, &self.group_en)
     }
     pub fn impact(&self, zh: bool) -> &str {
         choose(zh, &self.impact_zh, &self.impact_en)
@@ -77,7 +66,7 @@ impl Feature {
         self.page == "System"
             && matches!(
                 self.group_zh.as_str(),
-                "核心隔离" | "Defender" | "安全" | "缓解"
+                "核心隔离" | "Defender" | "安全" | "漏洞防护"
             )
     }
     pub fn toggle(&self) -> bool {

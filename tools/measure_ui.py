@@ -1,4 +1,4 @@
-# 只测试首屏、方向键和退出，不执行优化；通过隐藏 ConPTY 运行。
+# 只测试首屏、项目与类别导航、退出，不执行优化；通过隐藏 ConPTY 运行。
 import ctypes as C
 from ctypes import wintypes as W
 import json, time, threading, pathlib, sys, os, subprocess
@@ -53,11 +53,11 @@ def probe(exe):
     try:
         if not first.wait(15): raise RuntimeError('No TUI frame: '+data[-2000:].decode('utf-8',errors='replace'))
         first_ms=frame_time[0]-start
-        # Navigation while detection is active; only arrows and exit are sent.
+        # 项目导航、类别切换与返回；不发送任何执行快捷键。
         delays=[]
-        for _ in range(6):
+        for key in [b'\x1b[B', b'\x1b[C', b'\x1b[B', b'\t', b'\x1b[Z', b'\x1b[D']:
             time.sleep(.13)
-            before=time.perf_counter();write(iw,b'\x1b[B')
+            before=time.perf_counter();write(iw,key)
             deadline=before+1
             while time.perf_counter()<deadline:
                 with lock: after=[t for t in changes if t>before]

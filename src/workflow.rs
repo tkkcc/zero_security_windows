@@ -213,6 +213,7 @@ pub fn prepare_safe(engine: &Engine, ids: &[String], all: bool) -> Result<()> {
         suspended: *engine.store.suspended.lock().unwrap(),
         continue_all: all,
         safe_ids: ids.to_vec(),
+        normal_ids: prior.map(|p| p.normal_ids).unwrap_or_default(),
         ..Default::default()
     });
     engine.store.save()?;

@@ -374,8 +374,8 @@
     "En": "Default app and taskbar protection",
     "PurposeZh": "禁用对默认应用和部分任务栏设置的修改保护。",
     "PurposeEn": "Disable change protection for default applications and some taskbar settings.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
     "Ops": [
       {
         "Kind": "Service",
@@ -725,8 +725,8 @@
     "En": "WeType",
     "PurposeZh": "安装微信输入法，用于中文输入与词库同步。",
     "PurposeEn": "Install WeType for Chinese text input and dictionary sync.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "Tencent.WeType",
@@ -749,8 +749,8 @@
     "En": "UniGetUI",
     "PurposeZh": "安装 UniGetUI，用于管理、安装和更新软件包。",
     "PurposeEn": "Install UniGetUI to manage, install and update software packages.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "XPFFTQ032PTPHF",
@@ -774,8 +774,8 @@
     "En": "chezmoi",
     "PurposeZh": "安装 chezmoi，用于管理和同步个人配置文件。",
     "PurposeEn": "Install chezmoi to manage and sync personal configuration files.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "twpayne.chezmoi",
@@ -798,8 +798,8 @@
     "En": "Git",
     "PurposeZh": "安装 Git，用于代码版本管理。",
     "PurposeEn": "Install Git for source code version control.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "Git.Git",
@@ -822,8 +822,8 @@
     "En": "uv",
     "PurposeZh": "安装 uv，用于管理 Python 项目、环境与依赖。",
     "PurposeEn": "Install uv to manage Python projects, environments and dependencies.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "astral-sh.uv",
@@ -846,8 +846,8 @@
     "En": "AutoHotkey",
     "PurposeZh": "安装 AutoHotkey，用于自定义快捷键和桌面自动化。",
     "PurposeEn": "Install AutoHotkey for custom keyboard shortcuts and desktop automation.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "AutoHotkey.AutoHotkey",
@@ -870,8 +870,8 @@
     "En": "rustup",
     "PurposeZh": "安装 rustup，用于安装和管理 Rust 工具链。",
     "PurposeEn": "Install rustup to install and manage Rust toolchains.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "Rustlang.Rustup",
@@ -894,8 +894,8 @@
     "En": "VS Code",
     "PurposeZh": "安装 VS Code，用于代码编辑、调试与扩展开发。",
     "PurposeEn": "Install VS Code for code editing, debugging and extensions.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "Microsoft.VisualStudioCode",
@@ -918,8 +918,8 @@
     "En": "GitHub CLI",
     "PurposeZh": "安装 GitHub CLI，用于在终端管理仓库、Issue 和 PR。",
     "PurposeEn": "Install GitHub CLI to manage repositories, issues and pull requests from the terminal.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "GitHub.cli",
@@ -942,8 +942,8 @@
     "En": "ChatGPT",
     "PurposeZh": "安装 ChatGPT 桌面应用，用于对话、写作与代码辅助。",
     "PurposeEn": "Install the ChatGPT desktop app for conversations, writing and coding assistance.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "9PLM9XGG6VKS",
@@ -967,8 +967,8 @@
     "En": "Node.js",
     "PurposeZh": "安装 Node.js JavaScript 运行环境和 npm 包管理器。",
     "PurposeEn": "Install the Node.js JavaScript runtime and npm package manager.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "OpenJS.NodeJS",
@@ -991,8 +991,8 @@
     "En": "Python 3.14",
     "PurposeZh": "安装 Python 3.14 语言运行环境。",
     "PurposeEn": "Install the Python 3.14 language runtime.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "Python.Python.3.14",
@@ -1015,8 +1015,8 @@
     "En": "fd",
     "PurposeZh": "安装 fd，用于在终端快速查找文件。",
     "PurposeEn": "Install fd to find files quickly from the terminal.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "sharkdp.fd",
@@ -1039,8 +1039,8 @@
     "En": "Yazi",
     "PurposeZh": "安装 Yazi，用于终端文件管理与预览。",
     "PurposeEn": "Install Yazi for terminal file management and previews.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "sxyazi.yazi",
@@ -1063,8 +1063,8 @@
     "En": "PowerShell",
     "PurposeZh": "安装 PowerShell，用于命令行脚本与系统管理。",
     "PurposeEn": "Install PowerShell for scripting and system administration.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "Microsoft.PowerShell",
@@ -1087,8 +1087,8 @@
     "En": "fzf",
     "PurposeZh": "安装 fzf，用于终端交互式模糊查找。",
     "PurposeEn": "Install fzf for interactive fuzzy finding in the terminal.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "junegunn.fzf",
@@ -1111,8 +1111,8 @@
     "En": "zoxide",
     "PurposeZh": "安装 zoxide，用于根据使用记录快速跳转目录。",
     "PurposeEn": "Install zoxide to jump to directories based on usage history.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "ajeetdsouza.zoxide",
@@ -1135,8 +1135,8 @@
     "En": "Neovim",
     "PurposeZh": "安装 Neovim 终端文本编辑器。",
     "PurposeEn": "Install the Neovim terminal text editor.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "Neovim.Neovim",
@@ -1159,8 +1159,8 @@
     "En": "Android SDK CLI",
     "PurposeZh": "安装 Android SDK 命令行工具，用于管理开发环境。",
     "PurposeEn": "Install Android SDK command-line tools to manage the development environment.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "Google.AndroidCLI",
@@ -1183,8 +1183,8 @@
     "En": "UU Remote",
     "PurposeZh": "安装 UU 远程，用于远程访问和控制电脑。",
     "PurposeEn": "Install UU Remote to access and control computers remotely.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "NetEase.UURemote",
@@ -1207,8 +1207,8 @@
     "En": "Windows Terminal",
     "PurposeZh": "安装 Windows Terminal 多标签终端。",
     "PurposeEn": "Install Windows Terminal, a terminal with multiple tabs.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "Microsoft.WindowsTerminal",
@@ -1231,8 +1231,8 @@
     "En": "tailcat",
     "PurposeZh": "安装 tailcat，用于加密点对点数据传输、端口转发和远程访问。",
     "PurposeEn": "Install tailcat for encrypted peer-to-peer transfers, port forwarding and remote access.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
     "Ops": [
       {
         "Name": "Tailscale.tailcat",
@@ -1255,8 +1255,8 @@
     "En": "News",
     "PurposeZh": "卸载新闻资讯与内容推荐应用。",
     "PurposeEn": "Uninstall the news and content recommendation application.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1281,8 +1281,8 @@
     "En": "Weather",
     "PurposeZh": "卸载天气预报应用。",
     "PurposeEn": "Uninstall the weather forecast application.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1307,8 +1307,8 @@
     "En": "Xbox apps and Game Bar",
     "PurposeZh": "卸载 Xbox 应用与游戏栏。",
     "PurposeEn": "Uninstall Xbox applications and Game Bar.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1335,8 +1335,8 @@
     "En": "Security app",
     "PurposeZh": "卸载用于查看和管理系统防护的安全中心应用。",
     "PurposeEn": "Uninstall the Windows Security application used to view and manage protection settings.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1363,8 +1363,8 @@
     "En": "Widgets runtimes",
     "PurposeZh": "卸载小组件与资讯面板的运行组件。",
     "PurposeEn": "Uninstall runtime components for Widgets and news feeds.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1391,8 +1391,8 @@
     "En": "Solitaire and Microsoft games",
     "PurposeZh": "卸载纸牌和微软内置游戏。",
     "PurposeEn": "Uninstall Solitaire and Microsoft built-in games.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1421,8 +1421,8 @@
     "En": "Edge Game Assist",
     "PurposeZh": "卸载 Edge 游戏助手。",
     "PurposeEn": "Uninstall Edge Game Assist.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1449,8 +1449,8 @@
     "En": "Extra compatibility components",
     "PurposeZh": "卸载额外的应用兼容性组件和修复数据库。",
     "PurposeEn": "Uninstall additional application compatibility components and fix databases.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1480,8 +1480,8 @@
     "En": "Clipchamp",
     "PurposeZh": "卸载 Clipchamp 视频剪辑应用。",
     "PurposeEn": "Uninstall the Clipchamp video editing application.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1506,8 +1506,8 @@
     "En": "Sticky Notes",
     "PurposeZh": "卸载桌面便签应用。",
     "PurposeEn": "Uninstall the Sticky Notes application.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1532,8 +1532,8 @@
     "En": "To Do",
     "PurposeZh": "卸载微软待办应用。",
     "PurposeEn": "Uninstall the Microsoft To Do application.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1558,8 +1558,8 @@
     "En": "Feedback Hub",
     "PurposeZh": "卸载用于提交系统反馈的反馈中心。",
     "PurposeEn": "Uninstall Feedback Hub, used to submit system feedback.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1584,8 +1584,8 @@
     "En": "Get Help",
     "PurposeZh": "卸载获取帮助与在线支持应用。",
     "PurposeEn": "Uninstall the Get Help and online support application.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1610,8 +1610,8 @@
     "En": "Microsoft PC Manager",
     "PurposeZh": "卸载微软电脑管家。",
     "PurposeEn": "Uninstall Microsoft PC Manager.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1641,8 +1641,8 @@
     "En": "Quick Assist",
     "PurposeZh": "卸载快速助手远程协助应用。",
     "PurposeEn": "Uninstall the Quick Assist remote assistance application.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1667,8 +1667,8 @@
     "En": "Power Automate",
     "PurposeZh": "卸载 Power Automate 桌面自动化应用。",
     "PurposeEn": "Uninstall the Power Automate desktop automation application.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1693,8 +1693,8 @@
     "En": "Phone Link and cross-device apps",
     "PurposeZh": "卸载手机连接和跨设备应用。",
     "PurposeEn": "Uninstall Phone Link and cross-device applications.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1720,8 +1720,8 @@
     "En": "Family Safety",
     "PurposeZh": "卸载家庭安全和家长控制应用。",
     "PurposeEn": "Uninstall Family Safety and parental control applications.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1746,8 +1746,8 @@
     "En": "Outlook and Mail",
     "PurposeZh": "卸载 Outlook、邮件与日历应用。",
     "PurposeEn": "Uninstall Outlook, Mail and Calendar applications.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1773,8 +1773,8 @@
     "En": "Dev Home",
     "PurposeZh": "卸载 Dev Home 开发环境管理应用。",
     "PurposeEn": "Uninstall the Dev Home developer environment application.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1799,8 +1799,8 @@
     "En": "Microsoft AI apps",
     "PurposeZh": "卸载 Copilot 和微软内置 AI 应用。",
     "PurposeEn": "Uninstall Copilot and Microsoft built-in AI applications.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
@@ -1833,8 +1833,8 @@
     "En": "OneDrive",
     "PurposeZh": "卸载 OneDrive 云端文件同步应用。",
     "PurposeEn": "Uninstall the OneDrive cloud file sync application.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
     "Ops": [
       {
         "Name": "OneDrive",
@@ -1856,8 +1856,8 @@
     "En": "Mouse speed and scrolling",
     "PurposeZh": "关闭增强指针精度，鼠标速度设为 20，滚轮每次滚动 6 行。",
     "PurposeEn": "Turn off pointer acceleration, set pointer speed to 20 and scroll 6 lines at a time.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\Control Panel\\Mouse",
@@ -1909,8 +1909,8 @@
     "En": "Keyboard repeat and accessibility",
     "PurposeZh": "重复延迟设为 140 毫秒、间隔设为 16 毫秒；关闭粘滞键、筛选键及辅助按键提示。",
     "PurposeEn": "Set repeat delay to 140 ms and interval to 16 ms; turn off Sticky Keys, Filter Keys and accessibility key alerts.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\Control Panel\\Accessibility\\StickyKeys",
@@ -1969,8 +1969,8 @@
     "En": "Black pointer, size 3",
     "PurposeZh": "将鼠标指针设为黑色，大小设为 3。",
     "PurposeEn": "Use a black mouse pointer at size 3.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\Control Panel\\Cursors",
@@ -2141,8 +2141,8 @@
     "En": "Light theme, no transparency",
     "PurposeZh": "将系统和应用设为浅色主题，关闭透明效果。",
     "PurposeEn": "Use light mode for Windows and applications, with transparency turned off.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
@@ -2180,8 +2180,8 @@
     "En": "Visual effects",
     "PurposeZh": "关闭大部分视觉效果，仅保留字体平滑、窗口拖动内容和缩略图。",
     "PurposeEn": "Turn off most visual effects, keeping font smoothing, window contents while dragging and thumbnails.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
@@ -2316,8 +2316,8 @@
     "En": "Use only WeType",
     "PurposeZh": "仅保留微信输入法，移除微软拼音、美式键盘及其他输入方式。",
     "PurposeEn": "Keep WeType as the only input method, removing Microsoft Pinyin, the US keyboard and other input methods.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Name": "WeType",
@@ -2465,8 +2465,8 @@
     "En": "Start menu layout",
     "PurposeZh": "关闭最近使用和推荐内容，将全部应用设为列表并清空固定区。",
     "PurposeEn": "Turn off recent items and recommendations, use an app list and clear pinned applications.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Start",
@@ -2542,8 +2542,8 @@
     "En": "Desktop icons and files",
     "PurposeZh": "桌面仅保留此电脑与回收站，将其他文件和快捷方式移入回收站。",
     "PurposeEn": "Keep only This PC and Recycle Bin on the desktop; move other files and shortcuts to Recycle Bin.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Kind": "DesktopIcons"
@@ -2568,8 +2568,8 @@
     "En": "Taskbar alignment and grouping",
     "PurposeZh": "任务栏靠左对齐，所有屏幕仅在任务栏已满时合并按钮。",
     "PurposeEn": "Align the taskbar left and combine buttons only when full on all displays.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
@@ -2607,8 +2607,8 @@
     "En": "Taskbar Search and Task View",
     "PurposeZh": "隐藏任务栏搜索和任务视图按钮。",
     "PurposeEn": "Hide the taskbar Search and Task View buttons.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search",
@@ -2639,8 +2639,8 @@
     "En": "Pinned taskbar apps",
     "PurposeZh": "清空任务栏中已保存的固定应用。",
     "PurposeEn": "Clear applications saved as taskbar pins.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Kind": "RegistryDelete",
@@ -2668,8 +2668,8 @@
     "En": "Show all tray icons",
     "PurposeZh": "展开所有应用托盘图标，包括新增或更新后的图标。",
     "PurposeEn": "Show all application tray icons, including newly added or updated icons.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Name": "AppIcons",
@@ -2691,8 +2691,8 @@
     "En": "Bluetooth tray icon",
     "PurposeZh": "隐藏蓝牙托盘图标。",
     "PurposeEn": "Hide the Bluetooth system tray icon.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\Control Panel\\Bluetooth",
@@ -2716,8 +2716,8 @@
     "En": "Language bar and input indicator",
     "PurposeZh": "隐藏浮动语言栏和任务栏输入指示器。",
     "PurposeEn": "Hide the floating language bar and taskbar input indicator.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Name": "Floating",
@@ -2753,8 +2753,8 @@
     "En": "Extensions and hidden files",
     "PurposeZh": "显示文件扩展名与普通隐藏文件。",
     "PurposeEn": "Show file extensions and ordinary hidden files.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
@@ -2794,8 +2794,8 @@
     "En": "This PC and drives",
     "PurposeZh": "将文件资源管理器的默认打开位置设为此电脑。",
     "PurposeEn": "Set File Explorer to open at This PC by default.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
@@ -2859,8 +2859,8 @@
     "En": "Shortcut names",
     "PurposeZh": "创建快捷方式时不添加“快捷方式”后缀。",
     "PurposeEn": "Create shortcuts without adding the Shortcut suffix.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer",
@@ -2889,8 +2889,8 @@
     "En": "Context menu style",
     "PurposeZh": "在 Windows 11 右键菜单和 Windows 10 经典菜单之间切换。",
     "PurposeEn": "Switch between the Windows 11 context menu and the Windows 10 classic menu.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32",
@@ -2914,8 +2914,8 @@
     "En": "Desktop picture background",
     "PurposeZh": "将桌面背景类型设为图片。",
     "PurposeEn": "Set the desktop background type to Picture.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Wallpapers",
@@ -2951,8 +2951,8 @@
     "En": "Lock screen Spotlight",
     "PurposeZh": "关闭锁屏 Windows 聚焦和推荐内容。",
     "PurposeEn": "Turn off Windows Spotlight and recommendations on the lock screen.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
@@ -3293,8 +3293,8 @@
     "En": "CPU vulnerability protection",
     "PurposeZh": "关闭可配置的 Spectre、Meltdown 等 CPU 漏洞防护。",
     "PurposeEn": "Turn off configurable CPU mitigations for Spectre, Meltdown and related vulnerabilities.",
-    "GroupZh": "缓解",
-    "GroupEn": "Mitigations",
+    "GroupZh": "漏洞防护",
+    "GroupEn": "Exploit protection",
     "Ops": [
       {
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management",
@@ -3325,8 +3325,8 @@
     "En": "Exploit Protection",
     "PurposeZh": "关闭全局及 Windows 程序可配置的漏洞防护启动设置。",
     "PurposeEn": "Turn off configurable global and Windows application exploit protection startup settings.",
-    "GroupZh": "缓解",
-    "GroupEn": "Mitigations",
+    "GroupZh": "漏洞防护",
+    "GroupEn": "Exploit protection",
     "Ops": [
       {
         "Kind": "Mitigations"
@@ -3348,8 +3348,8 @@
     "En": "Data execution prevention",
     "PurposeZh": "关闭可配置的数据执行保护（DEP）启动策略。",
     "PurposeEn": "Turn off the configurable Data Execution Prevention (DEP) boot policy.",
-    "GroupZh": "缓解",
-    "GroupEn": "Mitigations",
+    "GroupZh": "漏洞防护",
+    "GroupEn": "Exploit protection",
     "Ops": [
       {
         "Name": "nx",
@@ -3373,8 +3373,8 @@
     "En": "Exception and service protection",
     "PurposeZh": "关闭内核异常处理链和系统服务进程的额外防护。",
     "PurposeEn": "Turn off additional protection for kernel exception chains and system service processes.",
-    "GroupZh": "缓解",
-    "GroupEn": "Mitigations",
+    "GroupZh": "漏洞防护",
+    "GroupEn": "Exploit protection",
     "Ops": [
       {
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel",
@@ -3405,8 +3405,8 @@
     "En": "Driver signature checks",
     "PurposeZh": "设置启动参数，关闭可调整的驱动完整性检查。",
     "PurposeEn": "Set the boot option to turn off configurable driver integrity checks.",
-    "GroupZh": "缓解",
-    "GroupEn": "Mitigations",
+    "GroupZh": "漏洞防护",
+    "GroupEn": "Exploit protection",
     "Ops": [
       {
         "Name": "nointegritychecks",
@@ -3607,8 +3607,8 @@
     "En": "Automatic device encryption",
     "PurposeZh": "阻止 Windows 在符合条件的设备上自动开启磁盘加密。",
     "PurposeEn": "Prevent Windows from automatically enabling disk encryption on eligible devices.",
-    "GroupZh": "更新与还原",
-    "GroupEn": "Updates & restore",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
     "Ops": [
       {
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\BitLocker",
@@ -4053,8 +4053,8 @@
     "En": "Search highlights",
     "PurposeZh": "关闭 Windows 搜索中的热点和推荐内容。",
     "PurposeEn": "Turn off highlights and recommendations in Windows Search.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Kind": "RegistryDelete",
@@ -4088,8 +4088,8 @@
     "En": "Widgets button",
     "PurposeZh": "隐藏任务栏小组件入口。",
     "PurposeEn": "Hide the taskbar Widgets button.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Kind": "RegistryDelete",
@@ -4212,8 +4212,8 @@
     "En": "Diagnostic Policy Service",
     "PurposeZh": "禁用自动检测和排查系统问题的诊断策略服务。",
     "PurposeEn": "Disable the Diagnostic Policy service used to detect and troubleshoot system problems.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
     "Ops": [
       {
         "Kind": "ServiceStart",
@@ -4235,8 +4235,8 @@
     "En": "Diagnostic Service Host",
     "PurposeZh": "禁用运行自动诊断的服务主机。",
     "PurposeEn": "Disable the service host for automatic diagnostics.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
     "Ops": [
       {
         "Kind": "ServiceStart",
@@ -4258,8 +4258,8 @@
     "En": "Diagnostic System Host",
     "PurposeZh": "禁用运行自动诊断的系统服务主机。",
     "PurposeEn": "Disable the system service host for automatic diagnostics.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
     "Ops": [
       {
         "Kind": "ServiceStart",
@@ -4281,8 +4281,8 @@
     "En": "Diagnostic Execution Service",
     "PurposeZh": "禁用自动诊断和故障排查执行服务。",
     "PurposeEn": "Disable the service that executes automatic diagnostics and troubleshooting.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
     "Ops": [
       {
         "Kind": "ServiceStart",
@@ -4304,8 +4304,8 @@
     "En": "Inventory and compatibility checks",
     "PurposeZh": "禁用应用清单采集与兼容性评估服务。",
     "PurposeEn": "Disable the application inventory and compatibility assessment service.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
     "Ops": [
       {
         "Kind": "Service",
@@ -4336,8 +4336,8 @@
     "En": "Backup and File History",
     "PurposeZh": "允许通过 Windows 界面管理备份、文件历史记录和设置同步。",
     "PurposeEn": "Allow backup, File History and settings sync to be managed through Windows controls.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "更新与还原",
+    "GroupEn": "Updates & restore",
     "Ops": [
       {
         "Kind": "RegistryDelete",
@@ -4405,8 +4405,8 @@
     "En": "Delivery Optimization",
     "PurposeZh": "关闭从其他设备下载 Windows 和商店更新的点对点共享。",
     "PurposeEn": "Turn off peer-to-peer sharing for Windows and Store update downloads.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "更新与还原",
+    "GroupEn": "Updates & restore",
     "Ops": [
       {
         "Kind": "RegistryDelete",
@@ -4518,8 +4518,8 @@
     "En": "App privacy permissions and sync",
     "PurposeZh": "关闭在线语音识别、输入个性化和应用诊断信息访问。",
     "PurposeEn": "Turn off online speech recognition, input personalization and access to application diagnostic information.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
     "Ops": [
       {
         "Kind": "RegistryDelete",
@@ -4618,8 +4618,8 @@
     "En": "Phishing protection background",
     "PurposeZh": "禁用监测恶意站点和密码泄露的钓鱼防护后台服务。",
     "PurposeEn": "Disable phishing protection background services that monitor malicious sites and exposed credentials.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "安全",
+    "GroupEn": "Security",
     "Ops": [
       {
         "Kind": "Service",
@@ -4644,8 +4644,8 @@
     "En": "Cross-device and nearby sharing",
     "PurposeZh": "关闭跨设备共享、附近共享和相关连接后台服务。",
     "PurposeEn": "Turn off cross-device sharing, Nearby Sharing and related connection services.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
     "Ops": [
       {
         "Kind": "Registry",
@@ -4692,8 +4692,8 @@
     "En": "Cross-device task resumption",
     "PurposeZh": "关闭在此电脑上接续其他设备任务的功能。",
     "PurposeEn": "Turn off resuming tasks from other devices on this computer.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
     "Ops": [
       {
         "Kind": "RegistryDelete",
@@ -4751,8 +4751,8 @@
     "En": "Clipboard history and sync",
     "PurposeZh": "关闭剪贴板历史记录。",
     "PurposeEn": "Turn off clipboard history.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
     "Ops": [
       {
         "Kind": "RegistryDelete",
@@ -4958,8 +4958,8 @@
     "En": "Web search results",
     "PurposeZh": "关闭 Windows 搜索中的联网建议和网页结果。",
     "PurposeEn": "Turn off online suggestions and web results in Windows Search.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "桌面",
+    "GroupEn": "Desktop",
     "Ops": [
       {
         "Kind": "Registry",
@@ -4985,8 +4985,8 @@
     "En": "Contacts and user data services",
     "PurposeZh": "禁用联系人索引及用户数据存储和访问后台服务。",
     "PurposeEn": "Disable background services for contact indexing and user data storage and access.",
-    "GroupZh": "系统",
-    "GroupEn": "System",
+    "GroupZh": "隐私",
+    "GroupEn": "Privacy",
     "Ops": [
       {
         "Kind": "UserServicesStart",
