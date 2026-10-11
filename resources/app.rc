@@ -1,0 +1,5 @@
+#include <windows.h>
+
+1 RT_MANIFEST "resources/app.manifest"
+1 ICON "resources/app.ico"
+2 RCDATA "resources/THIRD-PARTY-NOTICES.txt"

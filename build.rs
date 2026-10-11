@@ -1,13 +1,13 @@
 fn main() {
     for file in [
-        "app.rc",
-        "app.ico",
-        "app.manifest",
-        "THIRD-PARTY-NOTICES.txt",
+        "resources/app.rc",
+        "resources/app.ico",
+        "resources/app.manifest",
+        "resources/THIRD-PARTY-NOTICES.txt",
     ] {
         println!("cargo:rerun-if-changed={file}");
     }
-    embed_resource::compile("app.rc", embed_resource::NONE)
+    embed_resource::compile("resources/app.rc", embed_resource::NONE)
         .manifest_required()
         .unwrap();
 }
