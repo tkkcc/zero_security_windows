@@ -319,7 +319,9 @@
     "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "不会移除现有文件的来源标记。",
-    "ImpactEn": "Existing file origin markers are not removed."
+    "ImpactEn": "Existing file origin markers are not removed.",
+    "ResultZh": "来源标记已关闭",
+    "ResultEn": "Source marking off"
   },
   {
     "Id": "smart-app-control",
@@ -1909,8 +1911,8 @@
     "Id": "keyboard",
     "Zh": "键盘重复与辅助按键",
     "En": "Keyboard repeat and accessibility",
-    "PurposeZh": "重复延迟设为 140 毫秒、间隔设为 16 毫秒；关闭粘滞键、筛选键及辅助按键提示。",
-    "PurposeEn": "Set repeat delay to 140 ms and interval to 16 ms; turn off Sticky Keys, Filter Keys and accessibility key alerts.",
+    "PurposeZh": "长按重复延迟设为 140 毫秒、间隔设为 16 毫秒；关闭粘滞键及辅助按键快捷键与提示。",
+    "PurposeEn": "Set held-key repeat delay to 140 ms and interval to 16 ms; turn off Sticky Keys, accessibility shortcuts and alerts.",
     "GroupZh": "桌面",
     "GroupEn": "Desktop",
     "Ops": [
@@ -1964,8 +1966,10 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Keyboard",
-    "ResultZh": "快速重复",
-    "ResultEn": "Fast repeat"
+    "ResultZh": "140 / 16 ms",
+    "ResultEn": "140 / 16 ms",
+    "ImpactZh": "筛选键保持开启以支持此重复速度，不延迟或过滤普通按键。",
+    "ImpactEn": "Filter Keys stays on to support this repeat rate, without delaying or filtering ordinary key presses."
   },
   {
     "Id": "cursor",
@@ -2278,8 +2282,8 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Visuals",
-    "ResultZh": "已精简",
-    "ResultEn": "Simplified"
+    "ResultZh": "动画已关闭",
+    "ResultEn": "Animations off"
   },
   {
     "Id": "utf8",
@@ -3191,7 +3195,9 @@
     "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "不停止正在运行的登录安全进程。",
-    "ImpactEn": "The running sign-in security process is not stopped."
+    "ImpactEn": "The running sign-in security process is not stopped.",
+    "ResultZh": "启动保护已关闭",
+    "ResultEn": "Startup guard off"
   },
   {
     "Id": "kernel-cet",
@@ -3386,7 +3392,9 @@
     "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "已运行的进程保留原保护；Windows 强制或程序自行启用的保护可能保留。",
-    "ImpactEn": "Running processes retain their protections; Windows-mandated or application-enabled protections may remain."
+    "ImpactEn": "Running processes retain their protections; Windows-mandated or application-enabled protections may remain.",
+    "ResultZh": "启动配置已关闭",
+    "ResultEn": "Startup settings off"
   },
   {
     "Id": "dep",
@@ -3411,7 +3419,9 @@
     "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "Windows 强制为 64 位程序启用 DEP。",
-    "ImpactEn": "Windows mandates DEP for 64-bit applications."
+    "ImpactEn": "Windows mandates DEP for 64-bit applications.",
+    "ResultZh": "启动策略已关闭",
+    "ResultEn": "Boot policy off"
   },
   {
     "Id": "sehop-kernel",
@@ -3468,7 +3478,9 @@
     "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "实际检查受 Windows 启动验证和安全启动约束。",
-    "ImpactEn": "Actual enforcement depends on Windows boot verification and Secure Boot."
+    "ImpactEn": "Actual enforcement depends on Windows boot verification and Secure Boot.",
+    "ResultZh": "检查配置已关闭",
+    "ResultEn": "Check settings off"
   },
   {
     "Id": "time-sync",
@@ -3495,7 +3507,9 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Enable",
-    "Refresh": ""
+    "Refresh": "",
+    "ResultZh": "自动启动已开启",
+    "ResultEn": "Auto-start on"
   },
   {
     "Id": "windows-update",
@@ -3645,7 +3659,9 @@
     "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "可在系统属性中重新开启系统保护。",
-    "ImpactEn": "System Protection can be enabled again in System Properties."
+    "ImpactEn": "System Protection can be enabled again in System Properties.",
+    "ResultZh": "系统保护已关闭",
+    "ResultEn": "Protection off"
   },
   {
     "Id": "automatic-encryption",
@@ -3672,7 +3688,9 @@
     "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "不会解密已加密的磁盘。",
-    "ImpactEn": "Already encrypted drives are not decrypted."
+    "ImpactEn": "Already encrypted drives are not decrypted.",
+    "ResultZh": "自动加密已阻止",
+    "ResultEn": "Auto-encryption off"
   },
   {
     "Id": "telemetry",
@@ -3755,7 +3773,9 @@
     "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "保留 Windows 必需的诊断数据。",
-    "ImpactEn": "Required Windows diagnostic data is retained."
+    "ImpactEn": "Required Windows diagnostic data is retained.",
+    "ResultZh": "可选诊断已关闭",
+    "ResultEn": "Optional data off"
   },
   {
     "Id": "advertising",
@@ -4228,7 +4248,9 @@
     "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "内存压缩与内存页合并保持 Windows 当前设置。",
-    "ImpactEn": "Memory compression and page combining retain their current Windows settings."
+    "ImpactEn": "Memory compression and page combining retain their current Windows settings.",
+    "ResultZh": "应用预读已关闭",
+    "ResultEn": "App preloading off"
   },
   {
     "Id": "svc-pcasvc",
@@ -4927,7 +4949,9 @@
     "Intent": "Disable",
     "Refresh": "",
     "ImpactZh": "可在 Edge 设置中更改。",
-    "ImpactEn": "These options can be changed in Edge Settings."
+    "ImpactEn": "These options can be changed in Edge Settings.",
+    "ResultZh": "默认关闭",
+    "ResultEn": "Default off"
   },
   {
     "Id": "search-web",

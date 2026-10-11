@@ -235,16 +235,12 @@ impl Check {
                 ),
                 _ => choose(
                     zh,
-                    "当前设置尚未完全符合此项目的目标。",
-                    "Current settings do not fully match this item's target.",
+                    "仍有设置需要更改。",
+                    "Some settings still need to be changed.",
                 ),
             },
             Status::Done if f.security() && !self.detail.is_empty() => "",
-            Status::Done if f.security() => choose(
-                zh,
-                "可配置的防护已关闭。",
-                "Configurable protection is turned off.",
-            ),
+            Status::Done if !f.result(zh).is_empty() => f.result(zh),
             Status::Done => match f.intent.as_str() {
                 "Install" => choose(zh, "此应用已安装。", "This application is installed."),
                 "Remove" => choose(
@@ -385,11 +381,9 @@ impl Check {
             Status::Checking => choose(zh, "检测中", "Checking"),
             Status::Ready if f.id == "taskbar-pins" => choose(zh, "可清理", "Can clean up"),
             Status::Done if f.id == "taskbar-pins" => choose(zh, "无固定项", "No pins"),
-            Status::Ready if f.id == "location" => choose(zh, "可关闭", "Can turn off"),
-            Status::Done if f.id == "location" => choose(zh, "已关闭", "Off"),
             Status::Ready if f.toggle() => "Windows 11",
             Status::Done if f.toggle() => "Windows 10",
-            Status::Done if f.security() => choose(zh, "已优化", "Optimized"),
+            Status::Done if !f.result(zh).is_empty() => f.result(zh),
             Status::Ready => match f.intent.as_str() {
                 "Install" => choose(zh, "可安装", "Can install"),
                 "Remove" => choose(zh, "可卸载", "Can uninstall"),
@@ -399,7 +393,7 @@ impl Check {
                 "Show" => choose(zh, "可显示", "Can show"),
                 "Clean" => choose(zh, "可清理", "Can clean up"),
                 "Pause" => choose(zh, "可暂停", "Can pause"),
-                _ => choose(zh, "可禁用", "Can disable"),
+                _ => choose(zh, "可关闭", "Can turn off"),
             },
             Status::Done => match f.intent.as_str() {
                 "Install" => choose(zh, "已安装", "Installed"),
@@ -410,7 +404,7 @@ impl Check {
                 "Show" => choose(zh, "已显示", "Visible"),
                 "Clean" => choose(zh, "已清理", "Cleaned up"),
                 "Pause" => choose(zh, "已暂停", "Paused"),
-                _ => choose(zh, "已禁用", "Disabled"),
+                _ => choose(zh, "已关闭", "Off"),
             },
             Status::Running => choose(zh, "执行中", "Running"),
             Status::Queued => choose(zh, "排队中", "Queued"),

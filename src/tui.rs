@@ -1169,6 +1169,24 @@ mod tests {
                     ),
                 ),
                 (
+                    "driver-signing",
+                    Status::Done,
+                    choose(
+                        zh,
+                        "启动参数已设为关闭；内核代码完整性检查仍开启。",
+                        "The boot option is set to off; kernel code integrity checks remain enabled.",
+                    ),
+                ),
+                (
+                    "lsa",
+                    Status::Done,
+                    choose(
+                        zh,
+                        "启动保护已设为关闭；当前登录安全进程仍以受保护模式运行。",
+                        "Startup protection is set to off; the sign-in security process is still running in protected mode.",
+                    ),
+                ),
+                (
                     "windows-update",
                     Status::Done,
                     choose(
@@ -1186,6 +1204,10 @@ mod tests {
                         "Memory compression: on; page combining: on.",
                     ),
                 ),
+                ("automatic-encryption", Status::Done, ""),
+                ("power", Status::Done, ""),
+                ("visual-effects", Status::Done, ""),
+                ("keyboard", Status::Done, ""),
                 ("classic-menu", Status::SignIn, "Windows 10"),
                 ("install-git.git", Status::Queued, ""),
             ] {
@@ -1199,11 +1221,25 @@ mod tests {
                         state,
                         detail: detail.into(),
                     };
-                    if state == Status::Done && app.catalog[i].security() {
-                        assert_eq!(
-                            app.states[i].label(&app.catalog[i], zh),
-                            choose(zh, "已优化", "Optimized")
-                        );
+                    if state == Status::Done {
+                        let expected = match id {
+                            "process-mitigations" => {
+                                choose(zh, "启动配置已关闭", "Startup settings off")
+                            }
+                            "dep" => choose(zh, "启动策略已关闭", "Boot policy off"),
+                            "driver-signing" => choose(zh, "检查配置已关闭", "Check settings off"),
+                            "lsa" => choose(zh, "启动保护已关闭", "Startup guard off"),
+                            "windows-update" => choose(zh, "已暂停", "Paused"),
+                            "svc-sysmain" => choose(zh, "应用预读已关闭", "App preloading off"),
+                            "automatic-encryption" => {
+                                choose(zh, "自动加密已阻止", "Auto-encryption off")
+                            }
+                            "power" => choose(zh, "已关闭", "Off"),
+                            "visual-effects" => choose(zh, "动画已关闭", "Animations off"),
+                            "keyboard" => "140 / 16 ms",
+                            _ => unreachable!(),
+                        };
+                        assert_eq!(app.states[i].label(&app.catalog[i], zh), expected);
                         assert!(app.space_command().is_none());
                     }
                     let sections = app.detail_sections();
@@ -1236,6 +1272,16 @@ mod tests {
                             serde_json::json!({"text":text,"fg":format!("{:?}",cell.fg),"bg":format!("{:?}",cell.bg)})
                         }).collect::<Vec<_>>()
                     }).collect();
+                    let status_row: String = rows
+                        [usize::from(app.table.table_area.y) + row - app.table.row_offset()]
+                    .iter()
+                    .map(|cell| cell["text"].as_str().unwrap())
+                    .collect();
+                    assert!(
+                        compact(&status_row)
+                            .contains(&compact(&app.states[i].label(&app.catalog[i], zh))),
+                        "{id}, width {width}: {status_row:?}"
+                    );
                     let footer: String = rows[usize::from(app.table.table_area.bottom() + 1)..]
                         .iter()
                         .flat_map(|row| {
