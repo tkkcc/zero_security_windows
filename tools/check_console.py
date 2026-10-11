@@ -1,4 +1,4 @@
-# 使用隐藏的经典控制台验证背景、滚动条与退出后的恢复，只发送退出键。
+# 使用隐藏的经典控制台验证字体、背景、滚动条与退出后的恢复，只发送退出键。
 import ctypes as C
 from ctypes import wintypes as W
 import json
@@ -22,6 +22,10 @@ class Info(C.Structure):
                 ('window', Rect), ('maximum', Coord), ('popup', W.WORD), ('fullscreen', W.BOOL),
                 ('colors', W.DWORD * 16)]
 
+class Font(C.Structure):
+    _fields_ = [('size', W.DWORD), ('index', W.DWORD), ('cell', Coord),
+                ('family', W.UINT), ('weight', W.UINT), ('face', W.WCHAR * 32)]
+
 class Key(C.Structure):
     _fields_ = [('down', W.BOOL), ('repeat', W.WORD), ('vk', W.WORD), ('scan', W.WORD),
                 ('char', W.WCHAR), ('modifiers', W.DWORD)]
@@ -32,6 +36,7 @@ class Record(C.Structure):
 k.CreateFileW.argtypes = [W.LPCWSTR, W.DWORD, W.DWORD, C.c_void_p, W.DWORD, W.DWORD, W.HANDLE]
 k.CreateFileW.restype = W.HANDLE
 k.GetConsoleScreenBufferInfoEx.argtypes = [W.HANDLE, C.POINTER(Info)]
+k.GetCurrentConsoleFontEx.argtypes = [W.HANDLE, W.BOOL, C.POINTER(Font)]
 k.GetConsoleWindow.restype = W.HWND
 k.WriteConsoleInputW.argtypes = [W.HANDLE, C.POINTER(Record), W.DWORD, C.POINTER(W.DWORD)]
 k.CloseHandle.argtypes = [W.HANDLE]
@@ -54,6 +59,16 @@ def info():
     finally:
         k.CloseHandle(handle)
 
+def font():
+    handle = k.CreateFileW('CONOUT$', 0xc0000000, 3, None, 3, 0, None)
+    result = Font()
+    result.size = C.sizeof(Font)
+    try:
+        checked(k.GetCurrentConsoleFontEx(handle, False, C.byref(result)))
+        return (result.face, result.cell.x, result.cell.y, result.weight)
+    finally:
+        k.CloseHandle(handle)
+
 def main():
     exe = pathlib.Path(sys.argv[1]).resolve()
     si = subprocess.STARTUPINFO()
@@ -70,6 +85,7 @@ def main():
         hwnd = k.GetConsoleWindow()
         assert not u.IsWindowVisible(hwnd), 'Test console must remain hidden'
         original = info()
+        original_font = font()
         index = (original.attrs >> 4) & 15
         child = subprocess.Popen([str(exe)], startupinfo=si, stdin=subprocess.DEVNULL,
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -81,6 +97,9 @@ def main():
         while (info().colors[index] != expected or u.GetWindowLongW(hwnd, -16) & 0x00300000) and time.monotonic() < until:
             time.sleep(.01)
         active = info()
+        active_font = font()
+        assert active_font[0] in ('Microsoft YaHei UI', 'Consolas'), 'Modern font was not applied'
+        assert active_font[2] == 22, 'Console font size is too small'
         assert active.colors[index] == expected, 'Console padding has the wrong background'
         assert not u.IsWindowVisible(hwnd), 'App must not reveal the test console'
         assert not u.GetWindowLongW(hwnd, -16) & 0x00300000, 'System scrollbars remain visible'
@@ -92,7 +111,9 @@ def main():
         k.CloseHandle(handle)
         assert child.wait(timeout=5) == 0
         assert info().colors[index] == original.colors[index], 'Original console background was not restored'
+        assert font() == original_font, 'Original console font was not restored'
         print(json.dumps({'hidden': True, 'background': hex(expected), 'restored': True,
+                          'font': active_font,
                           'viewport': [active.window.right + 1, active.window.bottom + 1]}))
     finally:
         if child is not None and child.poll() is None:

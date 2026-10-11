@@ -853,6 +853,46 @@ pub fn hide_console_scrollbars() {
         }
     }
 }
+pub struct ConsoleFont {
+    output: windows::Win32::Foundation::HANDLE,
+    original: windows::Win32::System::Console::CONSOLE_FONT_INFOEX,
+}
+impl ConsoleFont {
+    pub fn new(zh: bool) -> Option<Self> {
+        use windows::Win32::System::Console::*;
+        unsafe {
+            let output = GetStdHandle(STD_OUTPUT_HANDLE).ok()?;
+            let mut original = CONSOLE_FONT_INFOEX {
+                cbSize: std::mem::size_of::<CONSOLE_FONT_INFOEX>() as u32,
+                ..Default::default()
+            };
+            GetCurrentConsoleFontEx(output, false, &mut original).ok()?;
+            let mut font = CONSOLE_FONT_INFOEX {
+                cbSize: original.cbSize,
+                dwFontSize: COORD { X: 0, Y: 22 },
+                FontFamily: 54,
+                FontWeight: 400,
+                ..Default::default()
+            };
+            let face = wide(if zh { "Microsoft YaHei UI" } else { "Consolas" });
+            font.FaceName[..face.len()].copy_from_slice(&face);
+            // 字体属于窗口显示设置；终端宿主不支持时仍正常运行。
+            SetCurrentConsoleFontEx(output, false, &font).ok()?;
+            Some(Self { output, original })
+        }
+    }
+}
+impl Drop for ConsoleFont {
+    fn drop(&mut self) {
+        unsafe {
+            let _ = windows::Win32::System::Console::SetCurrentConsoleFontEx(
+                self.output,
+                false,
+                &self.original,
+            );
+        }
+    }
+}
 pub struct ConsoleBackground {
     index: usize,
     original: u32,

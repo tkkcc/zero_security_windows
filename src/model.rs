@@ -163,7 +163,9 @@ pub fn choose<'a>(zh: bool, a: &'a str, b: &'a str) -> &'a str {
     if zh { a } else { b }
 }
 pub fn catalog() -> anyhow::Result<Vec<Feature>> {
-    Ok(serde_json::from_str(include_str!("../resources/catalog.json"))?)
+    Ok(serde_json::from_str(include_str!(
+        "../resources/catalog.json"
+    ))?)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

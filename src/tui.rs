@@ -623,10 +623,12 @@ impl Drop for TerminalGuard {
 }
 pub fn run(mode: String) -> Result<()> {
     native::open_console()?;
+    let zh = native::chinese();
+    let _font = native::ConsoleFont::new(zh);
     let _guard = TerminalGuard;
     let mut terminal = ratatui::try_init()?;
     execute!(std::io::stdout(), EnableMouseCapture)?;
-    let mut app = App::new(catalog()?, native::chinese())?;
+    let mut app = App::new(catalog()?, zh)?;
     let Color::Rgb(r, g, b) = app.palette.base else {
         unreachable!()
     };
