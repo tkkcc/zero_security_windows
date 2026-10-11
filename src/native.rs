@@ -9,9 +9,9 @@ use std::{
 use windows::{
     Win32::{
         NetworkManagement::WindowsFirewall::*,
-        System::{Com::*, TaskScheduler::*, Variant::VARIANT},
+        System::{Com::*, Ole::IEnumVARIANT, TaskScheduler::*, Variant::VARIANT},
     },
-    core::{BSTR, GUID, PCWSTR},
+    core::{BSTR, GUID, Interface, PCWSTR},
 };
 pub type Handle = *mut c_void;
 pub fn wide(s: &str) -> Vec<u16> {
@@ -656,6 +656,30 @@ pub fn firewall(profile: &str, notify: bool, value: Option<bool>) -> Result<bool
         } else {
             p.get_FirewallEnabled(profile)?.as_bool()
         })
+    }
+}
+pub fn firewall_group(group: &str, value: Option<bool>) -> Result<bool> {
+    com()?;
+    unsafe {
+        let policy: INetFwPolicy2 = CoCreateInstance(&NetFwPolicy2, None, CLSCTX_INPROC_SERVER)?;
+        if let Some(enabled) = value {
+            policy.EnableRuleGroup(7, &BSTR::from(group), enabled.into())?;
+        }
+        // IsRuleGroupEnabled 在部分规则启用时也返回 false，关闭状态必须确认所有规则均关闭。
+        let rules: IEnumVARIANT = policy.Rules()?._NewEnum()?.cast()?;
+        loop {
+            let mut values = [VARIANT::default()];
+            let mut fetched = 0;
+            rules.Next(&mut values, &mut fetched).ok()?;
+            if fetched == 0 {
+                return Ok(false);
+            }
+            let rule: INetFwRule = IDispatch::try_from(&values[0])?.cast()?;
+            if rule.Grouping()?.to_string().eq_ignore_ascii_case(group) && rule.Enabled()?.as_bool()
+            {
+                return Ok(true);
+            }
+        }
     }
 }
 pub fn task_root() -> Result<ITaskFolder> {

@@ -529,6 +529,101 @@ fn widgets_detect_and_remove_the_policy_lock_before_accepting_user_preferences()
 }
 
 #[test]
+fn start_menu_hides_frequent_apps_without_disabling_their_settings_dependency() -> anyhow::Result<()>
+{
+    let engine = Engine::new()?;
+    let root = format!(
+        r"HKCU:\Software\ZeroSecurityWindowsStartTest{}",
+        std::process::id()
+    );
+    let mut feature = engine.feature("start-menu")?.clone();
+    feature.id = "test-start-preferences".into();
+    feature.ops.retain(|op| op.kind != "StartPins");
+    for op in &mut feature.ops {
+        op.path = format!(r"{root}\{}", op.path.split_once('\\').unwrap().1);
+    }
+    let tracking = feature
+        .ops
+        .iter()
+        .find(|op| op.name == "Start_TrackProgs")
+        .unwrap();
+    let frequent = feature
+        .ops
+        .iter()
+        .find(|op| op.name == "ShowFrequentList")
+        .unwrap();
+    let result = (|| -> anyhow::Result<()> {
+        registry::set(&tracking.path, &tracking.name, 0, "DWord")?;
+        for op in &feature.ops {
+            engine.write(op)?;
+        }
+        assert_eq!(registry::read(&tracking.path, &tracking.name)?, json!(1));
+        assert_eq!(registry::read(&frequent.path, &frequent.name)?, json!(0));
+        assert_eq!(engine.check(&feature).state, Status::Done);
+        registry::set(&frequent.path, &frequent.name, 1, "DWord")?;
+        assert_eq!(engine.check(&feature).state, Status::Ready);
+        assert_eq!(registry::read(&frequent.path, &frequent.name)?, json!(1));
+        assert_eq!(registry::read(&tracking.path, &tracking.name)?, json!(1));
+        Ok(())
+    })();
+    registry::key(&root, false)?;
+    result
+}
+
+#[test]
+fn firewall_group_detects_partial_enabling_and_switches_only_its_rules() -> anyhow::Result<()> {
+    use windows::{
+        Win32::{NetworkManagement::WindowsFirewall::*, System::Com::*},
+        core::BSTR,
+    };
+    native::com()?;
+    let group = format!("ZeroSecurityWindowsTest{}", std::process::id());
+    let policy: INetFwPolicy2 =
+        unsafe { CoCreateInstance(&NetFwPolicy2, None, CLSCTX_INPROC_SERVER)? };
+    let rules = unsafe { policy.Rules()? };
+    let names = [format!("{group}-one"), format!("{group}-two")];
+    let mut created = vec![];
+    let result = (|| -> anyhow::Result<()> {
+        for name in &names {
+            let rule: INetFwRule =
+                unsafe { CoCreateInstance(&NetFwRule, None, CLSCTX_INPROC_SERVER)? };
+            unsafe {
+                rule.SetName(&BSTR::from(name))?;
+                rule.SetGrouping(&BSTR::from(&group))?;
+                rule.SetProfiles(7)?;
+                rule.SetProtocol(6)?;
+                rule.SetLocalPorts(&BSTR::from("9"))?;
+                rule.SetRemoteAddresses(&BSTR::from("127.0.0.1"))?;
+                rule.SetDirection(NET_FW_RULE_DIR_IN)?;
+                rule.SetAction(NET_FW_ACTION_BLOCK)?;
+                rules.Add(&rule)?;
+            }
+            created.push(name);
+        }
+        anyhow::ensure!(!native::firewall_group(&group, None)?);
+        unsafe {
+            rules
+                .Item(&BSTR::from(&names[0]))?
+                .SetEnabled(true.into())?
+        };
+        anyhow::ensure!(native::firewall_group(&group, None)?);
+        anyhow::ensure!(!native::firewall_group(&group, Some(false))?);
+        for name in &names {
+            anyhow::ensure!(!unsafe { rules.Item(&BSTR::from(name))?.Enabled()? }.as_bool());
+        }
+        anyhow::ensure!(native::firewall_group(&group, Some(true))?);
+        for name in &names {
+            anyhow::ensure!(unsafe { rules.Item(&BSTR::from(name))?.Enabled()? }.as_bool());
+        }
+        Ok(())
+    })();
+    for name in created {
+        unsafe { rules.Remove(&BSTR::from(name))? };
+    }
+    result
+}
+
+#[test]
 fn per_user_service_repairs_keep_the_sign_in_requirement_across_retries() -> anyhow::Result<()> {
     let engine = Engine::new()?;
     let path = format!(
@@ -613,6 +708,34 @@ fn repair_ordinary_gui_controls_on_this_machine() -> anyhow::Result<()> {
         }
     }
     assert!(errors.is_empty(), "{errors:#?}");
+    Ok(())
+}
+
+#[test]
+#[ignore = "修复本机开始、诊断、附近共享与网络发现的手动控制；保留固定项，不重启"]
+fn repair_editable_settings_dependencies_on_this_machine() -> anyhow::Result<()> {
+    let engine = Engine::new()?;
+    for id in [
+        "start-menu",
+        "telemetry",
+        "connected-devices",
+        "device-discovery",
+    ] {
+        let mut feature = engine.feature(id)?.clone();
+        feature.ops.retain(|op| op.kind != "StartPins");
+        feature.refresh.clear();
+        let result = engine.execute(&feature, false, false, false)?;
+        println!("{id}: {result:?}");
+        anyhow::ensure!(result.errors.is_empty(), "{id}: {:?}", result.errors);
+        for op in engine.expand(&feature)? {
+            anyhow::ensure!(
+                crate::engine::satisfied(&op, &engine.read(&op)?),
+                "{id}: {} {}",
+                op.kind,
+                op.name,
+            );
+        }
+    }
     Ok(())
 }
 

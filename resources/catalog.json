@@ -2503,8 +2503,8 @@
     "Id": "start-menu",
     "Zh": "开始菜单布局",
     "En": "Start menu layout",
-    "PurposeZh": "关闭最近使用和推荐内容，将全部应用设为列表并清空固定区。",
-    "PurposeEn": "Turn off recent items and recommendations, use an app list and clear pinned applications.",
+    "PurposeZh": "关闭最近添加、常用应用和推荐内容，将全部应用设为列表并清空固定区。",
+    "PurposeEn": "Hide recently added and most-used apps and recommendations, use an app list and clear pinned applications.",
     "GroupZh": "桌面",
     "GroupEn": "Desktop",
     "Ops": [
@@ -2547,7 +2547,7 @@
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
         "Name": "Start_TrackProgs",
         "Type": "DWord",
-        "Value": 0,
+        "Value": 1,
         "Kind": "Registry"
       },
       {
@@ -2576,7 +2576,9 @@
     "Intent": "Apply",
     "Refresh": "Start",
     "ResultZh": "列表 · 无固定项",
-    "ResultEn": "List · no pins"
+    "ResultEn": "List · no pins",
+    "ImpactZh": "保留应用启动跟踪，使“显示最常用的应用”可在 Windows 设置中重新开启；固定区仅清空一次。",
+    "ImpactEn": "Keep app launch tracking so Show most used apps can be enabled in Windows Settings; clear pins only once."
   },
   {
     "Id": "desktop-icons",
@@ -3694,10 +3696,10 @@
   },
   {
     "Id": "telemetry",
-    "Zh": "可选诊断与遥测后台",
-    "En": "Optional diagnostics and telemetry",
-    "PurposeZh": "关闭可选诊断数据、遥测和错误报告后台服务及相关计划任务。",
-    "PurposeEn": "Turn off optional diagnostic data, telemetry and error reporting services and related scheduled tasks.",
+    "Zh": "可选诊断数据",
+    "En": "Optional diagnostic data",
+    "PurposeZh": "关闭可选诊断数据，保留诊断与反馈设置的手动控制。",
+    "PurposeEn": "Turn off optional diagnostic data while keeping manual control in Diagnostics & feedback.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -3740,29 +3742,23 @@
       {
         "Kind": "ServiceStart",
         "Name": "DiagTrack",
-        "Value": 4
+        "Value": 2
       },
       {
         "Kind": "ServiceStart",
         "Name": "dmwappushservice",
-        "Value": 4
+        "Value": 3
       },
       {
         "Kind": "ServiceStart",
         "Name": "WerSvc",
-        "Value": 4
+        "Value": 3
       },
       {
-        "Kind": "TaskGroup",
-        "Pattern": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\*"
-      },
-      {
-        "Kind": "TaskGroup",
-        "Pattern": "\\Microsoft\\Windows\\Application Experience\\*"
-      },
-      {
-        "Kind": "TaskGroup",
-        "Pattern": "\\Microsoft\\Windows\\Feedback\\Siuf\\*"
+        "Kind": "RestoreTasks",
+        "Names": [
+          "telemetry"
+        ]
       }
     ],
     "Probe": "",
@@ -3772,8 +3768,8 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "保留 Windows 必需的诊断数据。",
-    "ImpactEn": "Required Windows diagnostic data is retained.",
+    "ImpactZh": "保留必需诊断数据；可在 Windows 设置的“诊断与反馈”中重新开启可选诊断。",
+    "ImpactEn": "Required diagnostic data remains; optional data can be enabled again in Windows Settings > Diagnostics & feedback.",
     "ResultZh": "可选诊断已关闭",
     "ResultEn": "Optional data off"
   },
@@ -4641,8 +4637,8 @@
     "Id": "connected-devices",
     "Zh": "跨设备与附近共享",
     "En": "Cross-device and nearby sharing",
-    "PurposeZh": "关闭跨设备共享、附近共享和相关连接后台服务。",
-    "PurposeEn": "Turn off cross-device sharing, Nearby Sharing and related connection services.",
+    "PurposeZh": "关闭跨设备共享和附近共享，保留系统设置的手动控制。",
+    "PurposeEn": "Turn off cross-device sharing and Nearby Sharing while keeping manual control in Windows Settings.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -4663,18 +4659,18 @@
       {
         "Kind": "ServiceStart",
         "Name": "CDPSvc",
-        "Value": 4
+        "Value": 2
       },
       {
         "Kind": "UserServicesStart",
         "Name": "CDPUserSvc",
-        "Value": 4,
+        "Value": 2,
         "Source": "NextBoot"
       },
       {
         "Kind": "ServiceStart",
         "Name": "PhoneSvc",
-        "Value": 4
+        "Value": 3
       }
     ],
     "Probe": "",
@@ -4683,7 +4679,9 @@
     "Restart": true,
     "Page": "System",
     "Intent": "Disable",
-    "Refresh": ""
+    "Refresh": "",
+    "ImpactZh": "可在 Windows 设置中重新开启附近共享和跨设备共享。",
+    "ImpactEn": "Nearby Sharing and cross-device sharing can be enabled again in Windows Settings."
   },
   {
     "Id": "phone-resume",
@@ -5053,35 +5051,40 @@
     "Id": "device-discovery",
     "Zh": "网络设备发现",
     "En": "Network device discovery",
-    "PurposeZh": "禁用网络设备发现、UPnP 和 WPS 配置服务。",
-    "PurposeEn": "Disable network device discovery, UPnP and WPS configuration services.",
+    "PurposeZh": "关闭网络发现，保留高级共享设置的手动控制。",
+    "PurposeEn": "Turn off network discovery while keeping manual control in Advanced sharing settings.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
         "Kind": "ServiceStart",
         "Name": "SSDPSRV",
-        "Value": 4
+        "Value": 3
       },
       {
         "Kind": "ServiceStart",
         "Name": "upnphost",
-        "Value": 4
+        "Value": 3
       },
       {
         "Kind": "ServiceStart",
         "Name": "fdPHost",
-        "Value": 4
+        "Value": 3
       },
       {
         "Kind": "ServiceStart",
         "Name": "FDResPub",
-        "Value": 4
+        "Value": 3
       },
       {
         "Kind": "ServiceStart",
         "Name": "wcncsvc",
-        "Value": 4
+        "Value": 3
+      },
+      {
+        "Kind": "FirewallGroup",
+        "Name": "@FirewallAPI.dll,-32752",
+        "Value": false
       }
     ],
     "Probe": "",
@@ -5091,8 +5094,8 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "保留 USB 即插即用、无线网络和蓝牙连接。",
-    "ImpactEn": "USB Plug and Play, Wi-Fi and Bluetooth connections remain available."
+    "ImpactZh": "可在“网络和 Internet → 高级网络设置 → 高级共享设置”中重新开启网络发现。",
+    "ImpactEn": "Network discovery can be enabled again in Network & internet > Advanced network settings > Advanced sharing settings."
   },
   {
     "Id": "data-usage",

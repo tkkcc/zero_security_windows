@@ -273,6 +273,7 @@ impl Engine {
                     .unwrap_or(Value::Null)
             }
             "Firewall" => json!(native::firewall(&op.name, op.property == "NotifyOnListen", None)?),
+            "FirewallGroup" => json!(native::firewall_group(&op.name, None)?),
             "Task" => json!(native::task_enabled(&op.path)?),
             "Apps" => {
                 let entries: Vec<apps::AppEntry> = serde_json::from_value(self.fact("apps", || Ok(serde_json::to_value(apps::inventory()?)?))?)?;
@@ -353,6 +354,9 @@ impl Engine {
                     op.property == "NotifyOnListen",
                     Some(bool_value(&op.value)),
                 )?;
+            }
+            "FirewallGroup" => {
+                native::firewall_group(&op.name, Some(bool_value(&op.value)))?;
             }
             "Task" => native::set_task_enabled(&op.path, bool_value(&op.value))?,
             "TimeSync" => {
