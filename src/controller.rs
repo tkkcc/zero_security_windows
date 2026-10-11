@@ -26,11 +26,19 @@ pub enum Message {
     },
     Error(String),
 }
+fn final_item(f: &Feature) -> bool {
+    matches!(
+        f.id.as_str(),
+        "input-method" | "desktop-icons" | "start-menu" | "taskbar-pins"
+    )
+}
 pub fn order(catalog: &[Feature]) -> Vec<usize> {
     let mut indices: Vec<_> = (0..catalog.len()).collect();
     indices.sort_by_key(|i| {
         let f = &catalog[*i];
-        if f.page == "Install" {
+        if final_item(f) {
+            3
+        } else if f.page == "Install" {
             2
         } else if f.security() || workflow::QUIET.contains(&f.id.as_str()) {
             0
@@ -39,6 +47,24 @@ pub fn order(catalog: &[Feature]) -> Vec<usize> {
         }
     });
     indices
+}
+fn job_groups(catalog: &[Feature], indices: &[usize], one: bool) -> [Vec<usize>; 3] {
+    let mut groups = [vec![], vec![], vec![]];
+    for &i in indices {
+        let f = &catalog[i];
+        let group = if one {
+            0
+        } else if final_item(f) {
+            2
+        } else if f.page == "Install" {
+            1
+        } else {
+            0
+        };
+        groups[group].push(i);
+    }
+    groups[0].sort_by_key(|i| catalog[*i].page == "Remove");
+    groups
 }
 pub fn launch(
     tx: Sender<Message>,
@@ -331,17 +357,12 @@ fn batch(
     };
     let _ = tx.send(Message::Queued(indices.clone()));
     let safe = std::sync::Mutex::new(Vec::new());
-    let final_item = |f: &Feature| matches!(f.id.as_str(), "input-method" | "desktop-icons");
-    let mut local: Vec<_> = indices
-        .iter()
-        .copied()
-        .filter(|i| {
-            matches!(command, Command::One(_))
-                || (engine.catalog[*i].page != "Install" && !final_item(&engine.catalog[*i]))
-        })
-        .collect();
+    let [local, installers, finalizers] = job_groups(
+        &engine.catalog,
+        &indices,
+        matches!(command, Command::One(_)),
+    );
     // Start fast settings before slow removals; jobs from different categories overlap.
-    local.sort_by_key(|i| engine.catalog[*i].page == "Remove");
     let mut processed = parallel_jobs(&local, |i| {
         let f = &engine.catalog[i];
         if f.manual {
@@ -382,6 +403,31 @@ fn batch(
         Ok(true)
     })?;
     let safe = safe.into_inner().unwrap();
+    if !engine.safe && !matches!(command, Command::One(_)) {
+        processed += parallel_jobs(&installers, |i| {
+            if !engine.check(&engine.catalog[i]).actionable() {
+                publish(engine, tx, i, version);
+                return Ok(false);
+            }
+            perform(engine, tx, i, version, false)?;
+            Ok(true)
+        })?;
+        processed += parallel_jobs(&finalizers, |i| {
+            let f = &engine.catalog[i];
+            if !engine.check(f).actionable() {
+                publish(engine, tx, i, version);
+                return Ok(false);
+            }
+            // Failure of an installation only blocks the setting that depends on it.
+            if let Err(error) = prerequisite(engine, tx, f, version) {
+                failure(engine, tx, i, version, error)?;
+                return Ok(false);
+            }
+            perform(engine, tx, i, version, false)?;
+            Ok(true)
+        })?;
+    }
+    // Finish normal-mode installs and their dependent settings before scheduling any restart.
     if engine.safe {
         if engine
             .store
@@ -400,46 +446,7 @@ fn batch(
     } else if workflow::requires_restart(engine) {
         workflow::prepare_normal(engine, all, &resume_ids)?;
     }
-    // All local restart/sign-in settings have been applied before crossing the boot boundary.
-    let boot_pending = engine.store.pending.lock().unwrap().is_some();
-    if !boot_pending && !matches!(command, Command::One(_)) {
-        let installers: Vec<_> = indices
-            .iter()
-            .copied()
-            .filter(|i| engine.catalog[*i].page == "Install")
-            .collect();
-        processed += parallel_jobs(&installers, |i| {
-            if !engine.check(&engine.catalog[i]).actionable() {
-                publish(engine, tx, i, version);
-                return Ok(false);
-            }
-            perform(engine, tx, i, version, false)?;
-            Ok(true)
-        })?;
-        let finalizers: Vec<_> = indices
-            .iter()
-            .copied()
-            .filter(|i| final_item(&engine.catalog[*i]) || engine.catalog[*i].id == "start-menu")
-            .collect();
-        processed += parallel_jobs(&finalizers, |i| {
-            let f = &engine.catalog[i];
-            if !engine.check(f).actionable() {
-                publish(engine, tx, i, version);
-                return Ok(false);
-            }
-            // Failure of an installation only blocks the setting that depends on it.
-            if let Err(error) = prerequisite(engine, tx, f, version) {
-                failure(engine, tx, i, version, error)?;
-                return Ok(false);
-            }
-            perform(engine, tx, i, version, false)?;
-            Ok(true)
-        })?;
-        if workflow::requires_restart(engine) {
-            workflow::prepare_normal(engine, all, &resume_ids)?;
-        }
-    }
-    if boot_pending && !matches!(command, Command::One(_)) {
+    if engine.safe && !matches!(command, Command::One(_)) {
         for &i in &indices {
             let f = &engine.catalog[i];
             if f.page == "Install" || final_item(f) {
@@ -468,6 +475,48 @@ pub fn failure_message(engine: &Engine, error: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn batch_groups_apply_local_settings_then_install_and_finalize_once() -> Result<()> {
+        let catalog = catalog()?;
+        let ordered = order(&catalog);
+        let groups = job_groups(&catalog, &ordered, false);
+        let mut visits = vec![0; catalog.len()];
+        for (stage, group) in groups.iter().enumerate() {
+            for &i in group {
+                visits[i] += 1;
+                if catalog[i].page == "Install" {
+                    assert_eq!(stage, 1);
+                }
+                if final_item(&catalog[i]) {
+                    assert_eq!(stage, 2);
+                }
+                if catalog[i].restart {
+                    assert_eq!(stage, 0);
+                }
+            }
+        }
+        assert!(visits.iter().all(|count| *count == 1));
+        let settings_end = groups[0]
+            .iter()
+            .position(|i| catalog[*i].page == "Remove")
+            .unwrap();
+        assert!(
+            groups[0][..settings_end]
+                .iter()
+                .all(|i| catalog[*i].page != "Remove")
+        );
+        assert!(
+            groups[0][settings_end..]
+                .iter()
+                .all(|i| catalog[*i].page == "Remove")
+        );
+        for i in ordered {
+            let [local, installers, finalizers] = job_groups(&catalog, &[i], true);
+            assert_eq!(local, [i]);
+            assert!(installers.is_empty() && finalizers.is_empty());
+        }
+        Ok(())
+    }
     #[test]
     fn installation_jobs_overlap_with_a_limit_and_keep_going_after_an_error() {
         let active = AtomicUsize::new(0);

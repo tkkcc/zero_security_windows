@@ -6,14 +6,16 @@ use crate::{
 };
 use anyhow::Result;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+    event::{
+        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, MouseButton,
+        MouseEventKind,
+    },
     execute,
 };
 use rat_widget::{
     button::{self, Button, ButtonState},
-    event::{ButtonOutcome, TabbedOutcome},
+    event::ButtonOutcome,
     scrolled::{Scroll, ScrollbarPolicy},
-    tabbed::{self, TabType, Tabbed, TabbedState},
     table::{
         Table, TableState,
         selection::{RowSelection, rowselection},
@@ -25,12 +27,12 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Style},
     text::Line,
-    widgets::{Block, Borders, Clear, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, Paragraph, Tabs, Wrap},
 };
 
 const THEME_KEY: &str = r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
 #[cfg(test)]
-use crossterm::event::{KeyModifiers, MouseButton, MouseEventKind};
+use crossterm::event::KeyModifiers;
 #[cfg(test)]
 use ratatui::text::Span;
 
@@ -107,7 +109,7 @@ pub struct App {
     categories: Vec<usize>,
     category: usize,
     tables: Vec<TableState<RowSelection>>,
-    tabs: TabbedState,
+    tabs: Vec<Rect>,
     buttons: [ButtonState; 5],
     follow_top: bool,
     palette: Palette,
@@ -165,9 +167,9 @@ impl App {
                     table
                 })
                 .collect(),
+            tabs: vec![Rect::default(); categories.len()],
             categories,
             category: 0,
-            tabs: TabbedState::default(),
             buttons: std::array::from_fn(|_| ButtonState::default()),
             follow_top: true,
             palette: Palette::system()?,
@@ -305,11 +307,10 @@ impl App {
                 KeyCode::Right | KeyCode::Tab => Some((self.category + 1) % self.categories.len()),
                 _ => None,
             },
-            Event::Mouse(_) => match tabbed::handle_mouse_events(&mut self.tabs, event) {
-                TabbedOutcome::Select(category) => Some(category),
-                TabbedOutcome::Changed => return true,
-                _ => None,
-            },
+            Event::Mouse(mouse) if mouse.kind == MouseEventKind::Down(MouseButton::Left) => self
+                .tabs
+                .iter()
+                .position(|area| area.contains((mouse.column, mouse.row).into())),
             _ => None,
         };
         if let Some(category) = target {
@@ -406,13 +407,11 @@ impl App {
             width: frame.area().width.saturating_sub(2),
             ..frame.area()
         };
-        let buttons = self.toolbar(area);
-        let toolbar_height = buttons
-            .iter()
-            .map(|(_, _, rect, _)| rect.bottom() - area.y)
-            .max()
-            .unwrap_or(0);
-        let mut message = self.message.clone();
+        let mut message = if self.message.is_empty() {
+            choose(self.zh, "就绪", "Ready").into()
+        } else {
+            self.message.clone()
+        };
         if self.busy {
             let running = self
                 .states
@@ -433,7 +432,7 @@ impl App {
         if let Some((deadline, restart)) = self.countdown {
             let seconds = deadline.saturating_duration_since(Instant::now()).as_secs() + 1;
             message = format!(
-                "{message} · {seconds}{}",
+                "{seconds}{} · {message}",
                 choose(
                     self.zh,
                     if restart {
@@ -449,26 +448,16 @@ impl App {
                 )
             );
         }
-        let mut lines = vec![];
-        if !message.is_empty() {
-            let color = if self.busy {
-                p.blue
-            } else if self.states.iter().any(|s| s.state == Status::Failed) {
-                p.red
-            } else if self.restart {
-                p.blue
-            } else {
-                p.text
-            };
-            lines.extend(
-                message
-                    .lines()
-                    .map(|s| Line::styled(s.to_owned(), Style::default().fg(color))),
-            );
-        }
-        let header = Paragraph::new(lines).wrap(Wrap { trim: false });
-        let header_height = header.line_count(area.width) as u16;
-        let top = toolbar_height + header_height + 1;
+        let color = if self.busy {
+            p.blue
+        } else if self.states.iter().any(|s| s.state == Status::Failed) {
+            p.red
+        } else if self.restart {
+            p.blue
+        } else {
+            p.text
+        };
+        let top = 2;
         let sections = self.detail_sections();
         let label_width = if self.zh { 6 } else { 8 };
         let detail_width = area.width.saturating_sub(label_width);
@@ -480,7 +469,7 @@ impl App {
                     .line_count(detail_width) as u16
             })
             .collect();
-        let available = area.height.saturating_sub(top + 6);
+        let available = area.height.saturating_sub(top + 7);
         let mut shortened_error = None;
         if let Some(error) = sections
             .iter()
@@ -498,13 +487,23 @@ impl App {
         } else {
             1 + heights.iter().sum::<u16>()
         };
-        let bottom = bottom.min(area.height.saturating_sub(top + 5));
+        let bottom = bottom.min(area.height.saturating_sub(top + 6));
         let layout = Layout::vertical([
-            Constraint::Length(top),
+            Constraint::Length(1),
+            Constraint::Length(1),
             Constraint::Min(4),
             Constraint::Length(bottom),
+            Constraint::Length(1),
         ])
         .split(area);
+        let buttons = self.toolbar(layout[4]);
+        let message_width = buttons.first().map_or(area.width, |(_, _, rect, _)| {
+            rect.x.saturating_sub(area.x + 2)
+        });
+        frame.render_widget(
+            Paragraph::new(message).style(style.fg(color)),
+            Rect::new(area.x, layout[4].y, message_width, 1),
+        );
         for (index, label, rect, enabled) in buttons {
             let foreground = if enabled { p.blue } else { p.muted };
             frame.render_stateful_widget(
@@ -524,27 +523,8 @@ impl App {
                 &mut self.buttons[index],
             );
         }
-        frame.render_widget(
-            header,
-            Rect::new(area.x, area.y + toolbar_height, area.width, header_height),
-        );
-        self.tabs.select(Some(self.category));
-        frame.render_stateful_widget(
-            Tabbed::new()
-                .tab_type(TabType::Glued)
-                .tabs(
-                    self.categories
-                        .iter()
-                        .map(|i| self.catalog[*i].category(self.zh)),
-                )
-                .style(style)
-                .tab_style(style.fg(p.muted))
-                .hover_style(style.fg(p.blue))
-                .select_style(style.fg(p.blue).bg(p.surface)),
-            layout[1],
-            &mut self.tabs,
-        );
-        let table_area = self.tabs.widget_area;
+        self.draw_tabs(frame, layout[0], style);
+        let table_area = layout[2];
         let rows = self.visible.iter().map(|i| {
             let f = &self.catalog[*i];
             Row::new([
@@ -584,11 +564,11 @@ impl App {
                 Block::default()
                     .borders(Borders::TOP)
                     .border_style(Style::default().fg(p.border)),
-                layout[2],
+                layout[3],
             );
-            let mut y = layout[2].y + 1;
+            let mut y = layout[3].y + 1;
             for (index, (section, height)) in sections.iter().zip(heights).enumerate() {
-                let height = height.min(layout[2].bottom().saturating_sub(y));
+                let height = height.min(layout[3].bottom().saturating_sub(y));
                 frame.render_widget(
                     Paragraph::new(section.label).style(Style::default().fg(p.muted)),
                     Rect::new(area.x, y, label_width, height.min(1)),
@@ -632,31 +612,31 @@ impl App {
             (
                 0,
                 KeyCode::Char(' '),
-                format!(" Space {item} "),
+                format!("Space {item}"),
                 self.space_command().is_some(),
             ),
             (
                 1,
                 KeyCode::Char('c'),
-                choose(self.zh, " C 执行本类别 ", " C Run category ").into(),
+                choose(self.zh, "C 执行本类别", "C Run category").into(),
                 self.key_command(KeyCode::Char('c')).is_some(),
             ),
             (
                 2,
                 KeyCode::Char('a'),
-                choose(self.zh, " A 执行全部类别 ", " A Run all categories ").into(),
+                choose(self.zh, "A 执行全部类别", "A Run all categories").into(),
                 self.key_command(KeyCode::Char('a')).is_some(),
             ),
             (
                 3,
                 KeyCode::Char('r'),
-                choose(self.zh, " R 重启 ", " R Restart ").into(),
+                choose(self.zh, "R 重启", "R Restart").into(),
                 self.restart,
             ),
             (
                 4,
                 KeyCode::Char('q'),
-                choose(self.zh, " Q 退出 ", " Q Exit ").into(),
+                choose(self.zh, "Q 退出", "Q Exit").into(),
                 true,
             ),
         ]
@@ -665,18 +645,61 @@ impl App {
         .map(|(i, key, label, enabled)| (i, key, label, enabled && !self.busy))
         .collect()
     }
-    fn toolbar(&self, area: Rect) -> Vec<(usize, String, Rect, bool)> {
+    fn draw_tabs(&mut self, frame: &mut Frame, area: Rect, style: Style) {
+        let titles: Vec<_> = self
+            .categories
+            .iter()
+            .map(|i| self.catalog[*i].category(self.zh))
+            .collect();
+        let widths: Vec<_> = titles
+            .iter()
+            .map(|title| Line::from(*title).width() + 2)
+            .collect();
+        let mut first = 0;
+        while first < self.category
+            && widths[first..=self.category].iter().sum::<usize>() + self.category - first
+                > usize::from(area.width)
+        {
+            first += 1;
+        }
+        self.tabs.fill(Rect::default());
         let mut x = area.x;
-        let mut y = area.y;
-        self.button_specs()
+        for (i, width) in widths.iter().enumerate().skip(first) {
+            if x >= area.right() {
+                break;
+            }
+            let width = (*width as u16).min(area.right() - x);
+            self.tabs[i] = Rect::new(x, area.y, width, 1);
+            x += width + 1;
+        }
+        frame.render_widget(
+            Tabs::new(titles.into_iter().skip(first))
+                .select(self.category - first)
+                .style(style.fg(self.palette.muted))
+                .highlight_style(style.fg(self.palette.blue).bg(self.palette.surface)),
+            area,
+        );
+    }
+    fn toolbar(&self, area: Rect) -> Vec<(usize, String, Rect, bool)> {
+        let mut specs = self.button_specs();
+        let width = |specs: &[(usize, KeyCode, String, bool)]| -> u16 {
+            specs
+                .iter()
+                .map(|(_, _, label, _)| Line::from(label.as_str()).width() as u16)
+                .sum::<u16>()
+                + 2 * specs.len().saturating_sub(1) as u16
+        };
+        if width(&specs) + 24 > area.width {
+            for (index, _, label, _) in &mut specs {
+                *label = ["Space", "C", "A", "R", "Q"][*index].into();
+            }
+        }
+        let mut x = area.right().saturating_sub(width(&specs));
+        specs
             .into_iter()
             .map(|(i, _, label, enabled)| {
-                let width = (Line::from(label.as_str()).width() as u16).min(area.width);
-                if x > area.x && x + width > area.right() {
-                    x = area.x;
-                    y += 1;
-                }
-                let rect = Rect::new(x, y, width, 1);
+                let width = Line::from(label.as_str()).width() as u16;
+                let rect = Rect::new(x, area.y, width, 1);
                 x += width + 2;
                 (i, label, rect, enabled)
             })
@@ -1060,7 +1083,7 @@ mod tests {
             (category, selected, offset)
         );
         let target = if category == 0 { 1 } else { 0 };
-        let rect = app.tabs.tab_title_areas[target];
+        let rect = app.tabs[target];
         assert!(app.navigate(&Event::Mouse(MouseEvent {
             kind: MouseEventKind::Down(MouseButton::Left),
             column: rect.x,
@@ -1080,11 +1103,51 @@ mod tests {
             for category in 0..app.categories.len() {
                 assert_eq!(app.category, category);
                 terminal.draw(|frame| app.draw(frame))?;
-                assert_eq!(app.tabs.selected(), Some(category));
-                assert!(app.tabs.tab_title_areas[category].width > 0);
+                assert!(app.tabs[category].width > 0);
+                let tab = app.tabs[category];
+                let title = app.catalog[app.categories[category]].category(zh);
+                assert_eq!(
+                    terminal.backend().buffer()[(tab.x + 1, tab.y)].symbol(),
+                    title.chars().next().unwrap().to_string()
+                );
+                assert_eq!(
+                    terminal.backend().buffer()[(tab.x + 1, tab.y)].bg,
+                    app.palette.surface
+                );
                 assert!(app.navigate(&Event::Key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE))));
             }
             assert_eq!(app.category, 0);
+        }
+        Ok(())
+    }
+    #[test]
+    fn execution_info_and_actions_share_the_bottom_row() -> Result<()> {
+        use ratatui::{Terminal, backend::TestBackend};
+        for zh in [true, false] {
+            for width in [55, 120] {
+                let mut app = App::new(catalog()?, zh)?;
+                app.busy = true;
+                app.states[0] = Check::new(Status::Running);
+                app.states[1] = Check::new(Status::Running);
+                app.states[2] = Check::new(Status::Queued);
+                let mut terminal = Terminal::new(TestBackend::new(width, 24))?;
+                terminal.draw(|frame| app.draw(frame))?;
+                let buffer = terminal.backend().buffer();
+                assert_eq!(buffer[(1, 23)].symbol(), if zh { "执" } else { "R" });
+                assert_eq!(buffer[(1, 0)].symbol(), " ");
+                let specs = app.toolbar(Rect::new(1, 23, width - 2, 1));
+                assert!(specs.first().unwrap().2.x > 24);
+                for (index, label, rect, _) in specs {
+                    assert_eq!(app.buttons[index].area, rect);
+                    assert_eq!(rect.y, 23);
+                    assert_eq!(
+                        buffer[(rect.x, rect.y)].symbol(),
+                        label.chars().next().unwrap().to_string()
+                    );
+                }
+                let last = app.buttons[4].area;
+                assert_eq!(last.right(), width - 1);
+            }
         }
         Ok(())
     }

@@ -384,6 +384,28 @@ pub fn restart() -> Result<()> {
 mod tests {
     use super::*;
     #[test]
+    fn one_boot_applies_pending_settings_from_all_execution_stages() -> Result<()> {
+        let mut engine = Engine::new()?;
+        *engine.store.pending.lock().unwrap() = None;
+        let mut results = engine.store.results.lock().unwrap();
+        results.clear();
+        for id in ["utf8", "install-git.git", "input-method"] {
+            results.insert(
+                id.into(),
+                crate::model::ResultRecord {
+                    boot: engine.boot,
+                    restart: true,
+                    ..Default::default()
+                },
+            );
+        }
+        drop(results);
+        assert!(requires_restart(&engine));
+        engine.boot += 1;
+        assert!(!requires_restart(&engine));
+        Ok(())
+    }
+    #[test]
     fn boot_flow_returns_from_safe_mode_and_cannot_skip_a_stage() {
         let mut machine = StateMachine::<Flow>::new();
         assert!(machine.consume(&Trigger::Return).is_err());

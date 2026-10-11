@@ -841,6 +841,39 @@ pub fn open_console() -> Result<()> {
     }
     Ok(())
 }
+const TERMINAL_PROFILE: &str = "{d37280f8-2c93-4ad6-a436-d72a719c686d}";
+fn terminal_settings(text: &str, background: &str) -> Result<Value> {
+    let mut settings: Value = json5::from_str(text.trim_start_matches('\u{feff}'))?;
+    let mut profile = serde_json::json!({
+        "guid": TERMINAL_PROFILE,
+        "name": "Zero Security Windows",
+        "hidden": true,
+        "font": {"face": "Consolas, Noto Sans SC", "size": 15, "cellHeight": "1.2"},
+        "padding": "12",
+        "background": background,
+        "scrollbarState": "hidden"
+    });
+    if settings["profiles"].is_null() {
+        settings["profiles"] = serde_json::json!({});
+    }
+    if settings["profiles"]["list"].is_null() {
+        settings["profiles"]["list"] = serde_json::json!([]);
+    }
+    let list = settings["profiles"]["list"]
+        .as_array_mut()
+        .ok_or_else(|| anyhow::anyhow!("Invalid Windows Terminal profile list"))?;
+    if let Some(entry) = list
+        .iter_mut()
+        .find(|entry| entry["guid"] == TERMINAL_PROFILE)
+    {
+        let entry = entry.as_object_mut().unwrap();
+        entry.remove("source");
+        entry.extend(std::mem::take(profile.as_object_mut().unwrap()));
+    } else {
+        list.push(profile);
+    }
+    Ok(settings)
+}
 pub fn modern_terminal(args: &[String]) -> Result<bool> {
     use windows::Win32::System::Console::*;
     if safe_mode() || std::env::var_os("WT_SESSION").is_some() {
@@ -856,9 +889,9 @@ pub fn modern_terminal(args: &[String]) -> Result<bool> {
     if !terminal.is_file() {
         return Ok(false);
     }
-    let directory = PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap())
-        .join("Microsoft/Windows Terminal/Fragments/ZeroSecurityWindows");
-    std::fs::create_dir_all(&directory)?;
+    let local = PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap());
+    let settings_file =
+        local.join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
     let background = if crate::registry::number(
         r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
         "AppsUseLightTheme",
@@ -869,27 +902,28 @@ pub fn modern_terminal(args: &[String]) -> Result<bool> {
     } else {
         "#eff1f5"
     };
-    let profile = serde_json::json!({"profiles": [{
-        "guid": "{d37280f8-2c93-4ad6-a436-d72a719c686d}",
-        "name": "Zero Security Windows",
-        "hidden": true,
-        "font": {"face": "Consolas", "size": 14},
-        "intenseTextStyle": "bold",
-        "padding": "12",
-        "background": background,
-        "scrollbarState": "hidden"
-    }]});
-    std::fs::write(
-        directory.join("profile.json"),
-        serde_json::to_vec_pretty(&profile)?,
-    )?;
+    let text = if settings_file.is_file() {
+        std::fs::read_to_string(&settings_file)?
+    } else {
+        "{}".into()
+    };
+    let settings = terminal_settings(&text, background)?;
+    if json5::from_str::<Value>(&text)? != settings {
+        std::fs::create_dir_all(settings_file.parent().unwrap())?;
+        std::fs::write(&settings_file, serde_json::to_vec_pretty(&settings)?)?;
+    }
+    let old_fragment =
+        local.join("Microsoft/Windows Terminal/Fragments/ZeroSecurityWindows/profile.json");
+    if old_fragment.is_file() {
+        std::fs::remove_file(old_fragment)?;
+    }
     let status = Command::new(terminal)
         .args([
             "--window",
             "new",
             "new-tab",
             "--profile",
-            "{d37280f8-2c93-4ad6-a436-d72a719c686d}",
+            TERMINAL_PROFILE,
             "--title",
             "Zero Security Windows",
             "--suppressApplicationTitle",
@@ -926,6 +960,9 @@ pub struct ConsoleFont {
 impl ConsoleFont {
     pub fn new() -> Option<Self> {
         use windows::Win32::System::Console::*;
+        if std::env::var_os("WT_SESSION").is_some() {
+            return None;
+        }
         unsafe {
             let output = GetStdHandle(STD_OUTPUT_HANDLE).ok()?;
             let mut original = CONSOLE_FONT_INFOEX {
@@ -1361,6 +1398,43 @@ pub fn execute_blocked(path: &Path) -> Result<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn terminal_profile_updates_preserve_other_profiles_and_defaults() -> Result<()> {
+        let text = r#"{
+            // Terminal permits comments and trailing commas.
+            "defaultProfile": "other",
+            "profiles": {
+                "defaults": {"font": {"face": "Cascadia Mono", "size": 12}},
+                "list": [
+                    {"guid": "other", "name": "PowerShell"},
+                    {"guid": "{d37280f8-2c93-4ad6-a436-d72a719c686d}", "source": "ZeroSecurityWindows", "historySize": 2000},
+                ],
+            },
+        }"#;
+        let before: Value = json5::from_str(text)?;
+        let after = terminal_settings(text, "#eff1f5")?;
+        assert_eq!(before["defaultProfile"], after["defaultProfile"]);
+        assert_eq!(
+            before["profiles"]["defaults"],
+            after["profiles"]["defaults"]
+        );
+        assert_eq!(before["profiles"]["list"][0], after["profiles"]["list"][0]);
+        let own = &after["profiles"]["list"][1];
+        assert_eq!(own["historySize"], 2000);
+        assert!(own["source"].is_null());
+        assert!(own["font"]["face"].is_string());
+        assert!(own["font"]["size"].is_number());
+        assert!(own["font"]["cellHeight"].is_string());
+        assert_eq!(terminal_settings(&after.to_string(), "#eff1f5")?, after);
+        assert_eq!(
+            terminal_settings("{}", "#1e1e2e")?["profiles"]["list"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+        Ok(())
+    }
     #[test]
     fn audit_only_lsa_is_not_a_protected_process() {
         assert!(!protection_active(0x08));
