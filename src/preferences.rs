@@ -68,9 +68,22 @@ pub fn set_page_visible(page: &str, visible: bool) -> Result<()> {
         "String",
     )
 }
-pub fn default_input_active() -> bool {
-    let profiles = layouts();
-    !profiles.is_empty() && profiles.iter().all(|p| p.clsid != WETYPE_CLASS)
+pub fn default_input_active() -> Result<bool> {
+    let state = native::command(
+        "powershell.exe",
+        &[
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "$ErrorActionPreference='Stop'; @{Current=@(Get-WinUserLanguageList | Select-Object LanguageTag,InputMethodTips); Default=@(New-WinUserLanguageList (Get-WinSystemLocale).Name | Select-Object LanguageTag,InputMethodTips); Override=@(Get-WinDefaultInputMethodOverride)} | ConvertTo-Json -Depth 5 -Compress",
+        ],
+    )?;
+    let state: serde_json::Value = serde_json::from_str(&state)?;
+    Ok(state["Current"] == state["Default"]
+        && state["Override"]
+            .as_array()
+            .is_some_and(|values| values.is_empty())
+        && reg::read(r"HKCU:\Software\Microsoft\CTF\SortOrder", "Default")?.is_null())
 }
 pub fn default_input() -> Result<()> {
     native::command(
@@ -79,9 +92,10 @@ pub fn default_input() -> Result<()> {
             "-NoProfile",
             "-NonInteractive",
             "-Command",
-            "Set-WinUserLanguageList (New-WinUserLanguageList (Get-WinSystemLocale).Name) -Force",
+            "$ErrorActionPreference='Stop'; Set-WinDefaultInputMethodOverride; Set-WinUserLanguageList (New-WinUserLanguageList (Get-WinSystemLocale).Name) -Force",
         ],
     )?;
+    reg::delete(r"HKCU:\Software\Microsoft\CTF\SortOrder", "Default")?;
     Ok(())
 }
 pub fn taskbar_pins(clear: bool) -> Result<bool> {
@@ -269,6 +283,29 @@ unsafe extern "system" {
         out: *mut u32,
     ) -> u32;
     fn PowerReadDCValueIndex(
+        root: Handle,
+        scheme: *const GUID,
+        group: *const GUID,
+        name: *const GUID,
+        out: *mut u32,
+    ) -> u32;
+    fn PowerReadACValue(
+        root: Handle,
+        scheme: *const GUID,
+        group: *const GUID,
+        name: *const GUID,
+        kind: *mut u32,
+        data: *mut u8,
+        size: *mut u32,
+    ) -> u32;
+    fn PowerReadACDefaultIndex(
+        root: Handle,
+        scheme: *const GUID,
+        group: *const GUID,
+        name: *const GUID,
+        out: *mut u32,
+    ) -> u32;
+    fn PowerReadDCDefaultIndex(
         root: Handle,
         scheme: *const GUID,
         group: *const GUID,
@@ -509,6 +546,34 @@ pub fn power(s: &str, g: &str, n: &str, ac: bool, value: Option<u32>) -> Result<
             PowerReadACValueIndex(root, &s, &g, &n, &mut out)
         } else {
             PowerReadDCValueIndex(root, &s, &g, &n, &mut out)
+        }
+    })?;
+    Ok(out)
+}
+pub fn power_default(s: &str, g: &str, n: &str, ac: bool) -> Result<u32> {
+    let (s, g, n) = (guid(s)?, guid(g)?, guid(n)?);
+    let root = std::ptr::null_mut();
+    let mut personality = GUID::zeroed();
+    let mut kind = 0;
+    let mut size = 16;
+    power_ok(unsafe {
+        PowerReadACValue(
+            root,
+            &s,
+            &GUID::from_u128(0xfea3413e_7e05_4911_9a71_700331f1c294),
+            &GUID::from_u128(0x245d8541_3943_4422_b025_13a784f679b7),
+            &mut kind,
+            (&mut personality as *mut GUID).cast(),
+            &mut size,
+        )
+    })?;
+    ensure!(kind == 3 && size == 16, "Invalid power scheme personality");
+    let mut out = 0;
+    power_ok(unsafe {
+        if ac {
+            PowerReadACDefaultIndex(root, &personality, &g, &n, &mut out)
+        } else {
+            PowerReadDCDefaultIndex(root, &personality, &g, &n, &mut out)
         }
     })?;
     Ok(out)

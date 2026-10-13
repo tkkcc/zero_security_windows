@@ -49,7 +49,7 @@ impl Engine {
                 check
             }
         };
-        if restoring && matches!(check.state, Status::Done | Status::Absent) {
+        if restoring && check.state == Status::Done {
             check.state = Status::Restored;
             check.detail.clear();
         }
@@ -126,7 +126,7 @@ impl Engine {
                 return Ok(check);
             }
             for op in self.expand(f)?.iter().filter(|op| op.kind == "Service") {
-                if native::service_running(&op.service)? {
+                if !satisfied(op, &self.read(op)?) || native::service_running(&op.service)? {
                     return Ok(Check::new(Status::Ready));
                 }
             }
@@ -655,6 +655,30 @@ mod tests {
         assert_eq!(check.state, Status::Deferred);
         assert!(check.detail.is_empty());
         assert!(!check.actionable());
+        Ok(())
+    }
+    #[test]
+    fn missing_task_definitions_are_not_reported_as_restored() -> Result<()> {
+        let engine = Engine::new()?;
+        engine.fact("tasks", || Ok(json!([])))?;
+        let f = Feature {
+            id: "test-missing-restore-task".into(),
+            restore_ops: vec![Operation {
+                kind: "TaskGroup".into(),
+                pattern: "*".into(),
+                value: json!(true),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        engine.store.results.lock().unwrap().insert(
+            f.id.clone(),
+            ResultRecord {
+                restoring: true,
+                ..Default::default()
+            },
+        );
+        assert_eq!(engine.check(&f).state, Status::Absent);
         Ok(())
     }
 }

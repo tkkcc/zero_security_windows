@@ -75,12 +75,29 @@ fn move_files(name: &str, paths: &[PathBuf]) -> Result<()> {
     Ok(())
 }
 pub fn files_restored(name: &str) -> Result<bool> {
-    let manifest = folder(name).join("files.json");
+    files_restored_at(&folder(name))
+}
+fn files_restored_at(root: &Path) -> Result<bool> {
+    let manifest = root.join("files.json");
     if !manifest.exists() {
         return Ok(true);
     }
     let files: Vec<MovedFile> = serde_json::from_slice(&fs::read(manifest)?)?;
     Ok(files.iter().all(|f| !f.saved.exists()))
+}
+pub fn taskbar_restored() -> Result<bool> {
+    taskbar_restored_at(&folder("taskbar"))
+}
+fn taskbar_restored_at(root: &Path) -> Result<bool> {
+    Ok(!root.join("values.json").exists() && files_restored_at(root)?)
+}
+pub fn start_pins_restored() -> Result<bool> {
+    Ok(start_pins_restored_at(&folder("start")))
+}
+fn start_pins_restored_at(root: &Path) -> bool {
+    ["start.bin", "start2.bin"]
+        .iter()
+        .all(|name| !root.join(name).exists())
 }
 fn restore_files(name: &str) -> Result<()> {
     let manifest = folder(name).join("files.json");
@@ -144,6 +161,16 @@ pub fn taskbar_pins(clear: bool) -> Result<()> {
             reg::delete(TASKBAND, name)?;
         }
     } else {
+        if values.exists() && !preferences::taskbar_pins(false)? {
+            let data: Vec<serde_json::Value> = serde_json::from_slice(&fs::read(&values)?)?;
+            for (name, value) in ["Favorites", "FavoritesResolve"].into_iter().zip(data) {
+                ensure!(
+                    crate::model::same(&reg::read(TASKBAND, name)?, &value),
+                    "New taskbar pins exist; saved pins remain in {}",
+                    root.display()
+                );
+            }
+        }
         restore_files("taskbar")?;
         if values.exists() {
             let data: Vec<serde_json::Value> = serde_json::from_slice(&fs::read(&values)?)?;
@@ -207,4 +234,37 @@ pub fn compatibility(id: &str, enabled: bool) -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn pending_pin_materials_prevent_a_completed_restore() -> Result<()> {
+        let root = std::env::temp_dir().join(format!("zsw-pin-state-{}", std::process::id()));
+        fs::create_dir(&root)?;
+        let result = (|| -> Result<()> {
+            assert!(taskbar_restored_at(&root)?);
+            assert!(start_pins_restored_at(&root));
+            fs::write(root.join("values.json"), b"[]")?;
+            assert!(!taskbar_restored_at(&root)?);
+            fs::remove_file(root.join("values.json"))?;
+            for name in ["start.bin", "start2.bin"] {
+                fs::write(root.join(name), b"saved")?;
+                assert!(!start_pins_restored_at(&root));
+                fs::remove_file(root.join(name))?;
+            }
+            assert!(taskbar_restored_at(&root)?);
+            assert!(start_pins_restored_at(&root));
+            Ok(())
+        })();
+        for name in ["values.json", "start.bin", "start2.bin"] {
+            let file = root.join(name);
+            if file.exists() {
+                fs::remove_file(file)?;
+            }
+        }
+        fs::remove_dir(root)?;
+        result
+    }
 }

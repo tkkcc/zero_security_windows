@@ -696,6 +696,13 @@ pub fn firewall_group(group: &str, value: Option<bool>) -> Result<bool> {
         }
     }
 }
+pub fn firewall_group_all(group: &str) -> Result<bool> {
+    com()?;
+    unsafe {
+        let policy: INetFwPolicy2 = CoCreateInstance(&NetFwPolicy2, None, CLSCTX_INPROC_SERVER)?;
+        Ok(policy.IsRuleGroupEnabled(7, &BSTR::from(group))?.as_bool())
+    }
+}
 pub fn task_root() -> Result<ITaskFolder> {
     com()?;
     unsafe {

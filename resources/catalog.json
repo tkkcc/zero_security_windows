@@ -2078,7 +2078,8 @@
         "Name": "security-ui",
         "Value": false,
         "Kind": "Apps",
-        "PackageSources": {}
+        "PackageSources": {},
+        "NonRemovable": true
       },
       {
         "Kind": "SettingsPage",
@@ -2118,7 +2119,8 @@
         "Name": "security-ui",
         "Value": true,
         "Kind": "Apps",
-        "PackageSources": {}
+        "PackageSources": {},
+        "NonRemovable": true
       },
       {
         "Kind": "SettingsPage",
@@ -3940,49 +3942,49 @@
     "Page": "Desktop",
     "Intent": "Disable",
     "Refresh": "Power",
-    "ImpactZh": "保留手动睡眠；系统休眠能力由“系统休眠”项单独控制。",
-    "ImpactEn": "Manual sleep remains available. Hibernation availability is controlled by the separate Hibernation item.",
+    "ImpactZh": "按 R 从 Windows 读取当前电源方案的交流电与电池默认值，只恢复本项设置。",
+    "ImpactEn": "R reads the current power plan personality defaults for AC and battery power, restoring only this item.",
     "RestoreOps": [
       {
         "Group": "7516b95f-f776-4464-8c53-06167f40cc99",
         "Name": "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e",
         "Source": "AC",
-        "Value": 1200,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       },
       {
         "Group": "7516b95f-f776-4464-8c53-06167f40cc99",
         "Name": "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e",
         "Source": "DC",
-        "Value": 1200,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       },
       {
         "Group": "238c9fa8-0aad-41ed-83f4-97be242c8f20",
         "Name": "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
         "Source": "AC",
-        "Value": 1800,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       },
       {
         "Group": "238c9fa8-0aad-41ed-83f4-97be242c8f20",
         "Name": "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
         "Source": "DC",
-        "Value": 1800,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       },
       {
         "Group": "238c9fa8-0aad-41ed-83f4-97be242c8f20",
         "Name": "9d7815a6-7ee4-497e-8888-515a05f02364",
         "Source": "AC",
-        "Value": 10800,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       },
       {
         "Group": "238c9fa8-0aad-41ed-83f4-97be242c8f20",
         "Name": "9d7815a6-7ee4-497e-8888-515a05f02364",
         "Source": "DC",
-        "Value": 10800,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       }
     ],
@@ -4049,49 +4051,49 @@
     "Refresh": "Power",
     "ResultZh": "不采取任何操作",
     "ResultEn": "Do nothing",
-    "ImpactZh": "仍可通过开始菜单关机或进入睡眠。",
-    "ImpactEn": "Shutdown and sleep remain available from the Start menu.",
+    "ImpactZh": "按 R 从 Windows 读取当前电源方案的交流电与电池默认值，只恢复本项设置。",
+    "ImpactEn": "R reads the current power plan personality defaults for AC and battery power, restoring only this item.",
     "RestoreOps": [
       {
         "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
         "Name": "7648efa3-dd9c-4e3e-b566-50f929386280",
         "Source": "AC",
-        "Value": 3,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       },
       {
         "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
         "Name": "7648efa3-dd9c-4e3e-b566-50f929386280",
         "Source": "DC",
-        "Value": 3,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       },
       {
         "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
         "Name": "5ca83367-6e45-459f-a27b-476b1d01c936",
         "Source": "AC",
-        "Value": 1,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       },
       {
         "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
         "Name": "5ca83367-6e45-459f-a27b-476b1d01c936",
         "Source": "DC",
-        "Value": 1,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       },
       {
         "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
         "Name": "96996bc0-ad50-47ec-923b-6f41874dd9eb",
         "Source": "AC",
-        "Value": 1,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       },
       {
         "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
         "Name": "96996bc0-ad50-47ec-923b-6f41874dd9eb",
         "Source": "DC",
-        "Value": 1,
+        "Value": "WindowsDefault",
         "Kind": "Power"
       }
     ],
@@ -4298,64 +4300,8 @@
     "Refresh": "Explorer",
     "RestoreOps": [
       {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
-        "Name": "{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
-        "Name": "{645FF040-5081-101B-9F08-00AA002F954E}"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
-        "Name": "{59031a47-3f72-44a7-89c5-5595fe6b30ee}"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
-        "Name": "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
-        "Name": "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
-        "Name": "{2cc5ca98-6485-489a-920e-b3e88a6ccce3}"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu",
-        "Name": "{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu",
-        "Name": "{645FF040-5081-101B-9F08-00AA002F954E}"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu",
-        "Name": "{59031a47-3f72-44a7-89c5-5595fe6b30ee}"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu",
-        "Name": "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu",
-        "Name": "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu",
-        "Name": "{2cc5ca98-6485-489a-920e-b3e88a6ccce3}"
+        "Kind": "DesktopIcons",
+        "Value": "WindowsDefault"
       },
       {
         "Name": "desktop",
@@ -7144,7 +7090,7 @@
       {
         "Kind": "MemoryAgent",
         "Name": "PageCombining",
-        "Value": false
+        "Value": true
       }
     ],
     "RestoreSafe": false
@@ -7153,7 +7099,7 @@
     "Id": "sysmain-preloading",
     "Zh": "SysMain 应用预读",
     "En": "SysMain application preloading",
-    "PurposeZh": "单独关闭SysMain 应用预读，保留 SysMain 其他能力。",
+    "PurposeZh": "单独关闭 SysMain 应用预读，保留 SysMain 其他能力。",
     "PurposeEn": "Disable SysMain application preloading independently, retaining other SysMain capabilities.",
     "GroupZh": "系统",
     "GroupEn": "System",
@@ -7190,8 +7136,8 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "需单独执行；执行全部默认只禁用总服务。内存功能关闭后可能增加物理内存占用。",
-    "ImpactEn": "Run separately; Run all disables only the main service. Disabling memory features can increase physical memory usage.",
+    "ImpactZh": "需单独执行；会启用 SysMain 总服务，只关闭应用预读，保留当前内存功能配置。",
+    "ImpactEn": "Run separately. This enables the SysMain service and disables only application preloading, retaining current memory settings.",
     "DefaultOff": true,
     "RestoreOps": [
       {
@@ -7226,7 +7172,7 @@
     "Id": "sysmain-memory-compression",
     "Zh": "SysMain 内存压缩",
     "En": "SysMain memory compression",
-    "PurposeZh": "单独关闭SysMain 内存压缩，保留 SysMain 其他能力。",
+    "PurposeZh": "单独关闭 SysMain 内存压缩，保留 SysMain 其他能力。",
     "PurposeEn": "Disable SysMain memory compression independently, retaining other SysMain capabilities.",
     "GroupZh": "系统",
     "GroupEn": "System",
@@ -7271,7 +7217,7 @@
     "Id": "sysmain-page-combining",
     "Zh": "SysMain 页面合并",
     "En": "SysMain page combining",
-    "PurposeZh": "单独关闭SysMain 页面合并，保留 SysMain 其他能力。",
+    "PurposeZh": "单独关闭 SysMain 页面合并，保留 SysMain 其他能力。",
     "PurposeEn": "Disable SysMain page combining independently, retaining other SysMain capabilities.",
     "GroupZh": "系统",
     "GroupEn": "System",
@@ -7294,8 +7240,8 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "需单独执行；执行全部默认只禁用总服务。内存功能关闭后可能增加物理内存占用。",
-    "ImpactEn": "Run separately; Run all disables only the main service. Disabling memory features can increase physical memory usage.",
+    "ImpactZh": "需单独执行；会启用 SysMain 总服务。按 R 重新启用页面合并能力；Windows 不同版本的初始状态可能不同。",
+    "ImpactEn": "Run separately. This enables the SysMain service. R re-enables page combining; its initial state can differ across Windows versions.",
     "DefaultOff": true,
     "RestoreOps": [
       {
@@ -7307,7 +7253,7 @@
       {
         "Kind": "MemoryAgent",
         "Name": "PageCombining",
-        "Value": false
+        "Value": true
       }
     ],
     "RestoreSafe": false
@@ -8081,12 +8027,6 @@
         "Name": "EnableMmx",
         "Type": "DWord",
         "Value": 0
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\CrossDeviceResume.exe",
-        "Name": "Debugger",
-        "Value": null
       },
       {
         "Path": "%SystemRoot%\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\CrossDeviceResume.exe",

@@ -21,6 +21,7 @@ pub struct AppEntry {
     pub path: String,
     pub version: [u16; 4],
     pub installed: bool,
+    pub current_user: bool,
     pub provisioned: bool,
     pub disabled: bool,
     pub users: Vec<String>,
@@ -28,6 +29,7 @@ pub struct AppEntry {
 pub fn inventory() -> Result<Vec<AppEntry>> {
     native::com()?;
     let manager = PackageManager::new()?;
+    let sid = native::sid()?;
     let provisioned_packages: Vec<_> = manager.FindProvisionedPackages()?.into_iter().collect();
     let provisioned: BTreeSet<String> = provisioned_packages
         .iter()
@@ -74,6 +76,7 @@ pub fn inventory() -> Result<Vec<AppEntry>> {
                     version.Revision,
                 ],
                 installed: !users.is_empty(),
+                current_user: users.iter().any(|user| user == &sid),
                 provisioned: is_provisioned,
                 disabled: package.Status()?.Disabled()?,
                 users,
@@ -141,8 +144,19 @@ pub fn state(entries: &[AppEntry], op: &Operation) -> Result<bool> {
     let saved = records(op)?;
     let present = state_with_records(entries, op, &saved);
     if present && bool_value(&op.value) {
-        for a in saved.iter().filter(|a| a.non_removable) {
-            if !non_removable(&a.family)? {
+        let families: BTreeSet<_> = saved
+            .iter()
+            .filter(|a| a.non_removable)
+            .map(|a| a.family.as_str())
+            .chain(
+                matching(entries, op)
+                    .into_iter()
+                    .filter(|_| op.non_removable)
+                    .map(|a| a.family.as_str()),
+            )
+            .collect();
+        for family in families {
+            if !non_removable(family)? {
                 return Ok(false);
             }
         }
@@ -159,7 +173,7 @@ fn state_with_records(entries: &[AppEntry], op: &Operation, saved: &[Removal]) -
         return saved.iter().all(|p| {
             targets
                 .iter()
-                .any(|a| a.name.eq_ignore_ascii_case(&p.name) && a.installed && !a.disabled)
+                .any(|a| a.name.eq_ignore_ascii_case(&p.name) && a.current_user && !a.disabled)
                 && (!p.provisioned
                     || targets
                         .iter()
@@ -168,12 +182,12 @@ fn state_with_records(entries: &[AppEntry], op: &Operation, saved: &[Removal]) -
     }
     let wanted: Vec<&str> = op.package_sources.keys().map(String::as_str).collect();
     if wanted.is_empty() {
-        return !targets.is_empty() && targets.iter().all(|a| a.installed && !a.disabled);
+        return !targets.is_empty() && targets.iter().all(|a| a.current_user && !a.disabled);
     }
     wanted.iter().all(|name| {
         targets
             .iter()
-            .any(|a| a.name.eq_ignore_ascii_case(name) && a.installed && !a.disabled)
+            .any(|a| a.name.eq_ignore_ascii_case(name) && a.current_user && !a.disabled)
     })
 }
 fn deployment(result: DeploymentResult) -> Result<()> {
@@ -273,7 +287,8 @@ pub fn remove(op: &Operation) -> Result<bool> {
     // Finish all required recovery copies before removing registrations or provisioning.
     for a in latest(&targets) {
         let source = source_for(op, &a.name).to_string();
-        let protected = non_removable(&a.family)?
+        let protected = op.non_removable
+            || non_removable(&a.family)?
             || saved
                 .iter()
                 .any(|p| p.family == a.family && p.non_removable);
@@ -405,7 +420,8 @@ pub fn restore(op: &Operation) -> Result<bool> {
     let saved = records(op)?;
     if saved.is_empty() {
         ensure!(
-            !op.package_sources.is_empty(),
+            !op.package_sources.is_empty()
+                || matching(&inventory()?, op).iter().any(|a| a.current_user),
             "No package recovery materials were saved for {}",
             op.name
         );
@@ -490,9 +506,11 @@ pub fn restore(op: &Operation) -> Result<bool> {
                     .join()?,
             )?;
         }
-    }
-    for a in &saved {
-        if a.non_removable {
+        if op.non_removable
+            || saved
+                .iter()
+                .any(|p| p.family == a.family && p.non_removable)
+        {
             set_non_removable(&a.family, true)?;
         }
     }
@@ -700,6 +718,7 @@ mod tests {
             family: format!("{name}_publisher"),
             version: [version, 0, 0, 0],
             installed,
+            current_user: installed,
             provisioned,
             ..Default::default()
         }
@@ -785,6 +804,29 @@ mod tests {
             ],
             &op,
             &saved
+        ));
+    }
+    #[test]
+    fn another_user_install_does_not_complete_current_user_restoration() {
+        let op = Operation {
+            patterns: vec!["Test.*".into()],
+            value: json!(true),
+            package_sources: [("Test.Main".into(), "Test.Store".into())].into(),
+            ..Default::default()
+        };
+        let mut package = entry("Test.Main", 1, true, true);
+        package.current_user = false;
+        assert!(!state_with_records(&[package.clone()], &op, &[]));
+        assert!(!state_with_records(
+            &[package.clone()],
+            &op,
+            &[snapshot("Test.Main", true)]
+        ));
+        package.current_user = true;
+        assert!(state_with_records(
+            &[package],
+            &op,
+            &[snapshot("Test.Main", true)]
         ));
     }
 }

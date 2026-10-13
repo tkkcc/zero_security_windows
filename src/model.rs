@@ -139,6 +139,7 @@ pub struct Operation {
     pub names: Vec<String>,
     pub patterns: Vec<String>,
     pub package_sources: std::collections::BTreeMap<String, String>,
+    pub non_removable: bool,
     pub value: Value,
 }
 impl Operation {

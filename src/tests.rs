@@ -159,6 +159,7 @@ fn native_preferences_are_readable() -> anyhow::Result<()> {
     assert!(!preferences::scheme()?.is_empty());
     preferences::language_bar(None)?;
     preferences::input_only()?;
+    preferences::default_input_active()?;
     Ok(())
 }
 #[test]
@@ -613,11 +614,13 @@ fn firewall_group_detects_partial_enabling_and_switches_only_its_rules() -> anyh
                 .SetEnabled(true.into())?
         };
         anyhow::ensure!(native::firewall_group(&group, None)?);
+        anyhow::ensure!(!native::firewall_group_all(&group)?);
         anyhow::ensure!(!native::firewall_group(&group, Some(false))?);
         for name in &names {
             anyhow::ensure!(!unsafe { rules.Item(&BSTR::from(name))?.Enabled()? }.as_bool());
         }
         anyhow::ensure!(native::firewall_group(&group, Some(true))?);
+        anyhow::ensure!(native::firewall_group_all(&group)?);
         for name in &names {
             anyhow::ensure!(unsafe { rules.Item(&BSTR::from(name))?.Enabled()? }.as_bool());
         }

@@ -20,4 +20,4 @@ Zero Security Windows 是一款以精简与性能为优先的开源 Windows 优�
 
 默认禁用整个 SysMain；三个子项需单独执行，执行子项会启用总服务。预装应用卸载并清除预配，移除用户可见注册；有可靠 winget 源的应用不保留安装文件，按 `R` 联网重装。没有安装源的组件只保存必要恢复材料。卸载可能移除应用数据，缓存入口在重新登录后刷新。恢复材料与桌面清理内容保存在 `%ProgramData%\ZeroSecurityWindows\recovery`。
 
-[开发文档](docs/development.md) · [MIT 许可证](LICENSE)
+[执行与恢复逻辑](docs/development.md#操作类型) · [开发文档](docs/development.md) · [MIT 许可证](LICENSE)
