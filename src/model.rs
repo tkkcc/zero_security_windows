@@ -138,7 +138,7 @@ pub struct Operation {
     pub service: String,
     pub names: Vec<String>,
     pub patterns: Vec<String>,
-    pub system_app: bool,
+    pub package_sources: std::collections::BTreeMap<String, String>,
     pub value: Value,
 }
 impl Operation {

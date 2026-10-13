@@ -2444,7 +2444,7 @@ dependencies = [
 
 [[package]]
 name = "zero_security_windows"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2459,6 +2459,7 @@ dependencies = [
  "serde",
  "serde_json",
  "windows",
+ "windows-collections",
  "windows-core",
  "winreg 0.56.0",
  "wmi",

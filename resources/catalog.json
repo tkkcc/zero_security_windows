@@ -1914,8 +1914,8 @@
     "Id": "remove-news",
     "Zh": "资讯",
     "En": "News",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -1925,7 +1925,10 @@
         ],
         "Name": "news",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.BingNews": "9WZDNCRFHVFW"
+        }
       }
     ],
     "Probe": "",
@@ -1933,12 +1936,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -1947,9 +1950,9 @@
         "Name": "news",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9WZDNCRFHVFW"
-        ]
+        "PackageSources": {
+          "Microsoft.BingNews": "9WZDNCRFHVFW"
+        }
       }
     ],
     "RestoreSafe": false
@@ -1958,8 +1961,8 @@
     "Id": "remove-weather",
     "Zh": "天气",
     "En": "Weather",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -1969,7 +1972,10 @@
         ],
         "Name": "weather",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.BingWeather": "9WZDNCRFJ3Q2"
+        }
       }
     ],
     "Probe": "",
@@ -1977,12 +1983,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -1991,9 +1997,9 @@
         "Name": "weather",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9WZDNCRFJ3Q2"
-        ]
+        "PackageSources": {
+          "Microsoft.BingWeather": "9WZDNCRFJ3Q2"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2002,8 +2008,8 @@
     "Id": "remove-xbox",
     "Zh": "Xbox 应用与游戏栏",
     "En": "Xbox apps and Game Bar",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2015,7 +2021,13 @@
         ],
         "Name": "xbox",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.GamingApp": "9MV0B5HZVK9Z",
+          "Microsoft.GamingServices": "9MWPM2CQNLHN",
+          "Microsoft.XboxGamingOverlay": "9NZKPSTSNW4P",
+          "Microsoft.XboxIdentityProvider": "9WZDNCRD1HKW"
+        }
       }
     ],
     "Probe": "",
@@ -2023,12 +2035,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2039,10 +2051,12 @@
         "Name": "xbox",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9MV0B5HZVK9Z",
-          "9NZKPSTSNW4P"
-        ]
+        "PackageSources": {
+          "Microsoft.GamingApp": "9MV0B5HZVK9Z",
+          "Microsoft.GamingServices": "9MWPM2CQNLHN",
+          "Microsoft.XboxGamingOverlay": "9NZKPSTSNW4P",
+          "Microsoft.XboxIdentityProvider": "9WZDNCRD1HKW"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2051,8 +2065,8 @@
     "Id": "remove-security-ui",
     "Zh": "安全中心应用",
     "En": "Security app",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2062,9 +2076,26 @@
           "Microsoft.Windows.SecHealthUI"
         ],
         "Name": "security-ui",
-        "SystemApp": true,
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {}
+      },
+      {
+        "Kind": "SettingsPage",
+        "Name": "windowsdefender",
+        "Value": false
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "Name": "SecurityHealth"
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Systray",
+        "Name": "HideSystray",
+        "Type": "DWord",
+        "Value": 1
       }
     ],
     "Probe": "",
@@ -2072,12 +2103,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2085,10 +2116,26 @@
           "Microsoft.Windows.SecHealthUI"
         ],
         "Name": "security-ui",
-        "SystemApp": true,
         "Value": true,
         "Kind": "Apps",
-        "Names": []
+        "PackageSources": {}
+      },
+      {
+        "Kind": "SettingsPage",
+        "Name": "windowsdefender",
+        "Value": true
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "Name": "SecurityHealth",
+        "Type": "ExpandString",
+        "Value": "%SystemRoot%\\System32\\SecurityHealthSystray.exe"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Systray",
+        "Name": "HideSystray"
       }
     ],
     "RestoreSafe": false
@@ -2097,8 +2144,8 @@
     "Id": "remove-widgets",
     "Zh": "小组件运行库",
     "En": "Widgets runtimes",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2110,7 +2157,17 @@
         ],
         "Name": "widgets",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "MicrosoftWindows.Client.WebExperience": "9MSSGKG348SP"
+        }
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "TaskbarDa",
+        "Type": "DWord",
+        "Value": 0
       }
     ],
     "Probe": "",
@@ -2118,12 +2175,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2134,9 +2191,16 @@
         "Name": "widgets",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9MSSGKG348SP"
-        ]
+        "PackageSources": {
+          "MicrosoftWindows.Client.WebExperience": "9MSSGKG348SP"
+        }
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "TaskbarDa",
+        "Type": "DWord",
+        "Value": 1
       }
     ],
     "RestoreSafe": false
@@ -2145,8 +2209,8 @@
     "Id": "remove-games",
     "Zh": "纸牌与微软游戏",
     "En": "Solitaire and Microsoft games",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2160,7 +2224,13 @@
         ],
         "Name": "games",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.MicrosoftSolitaireCollection": "9WZDNCRFHWD2",
+          "Microsoft.MicrosoftMinesweeper": "9WZDNCRFHWCN",
+          "Microsoft.MicrosoftMahjong": "9WZDNCRFHWCP",
+          "Microsoft.MicrosoftSudoku": "9WZDNCRFHV60"
+        }
       }
     ],
     "Probe": "",
@@ -2168,12 +2238,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2186,9 +2256,12 @@
         "Name": "games",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9WZDNCRFHWD2"
-        ]
+        "PackageSources": {
+          "Microsoft.MicrosoftSolitaireCollection": "9WZDNCRFHWD2",
+          "Microsoft.MicrosoftMinesweeper": "9WZDNCRFHWCN",
+          "Microsoft.MicrosoftMahjong": "9WZDNCRFHWCP",
+          "Microsoft.MicrosoftSudoku": "9WZDNCRFHV60"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2197,8 +2270,8 @@
     "Id": "remove-edge-game-assist",
     "Zh": "Edge Game Assist",
     "En": "Edge Game Assist",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2208,7 +2281,8 @@
         ],
         "Name": "edge-game-assist",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {}
       }
     ],
     "Probe": "",
@@ -2216,12 +2290,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2230,7 +2304,7 @@
         "Name": "edge-game-assist",
         "Value": true,
         "Kind": "Apps",
-        "Names": []
+        "PackageSources": {}
       }
     ],
     "RestoreSafe": false
@@ -2239,8 +2313,8 @@
     "Id": "remove-compatibility",
     "Zh": "额外兼容性组件",
     "En": "Extra compatibility components",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2250,7 +2324,8 @@
         ],
         "Name": "compatibility",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {}
       }
     ],
     "Probe": "",
@@ -2258,12 +2333,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2272,7 +2347,7 @@
         "Name": "compatibility",
         "Value": true,
         "Kind": "Apps",
-        "Names": []
+        "PackageSources": {}
       }
     ],
     "RestoreSafe": false
@@ -2281,8 +2356,8 @@
     "Id": "remove-clipchamp",
     "Zh": "Clipchamp",
     "En": "Clipchamp",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2292,7 +2367,10 @@
         ],
         "Name": "clipchamp",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Clipchamp.Clipchamp": "9P1J8S7CCWWT"
+        }
       }
     ],
     "Probe": "",
@@ -2300,12 +2378,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2314,9 +2392,9 @@
         "Name": "clipchamp",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9P1J8S7CCWWT"
-        ]
+        "PackageSources": {
+          "Clipchamp.Clipchamp": "9P1J8S7CCWWT"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2325,8 +2403,8 @@
     "Id": "remove-notes",
     "Zh": "便签",
     "En": "Sticky Notes",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2336,7 +2414,10 @@
         ],
         "Name": "notes",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.MicrosoftStickyNotes": "9NBLGGH4QGHW"
+        }
       }
     ],
     "Probe": "",
@@ -2344,12 +2425,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2358,9 +2439,9 @@
         "Name": "notes",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9NBLGGH4QGHW"
-        ]
+        "PackageSources": {
+          "Microsoft.MicrosoftStickyNotes": "9NBLGGH4QGHW"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2369,8 +2450,8 @@
     "Id": "remove-todo",
     "Zh": "待办",
     "En": "To Do",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2380,7 +2461,10 @@
         ],
         "Name": "todo",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.Todos": "9NBLGGH5R558"
+        }
       }
     ],
     "Probe": "",
@@ -2388,12 +2472,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2402,9 +2486,9 @@
         "Name": "todo",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9NBLGGH5R558"
-        ]
+        "PackageSources": {
+          "Microsoft.Todos": "9NBLGGH5R558"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2413,8 +2497,8 @@
     "Id": "remove-feedback",
     "Zh": "反馈中心",
     "En": "Feedback Hub",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2424,7 +2508,10 @@
         ],
         "Name": "feedback",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.WindowsFeedbackHub": "9NBLGGH4R32N"
+        }
       }
     ],
     "Probe": "",
@@ -2432,12 +2519,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2446,9 +2533,9 @@
         "Name": "feedback",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9NBLGGH4R32N"
-        ]
+        "PackageSources": {
+          "Microsoft.WindowsFeedbackHub": "9NBLGGH4R32N"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2457,8 +2544,8 @@
     "Id": "remove-help",
     "Zh": "获取帮助",
     "En": "Get Help",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2468,7 +2555,10 @@
         ],
         "Name": "help",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.GetHelp": "9PKDZBMV1H3T"
+        }
       }
     ],
     "Probe": "",
@@ -2476,12 +2566,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2490,9 +2580,9 @@
         "Name": "help",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9PKDZBMV1H3T"
-        ]
+        "PackageSources": {
+          "Microsoft.GetHelp": "9PKDZBMV1H3T"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2501,8 +2591,8 @@
     "Id": "remove-pcmanager",
     "Zh": "微软电脑管家",
     "En": "Microsoft PC Manager",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2512,7 +2602,10 @@
         ],
         "Name": "pcmanager",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.MicrosoftPCManager": "9PM860492SZD"
+        }
       },
       {
         "Name": "Microsoft.PCManager",
@@ -2525,12 +2618,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2539,9 +2632,9 @@
         "Name": "pcmanager",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9PM860492SZD"
-        ]
+        "PackageSources": {
+          "Microsoft.MicrosoftPCManager": "9PM860492SZD"
+        }
       },
       {
         "Name": "Microsoft.PCManager",
@@ -2556,8 +2649,8 @@
     "Id": "remove-quick-assist",
     "Zh": "快速助手",
     "En": "Quick Assist",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2567,7 +2660,10 @@
         ],
         "Name": "quick-assist",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "MicrosoftCorporationII.QuickAssist": "9P7BP5VNWKX5"
+        }
       }
     ],
     "Probe": "",
@@ -2575,12 +2671,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2589,9 +2685,9 @@
         "Name": "quick-assist",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9P7BP5VNWKX5"
-        ]
+        "PackageSources": {
+          "MicrosoftCorporationII.QuickAssist": "9P7BP5VNWKX5"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2600,8 +2696,8 @@
     "Id": "remove-powerautomate",
     "Zh": "Power Automate",
     "En": "Power Automate",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2611,7 +2707,10 @@
         ],
         "Name": "powerautomate",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.PowerAutomateDesktop": "9NFTCH6J7FHV"
+        }
       }
     ],
     "Probe": "",
@@ -2619,12 +2718,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2633,9 +2732,9 @@
         "Name": "powerautomate",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9NFTCH6J7FHV"
-        ]
+        "PackageSources": {
+          "Microsoft.PowerAutomateDesktop": "9NFTCH6J7FHV"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2644,8 +2743,8 @@
     "Id": "remove-phone",
     "Zh": "手机连接与跨设备应用",
     "En": "Phone Link and cross-device apps",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2656,7 +2755,10 @@
         ],
         "Name": "phone",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.YourPhone": "9NMPJ99VJBWV"
+        }
       }
     ],
     "Probe": "",
@@ -2664,12 +2766,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2679,9 +2781,9 @@
         "Name": "phone",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9NMPJ99VJBWV"
-        ]
+        "PackageSources": {
+          "Microsoft.YourPhone": "9NMPJ99VJBWV"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2690,8 +2792,8 @@
     "Id": "remove-family",
     "Zh": "家庭安全",
     "En": "Family Safety",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2701,7 +2803,10 @@
         ],
         "Name": "family",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "MicrosoftCorporationII.MicrosoftFamily": "9PDJDJS743XF"
+        }
       }
     ],
     "Probe": "",
@@ -2709,12 +2814,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2723,9 +2828,9 @@
         "Name": "family",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9PDJDJS743XF"
-        ]
+        "PackageSources": {
+          "MicrosoftCorporationII.MicrosoftFamily": "9PDJDJS743XF"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2734,8 +2839,8 @@
     "Id": "remove-outlook",
     "Zh": "Outlook 与邮件",
     "En": "Outlook and Mail",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2746,7 +2851,10 @@
         ],
         "Name": "outlook",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.OutlookForWindows": "9NRX63209R7B"
+        }
       }
     ],
     "Probe": "",
@@ -2754,12 +2862,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2769,9 +2877,9 @@
         "Name": "outlook",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9NRX63209R7B"
-        ]
+        "PackageSources": {
+          "Microsoft.OutlookForWindows": "9NRX63209R7B"
+        }
       }
     ],
     "RestoreSafe": false
@@ -2780,8 +2888,8 @@
     "Id": "remove-devhome",
     "Zh": "Dev Home",
     "En": "Dev Home",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2791,7 +2899,8 @@
         ],
         "Name": "devhome",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {}
       }
     ],
     "Probe": "",
@@ -2799,12 +2908,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "禁用已有 Dev Home。微软已停止提供原应用；不存在时恢复 Windows 当前默认配置并保留未安装状态。",
-    "ImpactEn": "Disable an existing Dev Home. Microsoft no longer distributes the original app; defaults leave it absent when not installed.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2813,8 +2922,7 @@
         "Name": "devhome",
         "Value": true,
         "Kind": "Apps",
-        "Names": [],
-        "Source": "Optional"
+        "PackageSources": {}
       }
     ],
     "RestoreSafe": false
@@ -2823,8 +2931,8 @@
     "Id": "remove-ai",
     "Zh": "微软 AI 应用",
     "En": "Microsoft AI apps",
-    "PurposeZh": "禁用此应用及其配套应用包，保留恢复所需文件。",
-    "PurposeEn": "Disable this app and its related packages, retaining files for restoration.",
+    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
+    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2837,7 +2945,11 @@
         ],
         "Name": "ai",
         "Value": false,
-        "Kind": "Apps"
+        "Kind": "Apps",
+        "PackageSources": {
+          "Microsoft.Copilot": "9NHT9RB2F4HD",
+          "Microsoft.MicrosoftOfficeHub": "9WZDNCRD29V9"
+        }
       },
       {
         "Name": "Microsoft Copilot",
@@ -2850,12 +2962,12 @@
     "Manual": false,
     "Restart": false,
     "Page": "Remove",
-    "Intent": "Disable",
-    "Refresh": "",
-    "ImpactZh": "应用无法启动；按 R 重新启用。旧版已卸载的商店应用恢复时需要联网。",
-    "ImpactEn": "The app cannot launch; R enables it. Restoring a Store app removed by an older version requires internet access.",
-    "ResultZh": "应用已禁用",
-    "ResultEn": "App disabled",
+    "Intent": "Remove",
+    "Refresh": "Shell",
+    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
+    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
+    "ResultZh": "应用已卸载",
+    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2867,10 +2979,10 @@
         "Name": "ai",
         "Value": true,
         "Kind": "Apps",
-        "Names": [
-          "9NHT9RB2F4HD",
-          "9WZDNCRD29V9"
-        ]
+        "PackageSources": {
+          "Microsoft.Copilot": "9NHT9RB2F4HD",
+          "Microsoft.MicrosoftOfficeHub": "9WZDNCRD29V9"
+        }
       },
       {
         "Name": "9NHT9RB2F4HD",

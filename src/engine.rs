@@ -60,6 +60,9 @@ impl Engine {
     pub fn invalidate(&self, f: &Feature) {
         let mut facts = self.facts.lock().unwrap();
         for op in &f.ops {
+            if op.kind == "Apps" {
+                facts.remove("tools");
+            }
             facts.remove(match op.kind.as_str() {
                 "Apps" => "apps",
                 "OneDrive" => "tools",
@@ -308,10 +311,7 @@ impl Engine {
             "Task" => json!(native::task_enabled(&op.path)?),
             "Apps" => {
                 let entries: Vec<apps::AppEntry> = serde_json::from_value(self.fact("apps", || Ok(serde_json::to_value(apps::inventory()?)?))?)?;
-                let targets = apps::matching(&entries, op);
-                json!(if bool_value(&op.value) {
-                    !targets.is_empty() && targets.iter().all(|a| !a.disabled) || op.source == "Optional" && targets.is_empty()
-                } else { targets.iter().any(|a| !a.disabled) })
+                json!(apps::state(&entries, op)?)
             }
             "Winget" => {
                 if let Some(installed) = apps::registered_tool(op)? {
@@ -429,7 +429,13 @@ impl Engine {
                 reg::set(&path, "Start", 4, "DWord")?;
                 return Ok(restart);
             }
-            "Apps" => return apps::set_enabled(op),
+            "Apps" => {
+                return if bool_value(&op.value) {
+                    apps::restore(op)
+                } else {
+                    apps::remove(op)
+                };
+            }
             "Winget" => {
                 let installed = bool_value(&op.value);
                 match apps::install(op, !installed) {
@@ -935,28 +941,31 @@ fn block_command() -> String {
 mod tests {
     use super::*;
     #[test]
-    fn package_restore_requires_every_matching_package_to_be_enabled() -> Result<()> {
+    fn disabled_packages_still_require_uninstallation() -> Result<()> {
         let engine = Engine::new()?;
         engine.fact("apps", || {
-            Ok(json!([
-                {"name":"Test.Main", "full":"main", "path":"unused", "disabled":false},
-                {"name":"Test.Background", "full":"background", "path":"unused", "disabled":true}
-            ]))
+            Ok(serde_json::to_value([apps::AppEntry {
+                name: "Test.Main".into(),
+                full: "main".into(),
+                installed: true,
+                disabled: true,
+                ..Default::default()
+            }])?)
         })?;
         let mut op = Operation {
             kind: "Apps".into(),
             patterns: vec!["Test.*".into()],
             value: json!(true),
+            package_sources: [("Test.Main".into(), "Test.Source".into())].into(),
             ..Default::default()
         };
         assert!(!satisfied(&op, &engine.read(&op)?));
         op.value = json!(false);
         assert!(!satisfied(&op, &engine.read(&op)?));
         op.patterns = vec!["Missing.App".into()];
+        op.package_sources.clear();
         op.value = json!(true);
         assert!(!satisfied(&op, &engine.read(&op)?));
-        op.source = "Optional".into();
-        assert!(satisfied(&op, &engine.read(&op)?));
         Ok(())
     }
     #[test]
