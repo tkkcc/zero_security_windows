@@ -14,9 +14,6 @@ pub fn root() -> PathBuf {
 pub fn user_root() -> PathBuf {
     PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap()).join("ZeroSecurityWindows")
 }
-pub fn log_path() -> PathBuf {
-    root().join("operations.jsonl")
-}
 pub fn append(name: &str, text: &str) -> Result<()> {
     use std::io::Write;
     static LOGS: Mutex<()> = Mutex::new(());

@@ -110,7 +110,7 @@ pub struct App {
     category: usize,
     tables: Vec<TableState<RowSelection>>,
     tabs: Vec<Rect>,
-    buttons: [ButtonState; 5],
+    buttons: [ButtonState; 6],
     follow_top: bool,
     palette: Palette,
 }
@@ -251,16 +251,29 @@ impl App {
             return None;
         }
         match key {
-            KeyCode::Char('a' | 'A') if self.states.iter().any(Check::actionable) => {
+            KeyCode::Char('a' | 'A')
+                if self
+                    .states
+                    .iter()
+                    .enumerate()
+                    .any(|(i, s)| !self.catalog[i].default_off && s.actionable()) =>
+            {
                 Some(Command::All)
             }
             KeyCode::Char('c' | 'C')
-                if self.visible.iter().any(|i| self.states[*i].actionable()) =>
+                if self
+                    .visible
+                    .iter()
+                    .any(|i| !self.catalog[*i].default_off && self.states[*i].actionable()) =>
             {
                 Some(self.category_command())
             }
             KeyCode::Char(' ') => self.space_command(),
-            KeyCode::Char('r' | 'R') if self.restart => Some(Command::Restart),
+            KeyCode::Char('r' | 'R') => self
+                .selected()
+                .filter(|i| !self.catalog[*i].restore_ops.is_empty())
+                .map(Command::Restore),
+            KeyCode::F(10) if self.restart => Some(Command::Restart),
             _ => None,
         }
     }
@@ -276,9 +289,10 @@ impl App {
         self.busy = true;
         for i in 0..self.catalog.len() {
             let chosen = match command {
-                Command::All => true,
-                Command::One(n) => i == *n,
-                Command::Items(indices) => indices.contains(&i),
+                Command::All => !self.catalog[i].default_off,
+                Command::One(n) | Command::Restore(n) => i == *n,
+                Command::Items(indices) => !self.catalog[i].default_off && indices.contains(&i),
+                Command::RestoreItems(indices) => indices.contains(&i),
                 _ => false,
             };
             if chosen && self.states[i].actionable() {
@@ -286,10 +300,25 @@ impl App {
             }
         }
         self.message = choose(self.zh, "正在执行", "Executing").into();
+        if matches!(command, Command::Restore(_) | Command::RestoreItems(_)) {
+            self.message = choose(self.zh, "正在恢复默认配置", "Restoring defaults").into();
+        }
         self.reorder();
     }
     fn space_command(&self) -> Option<Command> {
         let i = self.selected()?;
+        if self.states[i].state == Status::Failed
+            && self.engine.as_ref().is_some_and(|e| {
+                e.store
+                    .results
+                    .lock()
+                    .unwrap()
+                    .get(&self.catalog[i].id)
+                    .is_some_and(|r| r.restoring)
+            })
+        {
+            return Some(Command::Restore(i));
+        }
         if self.states[i].recheckable() {
             Some(Command::Scan(vec![i]))
         } else if self.states[i].actionable() || self.catalog[i].toggle() {
@@ -375,7 +404,10 @@ impl App {
         {
             sections.push(DetailSection {
                 label: choose(self.zh, "操作", "Action"),
-                text: instruction.into(),
+                text: format!(
+                    "{instruction}{}",
+                    choose(self.zh, " R 恢复默认配置。", " R restores defaults.")
+                ),
                 color: self.palette.blue,
             });
         }
@@ -630,7 +662,13 @@ impl App {
             (
                 3,
                 KeyCode::Char('r'),
-                choose(self.zh, "R 重启", "R Restart").into(),
+                choose(self.zh, "R 恢复当前项", "R Restore item").into(),
+                self.key_command(KeyCode::Char('r')).is_some(),
+            ),
+            (
+                5,
+                KeyCode::F(10),
+                choose(self.zh, "F10 重启", "F10 Restart").into(),
                 self.restart,
             ),
             (
@@ -641,7 +679,7 @@ impl App {
             ),
         ]
         .into_iter()
-        .filter(|(i, _, _, _)| *i != 3 || self.restart)
+        .filter(|(i, _, _, _)| *i != 5 || self.restart)
         .map(|(i, key, label, enabled)| (i, key, label, enabled && !self.busy))
         .collect()
     }
@@ -691,7 +729,7 @@ impl App {
         };
         if width(&specs) + 24 > area.width {
             for (index, _, label, _) in &mut specs {
-                *label = ["Space", "C", "A", "R", "Q"][*index].into();
+                *label = ["Space", "C", "A", "R", "Q", "F10"][*index].into();
             }
         }
         let mut x = area.right().saturating_sub(width(&specs));
@@ -985,6 +1023,35 @@ fn event_loop(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn restore_and_restart_have_separate_keys_and_fit_a_narrow_toolbar() -> anyhow::Result<()> {
+        use super::*;
+        use ratatui::{Terminal, backend::TestBackend};
+        let mut app = App::new(catalog()?, true)?;
+        let i = app.selected().unwrap();
+        app.states[i] = Check::new(Status::Done);
+        assert!(matches!(app.key_command(KeyCode::Char('R')), Some(Command::Restore(n)) if n == i));
+        assert!(app.key_command(KeyCode::F(10)).is_none());
+        app.restart = true;
+        assert!(matches!(app.key_command(KeyCode::Char('r')), Some(Command::Restore(n)) if n == i));
+        assert!(matches!(
+            app.key_command(KeyCode::F(10)),
+            Some(Command::Restart)
+        ));
+        let mut terminal = Terminal::new(TestBackend::new(60, 24))?;
+        terminal.draw(|f| app.draw(f))?;
+        app.busy = true;
+        assert!(app.key_command(KeyCode::Char('r')).is_none());
+        app.busy = false;
+        app.states.fill(Check::new(Status::Done));
+        let child = app.catalog.iter().position(|f| f.default_off).unwrap();
+        app.states[child] = Check::new(Status::Ready);
+        app.focus(child);
+        assert!(app.key_command(KeyCode::Char('a')).is_none());
+        assert!(app.key_command(KeyCode::Char('c')).is_none());
+        assert!(matches!(app.space_command(), Some(Command::One(i)) if i == child));
+        Ok(())
+    }
     use super::*;
     #[test]
     fn category_execution_is_scoped_and_all_execution_crosses_tabs() -> Result<()> {
@@ -1040,11 +1107,13 @@ mod tests {
             ));
         }
         app.command(&Command::All);
-        assert!(
-            app.states
-                .iter()
-                .all(|s| matches!(s.state, Status::Queued | Status::Done))
-        );
+        for (state, feature) in app.states.iter().zip(&app.catalog) {
+            if feature.default_off {
+                assert_eq!(state.state, Status::PendingCheck);
+            } else {
+                assert!(matches!(state.state, Status::Queued | Status::Done));
+            }
+        }
         Ok(())
     }
     #[test]
@@ -1292,8 +1361,8 @@ mod tests {
                             "dep" => choose(zh, "启动策略已关闭", "Boot policy off"),
                             "driver-signing" => choose(zh, "检查配置已关闭", "Check settings off"),
                             "lsa" => choose(zh, "启动保护已关闭", "Startup guard off"),
-                            "windows-update" => choose(zh, "已暂停", "Paused"),
-                            "svc-sysmain" => choose(zh, "应用预读已关闭", "App preloading off"),
+                            "windows-update" => choose(zh, "系统更新已禁用", "Updates disabled"),
+                            "svc-sysmain" => choose(zh, "已关闭", "Off"),
                             "automatic-encryption" => {
                                 choose(zh, "自动加密已阻止", "Auto-encryption off")
                             }

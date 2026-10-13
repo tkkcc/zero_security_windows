@@ -230,7 +230,16 @@ fn frame_and_navigation_work_while_every_item_is_checking() -> anyhow::Result<()
             assert!(app.table.selected().unwrap() > before_page);
             assert!(!app.busy);
             app.command(&Command::All);
-            assert!(app.states.iter().all(|s| s.state == Status::Queued));
+            for (state, feature) in app.states.iter().zip(&app.catalog) {
+                assert_eq!(
+                    state.state,
+                    if feature.default_off {
+                        Status::PendingCheck
+                    } else {
+                        Status::Queued
+                    }
+                );
+            }
             terminal.draw(|f| app.draw(f))?;
         }
     }
@@ -330,7 +339,7 @@ fn safe_mode_expands_local_settings_without_opening_the_task_service() -> anyhow
 }
 
 #[test]
-fn location_off_state_does_not_require_a_policy_lock() -> anyhow::Result<()> {
+fn location_off_state_requires_the_disable_policy() -> anyhow::Result<()> {
     let engine = Engine::new()?;
     engine.store.initialize()?;
     let root = format!(
@@ -359,7 +368,7 @@ fn location_off_state_does_not_require_a_policy_lock() -> anyhow::Result<()> {
             .iter()
             .find(|op| op.name == "DisableLocation")
             .unwrap();
-        registry::set(&policy.path, &policy.name, 1, "DWord")?;
+        registry::set(&policy.path, &policy.name, 0, "DWord")?;
         assert_eq!(engine.check(&f).state, Status::Ready);
         registry::write(policy)?;
         assert_eq!(engine.check(&f).state, Status::Done);
@@ -462,8 +471,7 @@ fn repair_update_components_and_location_notifications_on_this_machine() -> anyh
 }
 
 #[test]
-fn ordinary_privacy_preferences_remain_user_editable_and_checks_do_not_reapply_them()
--> anyhow::Result<()> {
+fn privacy_detection_does_not_reapply_disabled_settings() -> anyhow::Result<()> {
     let engine = Engine::new()?;
     engine.store.initialize()?;
     let path = format!(
@@ -494,8 +502,7 @@ fn ordinary_privacy_preferences_remain_user_editable_and_checks_do_not_reapply_t
 }
 
 #[test]
-fn widgets_detect_and_remove_the_policy_lock_before_accepting_user_preferences()
--> anyhow::Result<()> {
+fn widgets_require_the_disable_policy_and_taskbar_preference() -> anyhow::Result<()> {
     let engine = Engine::new()?;
     let root = format!(
         r"HKCU:\Software\ZeroSecurityWindowsWidgetsTest{}",
@@ -517,7 +524,7 @@ fn widgets_detect_and_remove_the_policy_lock_before_accepting_user_preferences()
         for op in &feature.ops {
             engine.write(op)?;
         }
-        assert!(registry::read(&policy, "AllowNewsAndInterests")?.is_null());
+        assert_eq!(registry::read(&policy, "AllowNewsAndInterests")?, json!(0));
         assert_eq!(engine.check(&feature).state, Status::Done);
         registry::set(&preference, "TaskbarDa", 1, "DWord")?;
         assert_eq!(engine.check(&feature).state, Status::Ready);
@@ -529,8 +536,7 @@ fn widgets_detect_and_remove_the_policy_lock_before_accepting_user_preferences()
 }
 
 #[test]
-fn start_menu_hides_frequent_apps_without_disabling_their_settings_dependency() -> anyhow::Result<()>
-{
+fn start_menu_disables_frequent_apps_and_tracking_together() -> anyhow::Result<()> {
     let engine = Engine::new()?;
     let root = format!(
         r"HKCU:\Software\ZeroSecurityWindowsStartTest{}",
@@ -557,13 +563,13 @@ fn start_menu_hides_frequent_apps_without_disabling_their_settings_dependency() 
         for op in &feature.ops {
             engine.write(op)?;
         }
-        assert_eq!(registry::read(&tracking.path, &tracking.name)?, json!(1));
+        assert_eq!(registry::read(&tracking.path, &tracking.name)?, json!(0));
         assert_eq!(registry::read(&frequent.path, &frequent.name)?, json!(0));
         assert_eq!(engine.check(&feature).state, Status::Done);
         registry::set(&frequent.path, &frequent.name, 1, "DWord")?;
         assert_eq!(engine.check(&feature).state, Status::Ready);
         assert_eq!(registry::read(&frequent.path, &frequent.name)?, json!(1));
-        assert_eq!(registry::read(&tracking.path, &tracking.name)?, json!(1));
+        assert_eq!(registry::read(&tracking.path, &tracking.name)?, json!(0));
         Ok(())
     })();
     registry::key(&root, false)?;
@@ -970,31 +976,30 @@ fn driver_updates_require_both_update_exclusion_and_device_search_off() -> anyho
 }
 
 #[test]
-fn system_restore_checks_protected_volumes_instead_of_missing_policy_or_restore_points()
--> anyhow::Result<()> {
+fn system_restore_recovery_requires_a_monitored_volume() -> anyhow::Result<()> {
     let engine = Engine::new()?;
     let path = format!(
         r"HKCU:\Software\ZeroSecurityWindowsRestoreTest{}",
         std::process::id()
     );
-    let mut feature = engine.feature("system-restore")?.clone();
+    let mut feature = engine.feature("system-restore")?.restore_target();
     feature.id = "test-system-restore".into();
     feature.ops.retain(|op| op.kind == "SystemRestore");
     let op = &mut feature.ops[0];
     op.path = path.clone();
     let name = op.name.clone();
     let result = (|| -> anyhow::Result<()> {
-        assert_eq!(engine.check(&feature).state, Status::Done);
+        assert_eq!(engine.check(&feature).state, Status::Ready);
         registry::set(
             &path,
             &name,
             json!([r"\\?\Volume{00000000-0000-0000-0000-000000000001}\"]),
             "MultiString",
         )?;
-        assert_eq!(engine.check(&feature).state, Status::Ready);
+        assert_eq!(engine.check(&feature).state, Status::Done);
         assert!(engine.read(&feature.ops[0])?.as_bool().unwrap());
         registry::set(&path, &name, json!([]), "MultiString")?;
-        assert_eq!(engine.check(&feature).state, Status::Done);
+        assert_eq!(engine.check(&feature).state, Status::Ready);
         Ok(())
     })();
     registry::key(&path, false)?;

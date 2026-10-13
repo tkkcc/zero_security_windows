@@ -87,7 +87,7 @@ def main():
         original = info()
         original_font = font()
         index = (original.attrs >> 4) & 15
-        child = subprocess.Popen([str(exe)], startupinfo=si, stdin=subprocess.DEVNULL,
+        child = subprocess.Popen([str(exe), '--console'], startupinfo=si, stdin=subprocess.DEVNULL,
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize') as key:
             light = winreg.QueryValueEx(key, 'AppsUseLightTheme')[0]

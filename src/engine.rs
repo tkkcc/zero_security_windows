@@ -63,7 +63,7 @@ impl Engine {
             facts.remove(match op.kind.as_str() {
                 "Apps" => "apps",
                 "OneDrive" => "tools",
-                "TaskGroup" | "RestoreTasks" => "tasks",
+                "TaskGroup" => "tasks",
                 "Bcd" => "bcd",
                 "Mitigations" => "mitigations",
                 _ => "",
@@ -137,6 +137,16 @@ impl Engine {
                     ))? {
                         out.push(if op.kind == "Service" {
                             service_op(&op.name)
+                        } else if op.source == "Restore" {
+                            Operation {
+                                kind: "ServiceRestore".into(),
+                                service: op.name.clone(),
+                                ..Operation::reg(
+                                    format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{}", op.name),
+                                    "Start",
+                                    op.value.clone(),
+                                )
+                            }
                         } else {
                             op.clone()
                         })
@@ -157,6 +167,16 @@ impl Engine {
                         {
                             out.push(if op.kind == "UserServices" {
                                 service_op(&name)
+                            } else if op.source == "Restore" {
+                                Operation {
+                                    kind: "ServiceRestore".into(),
+                                    service: name.clone(),
+                                    ..Operation::reg(
+                                        format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{name}"),
+                                        "Start",
+                                        op.value.clone(),
+                                    )
+                                }
                             } else if name.eq_ignore_ascii_case(&op.name) && op.source != "NextBoot"
                             {
                                 Operation {
@@ -187,7 +207,11 @@ impl Engine {
                                 out.push(Operation {
                                     kind: "Task".into(),
                                     path: path.into(),
-                                    value: json!(false),
+                                    value: if op.value.is_null() {
+                                        json!(false)
+                                    } else {
+                                        op.value.clone()
+                                    },
                                     ..op.clone()
                                 })
                             }
@@ -201,35 +225,33 @@ impl Engine {
                     names.dedup();
                     for name in names {
                         out.push(Operation {
+                            kind: if op.value.is_null() {
+                                "RegistryDelete".into()
+                            } else {
+                                "Registry".into()
+                            },
                             value_type: "String".into(),
-                            ..Operation::reg(&op.path, name, "0")
+                            ..Operation::reg(&op.path, name, op.value.clone())
                         })
                     }
                 }
                 "UpdatePause" => out.extend(update_pause()),
-                "RestoreTasks" => {
-                    if !self.safe && store::log_path().exists() {
-                        let tasks = self.fact("tasks", || Ok(json!(native::tasks()?)))?;
-                        for path in
-                            restored_tasks(&std::fs::read_to_string(store::log_path())?, &op.names)?
-                        {
-                            if tasks
-                                .as_array()
-                                .unwrap()
-                                .iter()
-                                .any(|v| v.as_str().is_some_and(|v| v.eq_ignore_ascii_case(&path)))
-                            {
-                                out.push(Operation {
-                                    kind: "Task".into(),
-                                    path,
-                                    value: json!(true),
-                                    ..Default::default()
-                                });
-                            }
-                        }
+                "DesktopIcons" => out.extend(desktop_icons()?),
+                "LocaleCodePages" => {
+                    for (name, value) in ["ACP", "OEMCP", "MACCP"]
+                        .into_iter()
+                        .zip(native::default_codepages()?)
+                    {
+                        out.push(Operation {
+                            value_type: "String".into(),
+                            ..Operation::reg(
+                                r"HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage",
+                                name,
+                                value,
+                            )
+                        });
                     }
                 }
-                "DesktopIcons" => out.extend(desktop_icons()?),
                 "Power" => out.push(Operation {
                     scheme: prefs::scheme()?,
                     ..op.clone()
@@ -239,6 +261,9 @@ impl Engine {
                         path: native::expand(&op.path).replace("%UserSid%", &self.store.sid),
                         ..op.clone()
                     };
+                    if op.kind == "ResumeAccess" && !PathBuf::from(&expanded.path).try_exists()? {
+                        continue;
+                    }
                     if f.id == "visual-effects"
                         && op.name == "UserPreferencesMask"
                         && let Some(old) = reg::read(&op.path, &op.name)?.as_array()
@@ -258,12 +283,18 @@ impl Engine {
         Ok(match op.kind.as_str() {
             "RegistryKey" => json!(reg::exists(&op.path)?),
             "Registry" | "RegistryDelete" | "Service" | "UserServiceStart" => reg::read(&op.path, &op.name)?,
+            "ServiceRestore" => {
+                let registry = reg::read(&op.path, &op.name)?;
+                let kind = reg::number(&op.path, "Type", 0)?;
+                json!({ "registry": registry, "scm": if kind & 64 != 0 && kind & 128 == 0 { registry.clone() } else { json!(native::service_start(&op.service, None)?) } })
+            }
             "ServiceStart" => json!({
                 "scm": native::service_start(&op.name, None)?,
                 "registry": reg::read(&format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{}", op.name), "Start")?,
             }),
             "TimeSync" => json!(native::time_sync(false)?),
-            "AppPreloading" => json!(!native::service_running("SysMain")? || native::memory_agent(false)?.app_preloading()),
+            "AppPreloading" => json!(native::memory_agent(false)?.app_preloading()),
+            "MemoryAgent" => json!(native::memory_setting(&op.name, None)?),
             "Bcd" => {
                 let bcd = self.fact("bcd", || Ok(json!(native::command("bcdedit.exe", &["/enum", &self.boot_entry.lock().unwrap()])?)))?;
                 bcd.as_str().unwrap().lines()
@@ -277,7 +308,10 @@ impl Engine {
             "Task" => json!(native::task_enabled(&op.path)?),
             "Apps" => {
                 let entries: Vec<apps::AppEntry> = serde_json::from_value(self.fact("apps", || Ok(serde_json::to_value(apps::inventory()?)?))?)?;
-                json!(!apps::matching(&entries, op).is_empty())
+                let targets = apps::matching(&entries, op);
+                json!(if bool_value(&op.value) {
+                    !targets.is_empty() && targets.iter().all(|a| !a.disabled) || op.source == "Optional" && targets.is_empty()
+                } else { targets.iter().any(|a| !a.disabled) })
             }
             "Winget" => {
                 if let Some(installed) = apps::registered_tool(op)? {
@@ -292,11 +326,11 @@ impl Engine {
                     || !reg::read(r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "OneDrive")?.is_null()
                     || !reg::read(r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "OneDrive")?.is_null())
             }
-            "CopilotDesktop" => json!(!apps::copilot_commands()?.is_empty()),
+            "CopilotDesktop" => json!(if bool_value(&op.value) { apps::registered_tool(&Operation { package_family: "Microsoft.Copilot_8wekyb3d8bbwe".into(), ..Default::default() })? == Some(true) } else { !apps::copilot_commands()?.is_empty() }),
             "CompatibilityDatabase" => json!(!reg::read(&format!(r"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\InstalledSDB\{}", op.name), "DatabasePath")?.is_null()),
-            "InputMethods" => json!(if prefs::input_only()? { "WeTypeOnly" } else { "Other" }),
-            "LanguageBar" => json!(if prefs::language_bar(None)? & 2063 == 8 && reg::number(r"HKCU:\Software\Microsoft\CTF\LangBar", "ShowStatus", 0)? == 3 { "Hidden" } else { "Other" }),
-            "SettingsPage" => json!(prefs::settings_page(&op.name, false)?),
+            "InputMethods" => json!(if op.value == json!("WindowsDefault") && prefs::default_input_active() { "WindowsDefault" } else if prefs::input_only()? { "WeTypeOnly" } else { "Other" }),
+            "LanguageBar" => json!(if prefs::language_bar(None)? & 2063 == 8 && reg::number(r"HKCU:\Software\Microsoft\CTF\LangBar", "ShowStatus", 0)? == 3 { "Hidden" } else { "Visible" }),
+            "SettingsPage" => json!(prefs::page_visible(&op.name)?),
             "Power" => json!(prefs::power(&op.scheme, &op.group, &op.name, op.source == "AC", None)?),
             "Hibernate" => json!({
                 "enabled": reg::number(r"HKLM:\SYSTEM\CurrentControlSet\Control\Power", "HibernateEnabled", 1)?,
@@ -304,10 +338,10 @@ impl Engine {
             }),
             "SystemRestore" => json!(reg::read(&op.path, &op.name)?.as_array().is_some_and(|volumes| volumes.iter().any(|v| v.as_str().is_some_and(|s| !s.is_empty())))),
             "DeliveryMode" => json!(native::delivery_mode(None)?),
-            "TaskbarPins" => json!(prefs::taskbar_pins(false)?),
+            "TaskbarPins" => json!(if bool_value(&op.value) { prefs::taskbar_pins(false)? } else { !crate::recovery::files_restored("taskbar")? }),
             "OptionalFeature" => {
                 let (code, text) = native::run("dism.exe", &["/Online", "/English", "/Get-FeatureInfo", &format!("/FeatureName:{}", op.name)])?;
-                if code as u32 == 0x800f080c { return Ok(json!(false)); }
+                if code as u32 == 0x800f080c { return Ok(Value::Null); }
                 ensure!(code == 0, "DISM ({code}): {text}");
                 json!(text.lines().any(|line| line.trim() == "State : Enabled" || line.trim() == "State : Enable Pending"))
             }
@@ -320,7 +354,7 @@ impl Engine {
             }
             "ProcessBlock" => json!(same(&reg::read(&block_path(&op.name), "Debugger")?, &json!(block_command())) && (!bool_value(&op.value) || !native::process_running(&op.name)?)),
             "ResumeAccess" => json!(!PathBuf::from(&op.path).exists() || !native::execute_blocked(&PathBuf::from(&op.path))?),
-            "DesktopFiles" => json!(desktop_items()?.is_empty()),
+            "DesktopFiles" => json!(if bool_value(&op.value) { desktop_items()?.is_empty() } else { crate::recovery::files_restored(&op.name)? }),
             "StartPins" => {
                 let file = store::root().join("start-pins.json");
                 json!(same(&reg::read(r"HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer", "ConfigureStartPins")?, &json!(1))
@@ -328,23 +362,29 @@ impl Engine {
                     && file.exists() && std::fs::read_to_string(file)? == PINS)
             }
             "TrayIcons" => json!(tray::running()? && same(&reg::read(r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "ZeroSecurityWindows.Tray")?, &json!(tray::command()))),
-            "Mitigations" => Value::Null,
+            "Mitigations" => json!(if bool_value(&op.value) { mitigation::defaults()? } else { mitigation::active()? }),
             _ => bail!("Unknown operation: {}", op.kind),
         })
     }
     pub fn write(&self, op: &Operation) -> Result<bool> {
         match op.kind.as_str() {
             "Registry" | "RegistryDelete" | "UserServiceStart" => reg::write(op)?,
+            "ServiceRestore" => {
+                reg::write(op)?;
+                return Ok(true);
+            }
             "RegistryKey" => reg::key(&op.path, bool_value(&op.value))?,
             "Bcd" => {
+                let value = text_value(&op.value);
+                let entry = self.boot_entry.lock().unwrap();
                 native::command(
                     "bcdedit.exe",
-                    &[
-                        "/set",
-                        &self.boot_entry.lock().unwrap(),
-                        &op.name,
-                        &text_value(&op.value),
-                    ],
+                    if op.value.is_null() {
+                        vec!["/deletevalue", &entry, &op.name]
+                    } else {
+                        vec!["/set", &entry, &op.name, &value]
+                    }
+                    .as_slice(),
                 )?;
                 return Ok(true);
             }
@@ -360,10 +400,13 @@ impl Engine {
             }
             "Task" => native::set_task_enabled(&op.path, bool_value(&op.value))?,
             "TimeSync" => {
-                native::time_sync(true)?;
+                native::time_sync_config(bool_value(&op.value))?;
             }
             "AppPreloading" => {
-                native::memory_agent(true)?;
+                native::memory_setting("ApplicationPreLaunch", Some(bool_value(&op.value)))?;
+            }
+            "MemoryAgent" => {
+                native::memory_setting(&op.name, Some(bool_value(&op.value)))?;
             }
             "ServiceStart" => {
                 native::service_start(&op.name, Some(op.value.as_u64().unwrap() as u32))?;
@@ -373,6 +416,7 @@ impl Engine {
                     op.value.clone(),
                     "DWord",
                 )?;
+                return Ok(op.source == "Restore" || op.value.as_u64().is_some_and(|v| v < 2));
             }
             "Service" => {
                 let name = &op.service;
@@ -385,7 +429,7 @@ impl Engine {
                 reg::set(&path, "Start", 4, "DWord")?;
                 return Ok(restart);
             }
-            "Apps" => return apps::remove(op),
+            "Apps" => return apps::set_enabled(op),
             "Winget" => {
                 let installed = bool_value(&op.value);
                 match apps::install(op, !installed) {
@@ -400,6 +444,17 @@ impl Engine {
                 }
             }
             "OneDrive" => {
+                if bool_value(&op.value) {
+                    return apps::install(
+                        &Operation {
+                            kind: "Winget".into(),
+                            name: "Microsoft.OneDrive".into(),
+                            source: "winget".into(),
+                            ..op.clone()
+                        },
+                        false,
+                    );
+                }
                 let mut restart = false;
                 if apps::has_tool("Microsoft.OneDrive")? {
                     restart = apps::install(
@@ -418,16 +473,35 @@ impl Engine {
                 }
                 return Ok(restart);
             }
-            "CopilotDesktop" => return apps::remove_copilot(),
-            "CompatibilityDatabase" => {
-                native::command("sdbinst.exe", &["-q", "-u", "-g", &op.name])?;
+            "CopilotDesktop" => {
+                return if bool_value(&op.value) {
+                    apps::install(
+                        &Operation {
+                            name: op.name.clone(),
+                            source: op.source.clone(),
+                            ..op.clone()
+                        },
+                        false,
+                    )
+                } else {
+                    apps::remove_copilot()
+                };
             }
-            "InputMethods" => prefs::apply_input()?,
+            "CompatibilityDatabase" => {
+                crate::recovery::compatibility(&op.name, bool_value(&op.value))?;
+            }
+            "InputMethods" => {
+                if op.value == json!("WindowsDefault") {
+                    prefs::default_input()?
+                } else {
+                    prefs::apply_input()?
+                }
+            }
             "LanguageBar" => {
                 reg::set(
                     r"HKCU:\Software\Microsoft\CTF\LangBar",
                     "ShowStatus",
-                    3,
+                    if op.value == json!("Hidden") { 3 } else { 0 },
                     "DWord",
                 )?;
                 reg::set(
@@ -436,10 +510,10 @@ impl Engine {
                     0,
                     "DWord",
                 )?;
-                prefs::language_bar(Some(8))?;
+                prefs::language_bar(Some(if op.value == json!("Hidden") { 8 } else { 2 }))?;
             }
             "SettingsPage" => {
-                prefs::settings_page(&op.name, true)?;
+                prefs::set_page_visible(&op.name, bool_value(&op.value))?;
             }
             "Power" => {
                 prefs::power(
@@ -459,18 +533,25 @@ impl Engine {
                     ],
                 )?;
             }
-            "SystemRestore" => native::disable_system_restore()?,
+            "SystemRestore" => {
+                native::system_restore(bool_value(&op.value))?;
+                return Ok(bool_value(&op.value));
+            }
             "DeliveryMode" => {
                 native::delivery_mode(Some(op.value.as_u64().unwrap() as u32))?;
             }
             "TaskbarPins" => {
-                prefs::taskbar_pins(true)?;
+                crate::recovery::taskbar_pins(bool_value(&op.value))?;
             }
             "OptionalFeature" => {
                 return native::dism(&[
                     "/Online",
                     "/English",
-                    "/Disable-Feature",
+                    if bool_value(&op.value) {
+                        "/Enable-Feature"
+                    } else {
+                        "/Disable-Feature"
+                    },
                     &format!("/FeatureName:{}", op.name),
                     "/NoRestart",
                 ]);
@@ -480,7 +561,11 @@ impl Engine {
                     "/Online",
                     "/English",
                     "/Set-ReservedStorageState",
-                    "/State:Disabled",
+                    if op.value == json!("Disabled") {
+                        "/State:Disabled"
+                    } else {
+                        "/State:Enabled"
+                    },
                 ]);
             }
             "ProcessBlock" => {
@@ -497,12 +582,29 @@ impl Engine {
             }
             "ResumeAccess" => {
                 if PathBuf::from(&op.path).exists() {
-                    native::clear_execute_deny(&PathBuf::from(&op.path))?;
+                    if bool_value(&op.value) {
+                        native::clear_execute_deny(&PathBuf::from(&op.path))?;
+                    } else {
+                        native::block_execute(&PathBuf::from(&op.path))?;
+                    }
                 }
             }
-            "DesktopFiles" => prefs::recycle(&desktop_items()?)?,
+            "DesktopFiles" => crate::recovery::desktop_files(bool_value(&op.value))?,
             "StartPins" => {
                 let file = store::root().join("start-pins.json");
+                if !bool_value(&op.value) {
+                    reg::delete(
+                        r"HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer",
+                        "ConfigureStartPins",
+                    )?;
+                    reg::delete(
+                        r"HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer",
+                        "ConfigureStartPinsJSON",
+                    )?;
+                    crate::recovery::start_pins(false)?;
+                    return Ok(false);
+                }
+                crate::recovery::start_pins(true)?;
                 std::fs::write(&file, PINS)?;
                 reg::set(
                     r"HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer",
@@ -517,8 +619,20 @@ impl Engine {
                     "DWord",
                 )?;
             }
-            "TrayIcons" => tray::enable()?,
-            "Mitigations" => mitigation::disable()?,
+            "TrayIcons" => {
+                if bool_value(&op.value) {
+                    tray::enable()?
+                } else {
+                    tray::disable()?
+                }
+            }
+            "Mitigations" => {
+                if bool_value(&op.value) {
+                    mitigation::restore()?
+                } else {
+                    mitigation::disable()?
+                }
+            }
             _ => bail!("Unknown operation: {}", op.kind),
         }
         Ok(false)
@@ -549,13 +663,17 @@ impl Engine {
         settings_only: bool,
     ) -> Result<ResultRecord> {
         self.store.initialize()?;
+        let restoring = f.intent == "Restore";
         let logon = native::logon()?;
         let previous = self.store.results.lock().unwrap().get(&f.id).cloned();
         let mut result = if settings_only {
-            previous.unwrap_or_default()
+            previous
+                .filter(|r| r.restoring == restoring)
+                .unwrap_or_default()
         } else {
             ResultRecord {
                 boot: self.boot,
+                restoring,
                 restart: previous
                     .as_ref()
                     .is_some_and(|old| old.boot == self.boot && old.restart),
@@ -570,6 +688,7 @@ impl Engine {
                 ..Default::default()
             }
         };
+        result.restoring = restoring;
         let mut ops = self.expand(f)?;
         if f.toggle() && win11 {
             let path = &f.ops[0].path;
@@ -591,8 +710,15 @@ impl Engine {
         }) {
             let applied = (|| -> Result<()> {
                 let before = self.read(&op)?;
-                if op.kind != "Mitigations"
-                    && satisfied(&op, &before)
+                if op.kind == "OptionalFeature" && before.is_null() {
+                    return Ok(());
+                }
+                if satisfied(&op, &before)
+                    && !(restoring
+                        && matches!(
+                            op.kind.as_str(),
+                            "DesktopFiles" | "TaskbarPins" | "StartPins" | "TrayIcons" | "TimeSync"
+                        ))
                     && !(op.kind == "Service" && native::service_running(&op.service)?)
                 {
                     return Ok(());
@@ -604,7 +730,7 @@ impl Engine {
                     result.logon = logon;
                 }
                 self.invalidate(f);
-                if op.kind != "Mitigations" && !restart {
+                if !restart {
                     ensure!(
                         satisfied(&op, &self.read(&op)?),
                         "Setting did not match after writing: {} {}",
@@ -651,6 +777,7 @@ impl Engine {
             && !(f.toggle() && win11)
             && !result.restart
             && result.errors.is_empty()
+            && !restoring
             && self.check(f).state == Status::Ready
         {
             let error = "The requested runtime state was not reached".to_owned();
@@ -672,32 +799,26 @@ impl Engine {
         self.store.save()?;
         Ok(result)
     }
+    pub fn restore(
+        &self,
+        f: &Feature,
+        tasks_only: bool,
+        settings_only: bool,
+    ) -> Result<ResultRecord> {
+        ensure!(!f.restore_ops.is_empty(), "No restore definition: {}", f.id);
+        self.execute(&f.restore_target(), false, tasks_only, settings_only)
+    }
 }
 pub fn satisfied(op: &Operation, v: &Value) -> bool {
     if op.kind == "RegistryDelete" {
         v.is_null()
-    } else if op.kind == "ServiceStart" {
+    } else if matches!(op.kind.as_str(), "ServiceStart" | "ServiceRestore") {
         same(&v["scm"], &op.value) && same(&v["registry"], &op.value)
     } else if op.kind == "Hibernate" {
         same(&v["enabled"], &op.value) && v["file"] == json!(op.value != json!(0))
     } else {
         same(v, &reg::desired(op))
     }
-}
-fn restored_tasks(log: &str, ids: &[String]) -> Result<Vec<String>> {
-    let mut paths = std::collections::BTreeSet::new();
-    for line in log.lines() {
-        let record: Value = serde_json::from_str(line)?;
-        if record["Id"]
-            .as_str()
-            .is_some_and(|id| ids.iter().any(|v| v == id))
-            && record["Kind"] == "Task"
-            && record["Error"] == ""
-        {
-            paths.insert(record["Path"].as_str().unwrap().to_owned());
-        }
-    }
-    Ok(paths.into_iter().collect())
 }
 fn service_op(name: &str) -> Operation {
     Operation {
@@ -814,6 +935,64 @@ fn block_command() -> String {
 mod tests {
     use super::*;
     #[test]
+    fn package_restore_requires_every_matching_package_to_be_enabled() -> Result<()> {
+        let engine = Engine::new()?;
+        engine.fact("apps", || {
+            Ok(json!([
+                {"name":"Test.Main", "full":"main", "path":"unused", "disabled":false},
+                {"name":"Test.Background", "full":"background", "path":"unused", "disabled":true}
+            ]))
+        })?;
+        let mut op = Operation {
+            kind: "Apps".into(),
+            patterns: vec!["Test.*".into()],
+            value: json!(true),
+            ..Default::default()
+        };
+        assert!(!satisfied(&op, &engine.read(&op)?));
+        op.value = json!(false);
+        assert!(!satisfied(&op, &engine.read(&op)?));
+        op.patterns = vec!["Missing.App".into()];
+        op.value = json!(true);
+        assert!(!satisfied(&op, &engine.read(&op)?));
+        op.source = "Optional".into();
+        assert!(satisfied(&op, &engine.read(&op)?));
+        Ok(())
+    }
+    #[test]
+    fn restore_targets_cover_every_item_without_using_runtime_optimization_probes() -> Result<()> {
+        let items = catalog()?;
+        for f in &items {
+            let restore = f.restore_target();
+            assert!(!restore.ops.is_empty(), "{}", f.id);
+            assert_eq!(restore.id, f.id);
+            assert_eq!(restore.intent, "Restore");
+            assert!(restore.probe.is_empty());
+            assert_eq!(restore.safe, f.restore_safe);
+            if f.page == "Install" {
+                assert!(restore.ops.iter().all(|op| !bool_value(&op.value)));
+            }
+        }
+        let sysmain = items.iter().find(|f| f.id == "svc-sysmain").unwrap();
+        assert!(!sysmain.default_off);
+        assert_eq!(sysmain.ops.last().unwrap().kind, "Service");
+        assert!(
+            sysmain
+                .ops
+                .iter()
+                .filter(|op| op.kind == "MemoryAgent")
+                .all(|op| !bool_value(&op.value))
+        );
+        for f in items.iter().filter(|f| f.id.starts_with("sysmain-")) {
+            assert!(f.default_off);
+            assert_eq!(f.ops[0].kind, "ServiceStart");
+            assert_eq!(f.ops[0].value, json!(2));
+            assert_eq!(f.restore_ops[0].value, json!(2));
+            assert!(f.restore_ops[0].source.is_empty());
+        }
+        Ok(())
+    }
+    #[test]
     fn service_restore_requires_both_live_and_saved_start_types() {
         let op = Operation {
             kind: "ServiceStart".into(),
@@ -823,33 +1002,6 @@ mod tests {
         assert!(!satisfied(&op, &json!({"scm": 3, "registry": 4})));
         assert!(!satisfied(&op, &json!({"scm": 4, "registry": 3})));
         assert!(satisfied(&op, &json!({"scm": 3, "registry": 3})));
-    }
-    #[test]
-    fn update_task_restore_uses_only_successful_changes_made_by_this_tool() -> Result<()> {
-        let rows = [
-            json!({"Id":"update-background","Kind":"Task","Error":"","Path":"owned task"}),
-            json!({"Id":"update-background","Kind":"Task","Error":"","Path":"owned task"}),
-            json!({"Id":"update-background","Kind":"Task","Error":"access denied","Path":"unchanged task"}),
-            json!({"Id":"another-feature","Kind":"Task","Error":"","Path":"other task"}),
-            json!({"Id":"update-background","Kind":"ProcessBlock","Error":"","Path":""}),
-        ];
-        let log = rows
-            .iter()
-            .map(Value::to_string)
-            .collect::<Vec<_>>()
-            .join("\n");
-        assert_eq!(
-            restored_tasks(&log, &["update-background".into()])?,
-            vec!["owned task"]
-        );
-        assert_eq!(
-            restored_tasks(
-                &log,
-                &["update-background".into(), "another-feature".into()]
-            )?,
-            vec!["other task", "owned task"]
-        );
-        Ok(())
     }
     #[test]
     fn parallel_verified_installs_update_one_inventory_without_losing_entries() -> Result<()> {

@@ -43,6 +43,47 @@ pub fn settings_page(page: &str, show: bool) -> Result<bool> {
     }
     Ok(show || visible)
 }
+pub fn page_visible(page: &str) -> Result<bool> {
+    settings_page(page, false)
+}
+pub fn set_page_visible(page: &str, visible: bool) -> Result<()> {
+    if visible {
+        settings_page(page, true)?;
+        return Ok(());
+    }
+    let path = r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer";
+    let policy = reg::read(path, "SettingsPageVisibility")?;
+    let policy = policy.as_str().unwrap_or("hide:");
+    let (mode, list) = policy.split_once(':').unwrap_or(("hide", ""));
+    let mut pages: Vec<&str> = list.split(';').filter(|p| !p.is_empty()).collect();
+    if mode == "showonly" {
+        pages.retain(|p| !p.eq_ignore_ascii_case(page));
+    } else if !pages.iter().any(|p| p.eq_ignore_ascii_case(page)) {
+        pages.push(page);
+    }
+    reg::set(
+        path,
+        "SettingsPageVisibility",
+        format!("{mode}:{}", pages.join(";")),
+        "String",
+    )
+}
+pub fn default_input_active() -> bool {
+    let profiles = layouts();
+    !profiles.is_empty() && profiles.iter().all(|p| p.clsid != WETYPE_CLASS)
+}
+pub fn default_input() -> Result<()> {
+    native::command(
+        "powershell.exe",
+        &[
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Set-WinUserLanguageList (New-WinUserLanguageList (Get-WinSystemLocale).Name) -Force",
+        ],
+    )?;
+    Ok(())
+}
 pub fn taskbar_pins(clear: bool) -> Result<bool> {
     if clear {
         clear_taskbar_pins_at(

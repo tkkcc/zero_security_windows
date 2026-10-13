@@ -28,6 +28,8 @@ pub struct Pending {
     pub safe_ids: Vec<String>,
     #[serde(default)]
     pub normal_ids: Vec<String>,
+    #[serde(default)]
+    pub restoring: bool,
 }
 struct Flow;
 impl StateMachineImpl for Flow {
@@ -182,7 +184,7 @@ fn register_return(engine: &Engine) -> Result<()> {
     }
     Ok(())
 }
-pub fn prepare_safe(engine: &Engine, ids: &[String], all: bool) -> Result<()> {
+pub fn prepare_safe(engine: &Engine, ids: &[String], all: bool, restoring: bool) -> Result<()> {
     engine.store.initialize()?;
     let prior = engine.store.pending.lock().unwrap().clone();
     if let Some(p) = &prior
@@ -197,7 +199,11 @@ pub fn prepare_safe(engine: &Engine, ids: &[String], all: bool) -> Result<()> {
         p.continue_all |= all;
         drop(pending);
         for id in ids {
-            engine.execute(engine.feature(id)?, false, true, false)?;
+            if restoring {
+                engine.restore(engine.feature(id)?, true, false)?;
+            } else {
+                engine.execute(engine.feature(id)?, false, true, false)?;
+            }
         }
         return engine.store.save();
     }
@@ -213,6 +219,7 @@ pub fn prepare_safe(engine: &Engine, ids: &[String], all: bool) -> Result<()> {
         suspended: *engine.store.suspended.lock().unwrap(),
         continue_all: all,
         safe_ids: ids.to_vec(),
+        restoring,
         normal_ids: prior.map(|p| p.normal_ids).unwrap_or_default(),
         ..Default::default()
     });
@@ -252,7 +259,11 @@ pub fn prepare_safe(engine: &Engine, ids: &[String], all: bool) -> Result<()> {
         register_return(engine)?;
         bcd(&["/bootsequence", &copied])?;
         for id in ids {
-            engine.execute(engine.feature(id)?, false, true, false)?;
+            if restoring {
+                engine.restore(engine.feature(id)?, true, false)?;
+            } else {
+                engine.execute(engine.feature(id)?, false, true, false)?;
+            }
         }
         transition(engine, Trigger::QueueSafe)?;
         engine.store.save()
@@ -311,7 +322,7 @@ pub fn safe_complete(engine: &Engine) -> Result<()> {
     transition(engine, Trigger::Return)?;
     engine.store.save()
 }
-pub fn normal_resume(engine: &Engine) -> Result<(bool, Vec<String>)> {
+pub fn normal_resume(engine: &Engine) -> Result<(bool, Vec<String>, bool)> {
     let p = engine
         .store
         .pending
@@ -326,7 +337,7 @@ pub fn normal_resume(engine: &Engine) -> Result<(bool, Vec<String>)> {
     *engine.boot_entry.lock().unwrap() = p.normal_entry;
     engine.store.initialize()?;
     cleanup(engine)?;
-    if !native::service_running("WinDefend")? {
+    if !p.restoring && !native::service_running("WinDefend")? {
         for id in ["defender", "defender-tasks"] {
             let f = engine.feature(id)?;
             if engine.check(f).actionable() {
@@ -334,7 +345,7 @@ pub fn normal_resume(engine: &Engine) -> Result<(bool, Vec<String>)> {
             }
         }
     }
-    Ok((p.continue_all, p.normal_ids))
+    Ok((p.continue_all, p.normal_ids, p.restoring))
 }
 pub fn cleanup(engine: &Engine) -> Result<()> {
     let p = engine.store.pending.lock().unwrap().clone();
@@ -367,13 +378,12 @@ pub fn cleanup(engine: &Engine) -> Result<()> {
 }
 pub fn requires_restart(engine: &Engine) -> bool {
     engine.store.pending.lock().unwrap().is_some()
-        || engine
-            .store
-            .results
-            .lock()
-            .unwrap()
-            .values()
-            .any(|r| r.restart && r.boot == engine.boot && r.errors.is_empty())
+        || engine.store.results.lock().unwrap().iter().any(|(id, r)| {
+            engine.catalog.iter().any(|f| f.id == *id)
+                && r.restart
+                && r.boot == engine.boot
+                && r.errors.is_empty()
+        })
 }
 pub fn restart() -> Result<()> {
     native::command("shutdown.exe", &["/r", "/t", "0"])?;

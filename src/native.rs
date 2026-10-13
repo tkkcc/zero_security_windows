@@ -17,6 +17,20 @@ pub type Handle = *mut c_void;
 pub fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(Some(0)).collect()
 }
+pub fn default_codepages() -> Result<[String; 3]> {
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn GetLocaleInfoW(locale: u32, kind: u32, data: *mut u16, size: i32) -> i32;
+    }
+    let mut out = [String::new(), String::new(), String::new()];
+    for (value, kind) in out.iter_mut().zip([0x1004, 0x0b, 0x1011]) {
+        let mut data = [0u16; 16];
+        let count = unsafe { GetLocaleInfoW(0x0800, kind, data.as_mut_ptr(), data.len() as i32) };
+        ok(count)?;
+        *value = String::from_utf16(&data[..count as usize - 1])?;
+    }
+    Ok(out)
+}
 pub fn error(code: u32) -> anyhow::Error {
     std::io::Error::from_raw_os_error(code as i32).into()
 }
@@ -913,6 +927,13 @@ pub fn modern_terminal(args: &[String]) -> Result<bool> {
     if !terminal.is_file() {
         return Ok(false);
     }
+    if crate::apps::registered_tool(&crate::model::Operation {
+        package_family: "Microsoft.WindowsTerminal_8wekyb3d8bbwe".into(),
+        ..Default::default()
+    })? != Some(true)
+    {
+        return Ok(false);
+    }
     let local = PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap());
     let settings_file =
         local.join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
@@ -1145,7 +1166,81 @@ pub fn memory_agent(disable_app: bool) -> Result<MemoryAgent> {
     let result: GetOutput = c.exec_class_method::<Agent, _>("Get", ())?;
     Ok(result.state)
 }
+pub fn start_service(name: &str) -> Result<()> {
+    use windows::Win32::System::Services::{SC_HANDLE, StartServiceW};
+    let _guard = system()?;
+    service_call(name, 0x14, |h| unsafe {
+        let mut status: ServiceStatus = std::mem::zeroed();
+        ok(QueryServiceStatus(h, &mut status))?;
+        if status.current == 1 {
+            StartServiceW(SC_HANDLE(h), None)?;
+        }
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while status.current != 4 && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(40));
+            ok(QueryServiceStatus(h, &mut status))?;
+        }
+        ensure!(status.current == 4, "Service did not start: {name}");
+        Ok(())
+    })
+}
+pub fn memory_setting(name: &str, value: Option<bool>) -> Result<bool> {
+    if let Some(enabled) = value {
+        let temporary = service_start("SysMain", None)? == 4;
+        if temporary {
+            service_start("SysMain", Some(3))?;
+        }
+        let result = (|| -> Result<()> {
+            start_service("SysMain")?;
+            #[derive(serde::Deserialize)]
+            #[serde(rename = "PS_MMAgent")]
+            struct Agent;
+            let c = wmi::WMIConnection::with_namespace_path(r"root\Microsoft\Windows\PS_MMAgent")?;
+            let input = std::collections::HashMap::from([(name, true)]);
+            c.exec_class_method::<Agent, ()>(if enabled { "Enable" } else { "Disable" }, input)?;
+            Ok(())
+        })();
+        if temporary {
+            let restart = disable_service("SysMain")?;
+            crate::registry::set(
+                r"HKLM:\SYSTEM\CurrentControlSet\Services\SysMain",
+                "Start",
+                4,
+                "DWord",
+            )?;
+            ensure!(!restart, "SysMain could not return to its disabled state");
+        }
+        result?;
+    }
+    let state = memory_agent(false)?;
+    Ok(match name {
+        "ApplicationPreLaunch" => state.application_pre_launch,
+        "MemoryCompression" => state.memory_compression,
+        "PageCombining" => state.page_combining,
+        _ => anyhow::bail!("Unsupported memory setting: {name}"),
+    })
+}
+pub fn time_sync_config(automatic: bool) -> Result<()> {
+    if automatic {
+        time_sync(true)?;
+    } else {
+        command(
+            "sc.exe",
+            &[
+                "triggerinfo",
+                "W32Time",
+                "start/domainjoin",
+                "stop/domainleave",
+            ],
+        )?;
+    }
+    Ok(())
+}
+#[cfg(test)]
 pub fn disable_system_restore() -> Result<()> {
+    system_restore(false)
+}
+pub fn system_restore(enabled: bool) -> Result<()> {
     #[derive(serde::Deserialize)]
     struct SystemRestore;
     #[derive(serde::Serialize)]
@@ -1161,16 +1256,12 @@ pub fn disable_system_restore() -> Result<()> {
     let c = wmi::WMIConnection::with_namespace_path(r"root\default")?;
     // Disabling the system drive disables every volume without locking GUI controls.
     let result: Output = c.exec_class_method::<SystemRestore, _>(
-        "Disable",
+        if enabled { "Enable" } else { "Disable" },
         Input {
             drive: expand(r"%SystemDrive%\"),
         },
     )?;
-    ensure!(
-        result.code == 0,
-        "SystemRestore.Disable: {:08X}",
-        result.code
-    );
+    ensure!(result.code == 0, "SystemRestore: {:08X}", result.code);
     Ok(())
 }
 pub fn delivery_mode(value: Option<u32>) -> Result<u32> {
@@ -1227,11 +1318,9 @@ pub fn dism(args: &[&str]) -> Result<bool> {
     ensure!(matches!(code, 0 | 3010 | 1641), "DISM ({code}): {text}");
     Ok(code != 0)
 }
-#[cfg(test)]
 pub fn block_execute(path: &Path) -> Result<()> {
     deny_file_access(path, 0x20)
 }
-#[cfg(test)]
 fn deny_file_access(path: &Path, mask: u32) -> Result<()> {
     use anyhow::bail;
     use windows::Win32::{

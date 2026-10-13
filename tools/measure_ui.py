@@ -48,7 +48,7 @@ def probe(exe):
                 if b'Space' in data and not first.is_set(): frame_time.append(now);first.set()
     thread=threading.Thread(target=reader,daemon=True);thread.start()
     cmd=pathlib.Path(os.environ['SystemRoot'])/'System32/cmd.exe'
-    line=f'cmd.exe /d /q /c start "" /wait "{exe}"'
+    line=f'cmd.exe /d /q /c start "" /wait "{exe}" --console'
     ok(k.CreateProcessW(str(cmd),C.create_unicode_buffer(line),None,None,False,0x80000,None,str(exe.parent),C.byref(si),C.byref(pi)))
     try:
         if not first.wait(15): raise RuntimeError('No TUI frame: '+data[-2000:].decode('utf-8',errors='replace'))

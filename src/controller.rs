@@ -9,6 +9,8 @@ use std::sync::{
 #[derive(Clone, Debug)]
 pub enum Command {
     One(usize),
+    Restore(usize),
+    RestoreItems(Vec<usize>),
     Items(Vec<usize>),
     All,
     Restart,
@@ -84,33 +86,39 @@ pub fn launch(
                     Command::All
                 } else {
                     let pending = engine.store.pending.lock().unwrap();
-                    Command::Items(
-                        engine
-                            .catalog
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, f)| pending.as_ref().unwrap().safe_ids.contains(&f.id))
-                            .map(|(i, _)| i)
-                            .collect(),
-                    )
+                    let indices = engine
+                        .catalog
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, f)| pending.as_ref().unwrap().safe_ids.contains(&f.id))
+                        .map(|(i, _)| i)
+                        .collect();
+                    if pending.as_ref().unwrap().restoring {
+                        Command::RestoreItems(indices)
+                    } else {
+                        Command::Items(indices)
+                    }
                 };
                 batch(&engine, &tx, version, &command, true)?;
             } else if mode == "--resume" {
-                let (all, ids) = workflow::normal_resume(&engine)?;
+                let (all, ids, restoring) = workflow::normal_resume(&engine)?;
                 if all || !ids.is_empty() {
                     let version = epoch.fetch_add(1, Ordering::SeqCst) + 1;
                     let command = if all {
                         Command::All
                     } else {
-                        Command::Items(
-                            engine
-                                .catalog
-                                .iter()
-                                .enumerate()
-                                .filter(|(_, f)| ids.contains(&f.id))
-                                .map(|(i, _)| i)
-                                .collect(),
-                        )
+                        let indices = engine
+                            .catalog
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, f)| ids.contains(&f.id))
+                            .map(|(i, _)| i)
+                            .collect();
+                        if restoring {
+                            Command::RestoreItems(indices)
+                        } else {
+                            Command::Items(indices)
+                        }
                     };
                     batch(&engine, &tx, version, &command, automatic)?;
                 } else {
@@ -193,8 +201,10 @@ fn checks(engine: Arc<Engine>, tx: Sender<Message>, epoch: Arc<AtomicUsize>, ind
 }
 fn affected(engine: &Engine, command: &Command) -> Vec<usize> {
     let touched: Vec<&Feature> = match command {
-        Command::One(i) => vec![&engine.catalog[*i]],
-        Command::Items(indices) => indices.iter().map(|i| &engine.catalog[*i]).collect(),
+        Command::One(i) | Command::Restore(i) => vec![&engine.catalog[*i]],
+        Command::Items(indices) | Command::RestoreItems(indices) => {
+            indices.iter().map(|i| &engine.catalog[*i]).collect()
+        }
         _ => return vec![],
     };
     engine
@@ -333,6 +343,9 @@ fn batch(
     auto: bool,
 ) -> Result<()> {
     engine.begin_batch();
+    if matches!(command, Command::Restore(_) | Command::RestoreItems(_)) {
+        return restore_batch(engine, tx, version, command, auto);
+    }
     let all = matches!(command, Command::All);
     let safe_ids = engine
         .store
@@ -342,11 +355,14 @@ fn batch(
         .as_ref()
         .map(|p| p.safe_ids.clone())
         .unwrap_or_default();
-    let indices = match command {
+    let mut indices = match command {
         Command::One(i) => vec![*i],
         Command::Items(indices) => indices.clone(),
         _ => order(&engine.catalog),
     };
+    if !matches!(command, Command::One(_)) {
+        indices.retain(|i| !engine.catalog[*i].default_off);
+    }
     let resume_ids = if all {
         vec![]
     } else {
@@ -365,7 +381,7 @@ fn batch(
     // Start fast settings before slow removals; jobs from different categories overlap.
     let mut processed = parallel_jobs(&local, |i| {
         let f = &engine.catalog[i];
-        if f.manual {
+        if f.manual || f.default_off && !matches!(command, Command::One(_)) {
             publish(engine, tx, i, version);
             return Ok(false);
         }
@@ -441,7 +457,7 @@ fn batch(
         }
         workflow::prepare_normal(engine, all, &resume_ids)?;
     } else if !safe.is_empty() {
-        workflow::prepare_safe(engine, &safe, all)?;
+        workflow::prepare_safe(engine, &safe, all, false)?;
         workflow::prepare_normal(engine, all, &resume_ids)?;
     } else if workflow::requires_restart(engine) {
         workflow::prepare_normal(engine, all, &resume_ids)?;
@@ -454,6 +470,87 @@ fn batch(
             }
         }
     }
+    let _ = tx.send(Message::Finished {
+        processed,
+        restart: workflow::requires_restart(engine),
+        auto,
+        refresh: affected(engine, command),
+    });
+    Ok(())
+}
+fn restore_batch(
+    engine: &Engine,
+    tx: &Sender<Message>,
+    version: usize,
+    command: &Command,
+    auto: bool,
+) -> Result<()> {
+    let indices = match command {
+        Command::Restore(i) => vec![*i],
+        Command::RestoreItems(ids) => ids.clone(),
+        _ => unreachable!(),
+    };
+    if !auto && engine.store.pending.lock().unwrap().is_some() {
+        workflow::cleanup(engine)?;
+    }
+    let _ = tx.send(Message::Queued(indices.clone()));
+    let mut safe_ids = vec![];
+    let mut normal_ids = vec![];
+    let mut processed = 0;
+    for &i in &indices {
+        let f = &engine.catalog[i];
+        let target = f.restore_target();
+        if auto && engine.check(f).state == Status::Restored {
+            publish(engine, tx, i, version);
+            continue;
+        }
+        if engine.safe && !target.can_run_safe() {
+            normal_ids.push(f.id.clone());
+            let _ = tx.send(Message::State(i, Check::new(Status::Deferred), version));
+            continue;
+        }
+        if engine.needs_safe(&target)? {
+            safe_ids.push(f.id.clone());
+            let _ = tx.send(Message::State(i, Check::new(Status::SafeQueued), version));
+            continue;
+        }
+        let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
+        if let Err(error) = engine.restore(f, false, engine.safe) {
+            failure(engine, tx, i, version, error)?;
+            engine
+                .store
+                .results
+                .lock()
+                .unwrap()
+                .get_mut(&f.id)
+                .unwrap()
+                .restoring = true;
+        }
+        publish(engine, tx, i, version);
+        processed += 1;
+    }
+    if engine.safe {
+        if engine
+            .store
+            .pending
+            .lock()
+            .unwrap()
+            .as_ref()
+            .is_some_and(|p| p.phase == workflow::Phase::AwaitSafe)
+        {
+            workflow::safe_complete(engine)?;
+        }
+        workflow::prepare_normal(engine, false, &normal_ids)?;
+    } else if !safe_ids.is_empty() {
+        workflow::prepare_safe(engine, &safe_ids, false, true)?;
+        workflow::prepare_normal(engine, false, &safe_ids)?;
+    } else if workflow::requires_restart(engine) {
+        workflow::prepare_normal(engine, false, &[])?;
+    }
+    if let Some(p) = engine.store.pending.lock().unwrap().as_mut() {
+        p.restoring = true;
+    }
+    engine.store.save()?;
     let _ = tx.send(Message::Finished {
         processed,
         restart: workflow::requires_restart(engine),

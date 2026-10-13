@@ -227,6 +227,63 @@ pub fn disable() -> Result<()> {
     );
     Ok(())
 }
+pub fn defaults() -> Result<bool> {
+    for image in targets()? {
+        for &(id, len) in POLICIES {
+            if image.is_empty() && !system_policy(id) {
+                continue;
+            }
+            for flags in [0, 8] {
+                if flags == 8 && (image.is_empty() || !audit_policy(id)) {
+                    continue;
+                }
+                if read(&image, id, flags, len)?
+                    .is_some_and(|data| data[..options(id, len)].iter().any(|v| v & 3 != 0))
+                {
+                    return Ok(false);
+                }
+            }
+        }
+    }
+    Ok(true)
+}
+pub fn restore() -> Result<()> {
+    let _system = native::system()?;
+    for image in targets()? {
+        let wide = native::wide(&image);
+        let p = if image.is_empty() {
+            std::ptr::null()
+        } else {
+            wide.as_ptr()
+        };
+        for &(id, len) in POLICIES {
+            if image.is_empty() && !system_policy(id) {
+                continue;
+            }
+            for flags in [0, 8] {
+                if flags == 8 && (image.is_empty() || !audit_policy(id)) {
+                    continue;
+                }
+                let data = vec![0u64; len];
+                let hr = unsafe {
+                    RtlSetImageMitigationPolicy(
+                        p,
+                        id,
+                        flags,
+                        data.as_ptr().cast(),
+                        (len * 8) as u32,
+                    )
+                };
+                ensure!(hr >= 0, "Mitigation reset {image}/{id}: {hr:08X}");
+            }
+        }
+    }
+    ensure!(
+        defaults()?,
+        "Mitigation policies did not return to defaults"
+    );
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {

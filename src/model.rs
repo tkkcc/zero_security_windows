@@ -23,6 +23,9 @@ pub struct Feature {
     pub restart: bool,
     pub manual: bool,
     pub ops: Vec<Operation>,
+    pub restore_ops: Vec<Operation>,
+    pub restore_safe: bool,
+    pub default_off: bool,
 }
 impl Default for Feature {
     fn default() -> Self {
@@ -46,6 +49,9 @@ impl Default for Feature {
             restart: false,
             manual: false,
             ops: vec![],
+            restore_ops: vec![],
+            restore_safe: false,
+            default_off: false,
         }
     }
 }
@@ -79,6 +85,15 @@ impl Feature {
     pub fn toggle(&self) -> bool {
         self.id == "classic-menu"
     }
+    pub fn restore_target(&self) -> Self {
+        Self {
+            ops: self.restore_ops.clone(),
+            safe: self.restore_safe,
+            probe: String::new(),
+            intent: "Restore".into(),
+            ..self.clone()
+        }
+    }
     pub fn can_run_safe(&self) -> bool {
         self.ops
             .iter()
@@ -87,6 +102,9 @@ impl Feature {
                 matches!(
                     op.kind.as_str(),
                     "Registry"
+                        | "ServiceStart"
+                        | "UserServicesStart"
+                        | "LocaleCodePages"
                         | "RegistryDelete"
                         | "RegistryKey"
                         | "Service"
@@ -170,6 +188,7 @@ pub enum Status {
     Checking,
     Ready,
     Done,
+    Restored,
     Unknown,
     Restricted,
     Absent,
@@ -202,7 +221,11 @@ impl Check {
     pub fn actionable(&self) -> bool {
         matches!(
             self.state,
-            Status::Ready | Status::Failed | Status::PendingCheck | Status::Checking
+            Status::Ready
+                | Status::Restored
+                | Status::Failed
+                | Status::PendingCheck
+                | Status::Checking
         )
     }
     pub fn recheckable(&self) -> bool {
@@ -210,6 +233,11 @@ impl Check {
     }
     pub fn summary<'a>(&self, f: &'a Feature, zh: bool) -> &'a str {
         match self.state {
+            Status::Restored => choose(
+                zh,
+                "已恢复为 Windows 默认可用配置。",
+                "Restored to usable Windows defaults.",
+            ),
             Status::PendingCheck => choose(
                 zh,
                 "尚未读取当前设置。",
@@ -318,13 +346,24 @@ impl Check {
     }
     pub fn instruction(&self, f: &Feature, zh: bool) -> Option<&str> {
         Some(match self.state {
+            Status::Restored => choose(
+                zh,
+                "按 Space 再次执行；按 R 恢复默认配置。",
+                "Press Space to apply again; R restores defaults.",
+            ),
             Status::Ready | Status::Done if f.toggle() => choose(
                 zh,
                 "按 Space 切换菜单样式。",
                 "Press Space to switch the menu style.",
             ),
             Status::Ready | Status::PendingCheck | Status::Checking => {
-                if f.safe {
+                if f.default_off {
+                    choose(
+                        zh,
+                        "按 Space 单独执行；执行全部不包含此项。",
+                        "Press Space to run separately; Run all excludes this item.",
+                    )
+                } else if f.safe {
                     choose(
                         zh,
                         "按 Space 执行；必要时进入安全模式。",
@@ -354,8 +393,8 @@ impl Check {
             ),
             Status::SafeQueued => choose(
                 zh,
-                "按 R 重启，进入安全模式后自动继续。",
-                "Press R to restart; execution continues in Safe Mode.",
+                "按 F10 重启，进入安全模式后自动继续。",
+                "Press F10 to restart; execution continues in Safe Mode.",
             ),
             Status::Restart => choose(
                 zh,
@@ -377,8 +416,10 @@ impl Check {
     }
     pub fn label(&self, f: &Feature, zh: bool) -> String {
         match self.state {
+            Status::Restored => choose(zh, "已恢复", "Restored"),
             Status::PendingCheck => choose(zh, "待检测", "Awaiting check"),
             Status::Checking => choose(zh, "检测中", "Checking"),
+            Status::Ready if f.default_off => choose(zh, "可单独关闭", "Run separately"),
             Status::Ready if f.id == "taskbar-pins" => choose(zh, "可清理", "Can clean up"),
             Status::Done if f.id == "taskbar-pins" => choose(zh, "无固定项", "No pins"),
             Status::Ready if f.toggle() => "Windows 11",
@@ -430,4 +471,6 @@ pub struct ResultRecord {
     pub shell: u64,
     #[serde(default)]
     pub logon: u64,
+    #[serde(default)]
+    pub restoring: bool,
 }

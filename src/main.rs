@@ -7,6 +7,7 @@ mod mitigation;
 mod model;
 mod native;
 mod preferences;
+mod recovery;
 mod registry;
 mod store;
 mod tray;
@@ -51,10 +52,15 @@ fn run() -> anyhow::Result<()> {
                 native::elevate(&args)?;
                 return Ok(());
             }
-            if native::modern_terminal(&args)? {
+            if !args.iter().any(|a| a == "--console") && native::modern_terminal(&args)? {
                 return Ok(());
             }
-            tui::run(args.first().cloned().unwrap_or_default())
+            tui::run(
+                args.first()
+                    .filter(|a| a.as_str() != "--console")
+                    .cloned()
+                    .unwrap_or_default(),
+            )
         }
     }
 }

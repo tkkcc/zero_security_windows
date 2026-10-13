@@ -6,10 +6,9 @@ use windows::{Management::Deployment::*, core::HSTRING};
 pub struct AppEntry {
     pub name: String,
     pub full: String,
-    pub family: String,
-    pub non_removable: bool,
-    pub users: Vec<String>,
-    pub provisioned: bool,
+    #[serde(default)]
+    pub disabled: bool,
+    pub path: String,
 }
 pub fn inventory() -> Result<Vec<AppEntry>> {
     native::com()?;
@@ -31,10 +30,8 @@ pub fn inventory() -> Result<Vec<AppEntry>> {
             out.push(AppEntry {
                 name: id.Name()?.to_string(),
                 full: id.FullName()?.to_string(),
-                family: id.FamilyName()?.to_string(),
-                non_removable: non_removable(&package)?,
-                users,
-                provisioned: false,
+                disabled: package.Status()?.Disabled()?,
+                path: package.InstalledPath()?.to_string(),
             });
         }
     }
@@ -43,10 +40,8 @@ pub fn inventory() -> Result<Vec<AppEntry>> {
         out.push(AppEntry {
             name: id.Name()?.to_string(),
             full: id.FullName()?.to_string(),
-            family: id.FamilyName()?.to_string(),
-            non_removable: false,
-            users: vec![],
-            provisioned: true,
+            disabled: package.Status()?.Disabled()?,
+            path: package.InstalledPath()?.to_string(),
         });
     }
     Ok(out)
@@ -55,69 +50,139 @@ pub fn matching<'a>(entries: &'a [AppEntry], op: &Operation) -> Vec<&'a AppEntry
     entries
         .iter()
         .filter(|a| {
-            (!a.non_removable || op.system_app || a.provisioned)
-                && op
-                    .patterns
-                    .iter()
-                    .any(|p| crate::engine::matches(&a.name, p))
+            op.patterns
+                .iter()
+                .any(|p| crate::engine::matches(&a.name, p))
         })
         .collect()
 }
-pub fn remove(op: &Operation) -> Result<bool> {
+pub fn set_enabled(op: &Operation) -> Result<bool> {
+    native::com()?;
     let entries = inventory()?;
-    let mut targets = matching(&entries, op);
-    targets.sort_by_key(|a| !a.provisioned);
+    let targets = matching(&entries, op);
     let manager = PackageManager::new()?;
-    let mut restart = false;
-    let mut errors = vec![];
-    for a in targets {
-        let result = (|| -> Result<()> {
-            if op.system_app && !a.provisioned {
-                native::dism(&[
-                    "/Online",
-                    "/English",
-                    "/Set-NonRemovableAppPolicy",
-                    &format!("/PackageFamily:{}", a.family),
-                    "/NonRemovable:0",
-                ])?;
-                for sid in &a.users {
-                    reg::key(
-                        &format!(
-                            r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\EndOfLife\{sid}\{}",
-                            a.full
-                        ),
-                        true,
+    let _guard = native::system()?;
+    let mut seen = std::collections::HashSet::new();
+    for a in &targets {
+        if !seen.insert(&a.full) {
+            continue;
+        }
+        if crate::model::bool_value(&op.value) {
+            manager.ClearPackageStatus(&HSTRING::from(&a.full), PackageStatus::Disabled)?;
+        } else {
+            manager.SetPackageStatus(&HSTRING::from(&a.full), PackageStatus::Disabled)?;
+            for (_, image) in native::process_images()? {
+                if image
+                    .to_lowercase()
+                    .starts_with(&format!("{}\\", a.path.to_lowercase()))
+                {
+                    native::stop_process(
+                        std::path::Path::new(&image)
+                            .file_name()
+                            .unwrap()
+                            .to_str()
+                            .unwrap(),
                     )?;
                 }
             }
-            let result = if a.provisioned {
-                manager
-                    .DeprovisionPackageForAllUsersAsync(&HSTRING::from(&a.family))?
-                    .join()?
-            } else {
-                manager
-                    .RemovePackageWithOptionsAsync(
-                        &HSTRING::from(&a.full),
-                        RemovalOptions::RemoveForAllUsers,
-                    )?
-                    .join()?
-            };
-            let hr = result.ExtendedErrorCode()?;
-            ensure!(hr.is_ok(), "{}: {}", a.name, result.ErrorText()?);
-            if !a.provisioned {
-                restart |= manager.IsPackageRemovalPending(&HSTRING::from(&a.full))?;
-            }
-            Ok(())
-        })();
-        if let Err(e) = result {
-            errors.push(format!("{}: {e}", a.name))
         }
     }
-    ensure!(errors.is_empty(), "{}", errors.join("; "));
-    // Successful removal can leave another user's registration until restart.
-    restart |= !matching(&inventory()?, op).is_empty();
-    Ok(restart)
+    if crate::model::bool_value(&op.value) && targets.is_empty() {
+        if op.source == "Optional" {
+            return Ok(false);
+        }
+        if op.names.is_empty() {
+            drop(_guard);
+            return restore_local(op, &manager);
+        }
+        drop(_guard);
+        for id in &op.names {
+            install(
+                &Operation {
+                    name: id.clone(),
+                    source: "msstore".into(),
+                    ..Default::default()
+                },
+                false,
+            )?;
+        }
+    }
+    Ok(false)
 }
+fn restore_local(op: &Operation, manager: &PackageManager) -> Result<bool> {
+    use std::path::PathBuf;
+    let mut manifests = vec![];
+    for root in [
+        native::expand(r"%ProgramFiles%\WindowsApps"),
+        native::expand(r"%SystemRoot%\SystemApps"),
+    ] {
+        let root = PathBuf::from(root);
+        if !root.exists() {
+            continue;
+        }
+        for entry in std::fs::read_dir(root)? {
+            let path = entry?.path();
+            let name = path.file_name().unwrap().to_string_lossy();
+            if op
+                .patterns
+                .iter()
+                .any(|p| crate::engine::matches(name.split('_').next().unwrap(), p))
+            {
+                let manifest = path.join("AppxManifest.xml");
+                if manifest.exists() {
+                    manifests.push(manifest);
+                }
+            }
+        }
+    }
+    if op.name == "security-ui" {
+        let root = PathBuf::from(native::expand(r"%SystemRoot%\System32\SecurityHealth"));
+        if root.exists() {
+            for entry in std::fs::read_dir(root)? {
+                let package = entry?
+                    .path()
+                    .join("Microsoft.SecHealthUI_8wekyb3d8bbwe.appx");
+                if package.exists() {
+                    let uri = windows::Foundation::Uri::CreateUri(&HSTRING::from(format!(
+                        "file:///{}",
+                        package.to_string_lossy().replace('\\', "/")
+                    )))?;
+                    let result = manager
+                        .AddPackageAsync(&uri, None, DeploymentOptions::ForceApplicationShutdown)?
+                        .join()?;
+                    ensure!(
+                        result.ExtendedErrorCode()?.is_ok(),
+                        "{}",
+                        result.ErrorText()?
+                    );
+                    return Ok(false);
+                }
+            }
+        }
+    }
+    ensure!(
+        !manifests.is_empty(),
+        "Windows did not retain installation files for {}; this component must be reinstalled through Windows or its publisher",
+        op.name
+    );
+    // Register one current package, avoiding an attempt to downgrade newer files.
+    manifests.sort();
+    let manifest = manifests.last().unwrap();
+    let uri = windows::Foundation::Uri::CreateUri(&HSTRING::from(format!(
+        "file:///{}",
+        manifest.to_string_lossy().replace('\\', "/")
+    )))?;
+    let result = manager
+        .RegisterPackageAsync(&uri, None, DeploymentOptions::None)?
+        .join()?;
+    ensure!(
+        result.ExtendedErrorCode()?.is_ok(),
+        "{}",
+        result.ErrorText()?
+    );
+    Ok(false)
+}
+
 pub fn winget() -> Result<String> {
     let path = std::path::PathBuf::from(std::env::var("LOCALAPPDATA")?)
         .join(r"Microsoft\WindowsApps\winget.exe");
@@ -206,6 +271,30 @@ pub fn registered_tool(op: &Operation) -> Result<Option<bool>> {
     Ok(None)
 }
 pub fn install(op: &Operation, uninstall: bool) -> Result<bool> {
+    if uninstall || op.source != "msstore" {
+        return install_run(op, uninstall);
+    }
+    let temporary = native::service_start("DoSvc", None)? == 4;
+    if temporary {
+        native::service_start("DoSvc", Some(3))?;
+    }
+    let result = install_run(op, uninstall);
+    if temporary {
+        let restart = native::disable_service("DoSvc")?;
+        reg::set(
+            r"HKLM:\SYSTEM\CurrentControlSet\Services\DoSvc",
+            "Start",
+            4,
+            "DWord",
+        )?;
+        ensure!(
+            !restart,
+            "Delivery Optimization could not return to its disabled state"
+        );
+    }
+    result
+}
+fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
     let mut args = vec![
         if uninstall { "uninstall" } else { "install" },
         "--id",
@@ -275,21 +364,4 @@ pub fn remove_copilot() -> Result<bool> {
         "Copilot desktop is still installed"
     );
     Ok(restart)
-}
-
-#[link(name = "appxalluserstore", kind = "raw-dylib")]
-unsafe extern "system" {
-    fn IsPackageFamilyInUninstallBlocklist(family: *const u16, present: *mut i32) -> i32;
-}
-fn non_removable(package: &windows::ApplicationModel::Package) -> Result<bool> {
-    if package.SignatureKind()? == windows::ApplicationModel::PackageSignatureKind::System {
-        return Ok(true);
-    }
-    let mut present = 0;
-    let family = native::wide(&package.Id()?.FamilyName()?.to_string());
-    windows::core::HRESULT(unsafe {
-        IsPackageFamilyInUninstallBlocklist(family.as_ptr(), &mut present)
-    })
-    .ok()?;
-    Ok(present != 0)
 }

@@ -98,6 +98,37 @@ pub fn enable() -> Result<()> {
     }
     Ok(())
 }
+pub fn disable() -> Result<()> {
+    let h = unsafe { OpenEventW(2, 0, name()?.as_ptr()) };
+    if !h.is_null() {
+        unsafe {
+            native::ok(SetEvent(h))?;
+            native::CloseHandle(h);
+        }
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while running()? {
+            ensure!(Instant::now() < deadline, "Tray helper did not stop");
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    }
+    reg::delete(
+        r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
+        "ZeroSecurityWindows.Tray",
+    )?;
+    let (key, _) = RegKey::predef(HKEY_CURRENT_USER).create_subkey(ICONS)?;
+    for name in key.enum_keys() {
+        key.open_subkey_with_flags(name?, KEY_WRITE)?
+            .delete_value("IsPromoted")
+            .or_else(|e| {
+                if e.raw_os_error() == Some(2) {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            })?;
+    }
+    Ok(())
+}
 pub fn run() -> Result<()> {
     let stop = unsafe { CreateEventW(std::ptr::null_mut(), 1, 0, name()?.as_ptr()) };
     ensure!(!stop.is_null(), "Create tray event failed");

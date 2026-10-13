@@ -29,7 +29,16 @@ fn check_error(error: &anyhow::Error) -> Check {
 
 impl Engine {
     pub fn check(&self, f: &Feature) -> Check {
-        let mut check = match self.check_inner(f) {
+        let restoring = self
+            .store
+            .results
+            .lock()
+            .unwrap()
+            .get(&f.id)
+            .is_some_and(|r| r.restoring);
+        let target = f.restore_target();
+        let checked = if restoring { &target } else { f };
+        let mut check = match self.check_inner(checked) {
             Ok(v) => v,
             Err(e) => {
                 let check = check_error(&e);
@@ -40,8 +49,15 @@ impl Engine {
                 check
             }
         };
+        if restoring && matches!(check.state, Status::Done | Status::Absent) {
+            check.state = Status::Restored;
+            check.detail.clear();
+        }
         if let Some(result) = self.store.results.lock().unwrap().get_mut(&f.id) {
-            if matches!(check.state, Status::Done | Status::Absent) {
+            if matches!(
+                check.state,
+                Status::Done | Status::Absent | Status::Restored
+            ) {
                 result.errors.clear();
             }
             if !result.errors.is_empty() && check.state != Status::Restricted {
@@ -121,9 +137,14 @@ impl Engine {
             return Ok(Check::new(Status::Absent));
         }
         let mut done = true;
+        let mut available = 0;
         let mut running_until_restart = false;
         for op in ops {
             let value = self.read(&op)?;
+            if op.kind == "OptionalFeature" && value.is_null() {
+                continue;
+            }
+            available += 1;
             if !satisfied(&op, &value)
                 || (op.kind == "Service" && native::service_running(&op.service)?)
             {
@@ -140,6 +161,9 @@ impl Engine {
             {
                 running_until_restart = true;
             }
+        }
+        if available == 0 {
+            return Ok(Check::new(Status::Absent));
         }
         if done && running_until_restart {
             return Ok(Check {
