@@ -246,8 +246,22 @@ impl App {
     fn category_command(&self) -> Command {
         Command::Items(self.visible.clone())
     }
+    fn checks_remaining(&self) -> usize {
+        self.states
+            .iter()
+            .filter(|s| matches!(s.state, Status::PendingCheck | Status::Checking))
+            .count()
+    }
+    fn actions_blocked(&self) -> bool {
+        self.busy || self.checks_remaining() != 0
+    }
+    fn queue_checks(&mut self, indices: &[usize]) {
+        for &i in indices {
+            self.states[i] = Check::new(Status::PendingCheck);
+        }
+    }
     fn key_command(&self, key: KeyCode) -> Option<Command> {
-        if self.busy {
+        if self.actions_blocked() {
             return None;
         }
         match key {
@@ -277,14 +291,15 @@ impl App {
             _ => None,
         }
     }
-    pub fn command(&mut self, command: &Command) {
+    pub fn command(&mut self, command: &Command) -> bool {
+        if self.actions_blocked() {
+            return false;
+        }
         self.follow_top = false;
         self.countdown = None;
         if let Command::Scan(indices) = command {
-            for &i in indices {
-                self.states[i] = Check::new(Status::PendingCheck);
-            }
-            return;
+            self.queue_checks(indices);
+            return true;
         }
         self.busy = true;
         for i in 0..self.catalog.len() {
@@ -304,8 +319,12 @@ impl App {
             self.message = choose(self.zh, "正在恢复默认配置", "Restoring defaults").into();
         }
         self.reorder();
+        true
     }
     fn space_command(&self) -> Option<Command> {
+        if self.actions_blocked() {
+            return None;
+        }
         let i = self.selected()?;
         if self.states[i].state == Status::Failed
             && self.engine.as_ref().is_some_and(|e| {
@@ -399,7 +418,7 @@ impl App {
                 color: self.palette.red,
             });
         }
-        if !self.busy
+        if !self.actions_blocked()
             && let Some(instruction) = state.instruction(f, self.zh)
         {
             sections.push(DetailSection {
@@ -439,11 +458,7 @@ impl App {
             width: frame.area().width.saturating_sub(2),
             ..frame.area()
         };
-        let mut message = if self.message.is_empty() {
-            choose(self.zh, "就绪", "Ready").into()
-        } else {
-            self.message.clone()
-        };
+        let mut message = self.message.clone();
         if self.busy {
             let running = self
                 .states
@@ -459,6 +474,14 @@ impl App {
                 "{} {running} · {} {queued}",
                 choose(self.zh, "执行中", "Running"),
                 choose(self.zh, "排队中", "Queued")
+            );
+        } else if self.checks_remaining() != 0 && (self.engine.is_some() || self.message.is_empty())
+        {
+            message = format!(
+                "{} · {} {}",
+                choose(self.zh, "检测中", "Checking"),
+                self.checks_remaining(),
+                choose(self.zh, "项待完成", "remaining")
             );
         }
         if let Some((deadline, restart)) = self.countdown {
@@ -480,7 +503,7 @@ impl App {
                 )
             );
         }
-        let color = if self.busy {
+        let color = if self.actions_blocked() {
             p.blue
         } else if self.states.iter().any(|s| s.state == Status::Failed) {
             p.red
@@ -680,7 +703,14 @@ impl App {
         ]
         .into_iter()
         .filter(|(i, _, _, _)| *i != 5 || self.restart)
-        .map(|(i, key, label, enabled)| (i, key, label, enabled && !self.busy))
+        .map(|(i, key, label, enabled)| {
+            (
+                i,
+                key,
+                label,
+                enabled && !self.busy && (i == 4 || self.checks_remaining() == 0),
+            )
+        })
         .collect()
     }
     fn draw_tabs(&mut self, frame: &mut Frame, area: Rect, style: Style) {
@@ -773,7 +803,12 @@ impl App {
                 self.busy = true;
                 self.countdown = None;
                 for i in indices {
-                    if self.states[i].actionable() {
+                    if self.states[i].actionable()
+                        || matches!(
+                            self.states[i].state,
+                            Status::PendingCheck | Status::Checking
+                        )
+                    {
                         self.states[i] = Check::new(Status::Queued);
                     }
                 }
@@ -938,7 +973,10 @@ fn event_loop(
                 );
                 refresh.sort();
                 refresh.dedup();
-                commands.send(Command::Scan(refresh))?;
+                if !refresh.is_empty() {
+                    app.queue_checks(&refresh);
+                    commands.send(Command::Scan(refresh))?;
+                }
             }
             dirty = true
         }
@@ -993,8 +1031,9 @@ fn event_loop(
             }
             let command = app.key_command(key.code);
             if let Some(command) = command {
-                app.command(&command);
-                commands.send(command)?;
+                if app.command(&command) {
+                    commands.send(command)?;
+                }
                 dirty = true;
                 continue;
             }
@@ -1005,8 +1044,9 @@ fn event_loop(
             if key == KeyCode::Char('q') {
                 return Ok(());
             }
-            if let Some(command) = app.key_command(key) {
-                app.command(&command);
+            if let Some(command) = app.key_command(key)
+                && app.command(&command)
+            {
                 commands.send(command)?;
             }
             continue;
@@ -1024,10 +1064,128 @@ fn event_loop(
 #[cfg(test)]
 mod tests {
     #[test]
+    fn detection_blocks_actions_across_categories_and_does_not_queue_them() -> Result<()> {
+        use crossterm::event::{KeyEvent, MouseEvent};
+        use ratatui::{Terminal, backend::TestBackend};
+        let mut app = App::new(catalog()?, true)?;
+        app.restart = true;
+        let i = app.selected().unwrap();
+        for state in [Status::PendingCheck, Status::Checking] {
+            let check = Check::new(state);
+            assert!(!check.actionable());
+            assert!(check.instruction(&app.catalog[i], true).is_none());
+        }
+        assert!(!app.command(&Command::All));
+        app.states.fill(Check::new(Status::Done));
+        app.states[i] = Check::new(Status::Ready);
+        let last = app.catalog.len() - 1;
+        assert!(!app.visible.contains(&last));
+        let commands = [
+            Command::One(i),
+            app.category_command(),
+            Command::All,
+            Command::Restore(i),
+            Command::Restart,
+        ];
+        let keys = [
+            KeyCode::Char(' '),
+            KeyCode::Char('c'),
+            KeyCode::Char('C'),
+            KeyCode::Char('a'),
+            KeyCode::Char('A'),
+            KeyCode::Char('r'),
+            KeyCode::Char('R'),
+            KeyCode::F(10),
+        ];
+        let mut terminal = Terminal::new(TestBackend::new(140, 24))?;
+        for state in [Status::PendingCheck, Status::Checking] {
+            app.states[last] = Check::new(state);
+            let before: Vec<_> = app.states.iter().map(|s| s.state).collect();
+            for key in keys {
+                assert!(app.key_command(key).is_none());
+            }
+            for command in &commands {
+                assert!(!app.command(command));
+            }
+            assert!(!app.busy);
+            assert_eq!(
+                before,
+                app.states.iter().map(|s| s.state).collect::<Vec<_>>()
+            );
+            terminal.draw(|f| app.draw(f))?;
+            for (index, _, _, enabled) in app.button_specs() {
+                assert_eq!(enabled, index == 4);
+                let rect = app.buttons[index].area;
+                for kind in [
+                    MouseEventKind::Down(MouseButton::Left),
+                    MouseEventKind::Up(MouseButton::Left),
+                ] {
+                    if index == 4 {
+                        continue;
+                    }
+                    assert_eq!(
+                        app.button_event(&Event::Mouse(MouseEvent {
+                            kind,
+                            column: rect.x + 1,
+                            row: rect.y,
+                            modifiers: KeyModifiers::NONE
+                        })),
+                        (None, false)
+                    );
+                }
+            }
+        }
+        assert!(app.navigate(&Event::Key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE))));
+        assert!(app.navigate(&Event::Key(KeyEvent::new(
+            KeyCode::BackTab,
+            KeyModifiers::SHIFT
+        ))));
+        app.receive(Message::State(last, Check::new(Status::Ready), 0), 0);
+        for key in keys {
+            assert!(app.key_command(key).is_some());
+        }
+        app.queue_checks(&[last]);
+        assert!(app.key_command(KeyCode::Char('a')).is_none());
+        app.receive(Message::State(last, Check::new(Status::Done), 0), 0);
+        assert!(app.command(&Command::One(i)));
+        assert_eq!(app.states[i].state, Status::Queued);
+        Ok(())
+    }
+    #[test]
+    fn idle_footer_is_empty_and_detection_reports_remaining_items() -> Result<()> {
+        use ratatui::{Terminal, backend::TestBackend};
+        for zh in [true, false] {
+            let mut app = App::new(catalog()?, zh)?;
+            app.states.fill(Check::new(Status::Done));
+            let mut terminal = Terminal::new(TestBackend::new(140, 24))?;
+            terminal.draw(|f| app.draw(f))?;
+            let first_button = app.toolbar(Rect::new(1, 23, 138, 1))[0].2.x;
+            let footer = |terminal: &Terminal<TestBackend>| {
+                (1..first_button)
+                    .map(|x| terminal.backend().buffer()[(x, 23)].symbol())
+                    .collect::<String>()
+            };
+            assert!(footer(&terminal).trim().is_empty());
+            app.queue_checks(&[0]);
+            terminal.draw(|f| app.draw(f))?;
+            let text: String = footer(&terminal)
+                .chars()
+                .filter(|c| !c.is_whitespace())
+                .collect();
+            assert!(text.contains(choose(zh, "检测中", "Checking")), "{text:?}");
+            assert!(footer(&terminal).contains('1'));
+            app.receive(Message::State(0, Check::new(Status::Done), 0), 0);
+            terminal.draw(|f| app.draw(f))?;
+            assert!(footer(&terminal).trim().is_empty());
+        }
+        Ok(())
+    }
+    #[test]
     fn restore_and_restart_have_separate_keys_and_fit_a_narrow_toolbar() -> anyhow::Result<()> {
         use super::*;
         use ratatui::{Terminal, backend::TestBackend};
         let mut app = App::new(catalog()?, true)?;
+        app.states.fill(Check::new(Status::Done));
         let i = app.selected().unwrap();
         app.states[i] = Check::new(Status::Done);
         assert!(matches!(app.key_command(KeyCode::Char('R')), Some(Command::Restore(n)) if n == i));
@@ -1056,6 +1214,7 @@ mod tests {
     #[test]
     fn category_execution_is_scoped_and_all_execution_crosses_tabs() -> Result<()> {
         let mut app = App::new(catalog()?, true)?;
+        app.states.fill(Check::new(Status::Ready));
         let mut seen = vec![];
         for category in 0..app.categories.len() {
             app.switch_category(category);
@@ -1095,7 +1254,7 @@ mod tests {
                 } else if indices.contains(&i) {
                     Status::Queued
                 } else {
-                    Status::PendingCheck
+                    Status::Ready
                 }
             );
         }
@@ -1109,7 +1268,7 @@ mod tests {
         app.command(&Command::All);
         for (state, feature) in app.states.iter().zip(&app.catalog) {
             if feature.default_off {
-                assert_eq!(state.state, Status::PendingCheck);
+                assert_eq!(state.state, Status::Ready);
             } else {
                 assert!(matches!(state.state, Status::Queued | Status::Done));
             }
@@ -1225,6 +1384,7 @@ mod tests {
         use crossterm::event::MouseEvent;
         use ratatui::{Terminal, backend::TestBackend};
         let mut app = App::new(catalog()?, true)?;
+        app.states.fill(Check::new(Status::Ready));
         let mut terminal = Terminal::new(TestBackend::new(120, 24))?;
         terminal.draw(|frame| app.draw(frame))?;
         let area = app.buttons[1].area;
@@ -1256,7 +1416,7 @@ mod tests {
                 if items.contains(&i) {
                     Status::Queued
                 } else {
-                    Status::PendingCheck
+                    Status::Ready
                 }
             );
         }
@@ -1446,6 +1606,7 @@ mod tests {
         use ratatui::{Terminal, backend::TestBackend};
         for zh in [true, false] {
             let mut app = App::new(catalog()?, zh)?;
+            app.states.fill(Check::new(Status::Done));
             let i = app
                 .catalog
                 .iter()
@@ -1523,6 +1684,7 @@ mod tests {
     #[test]
     fn unavailable_states_recheck_without_executing_or_moving_selection() -> Result<()> {
         let mut app = App::new(catalog()?, true)?;
+        app.states.fill(Check::new(Status::Done));
         let i = app
             .catalog
             .iter()
@@ -1707,6 +1869,7 @@ mod tests {
     #[test]
     fn parallel_execution_keeps_selection_and_order_when_an_item_finishes() -> Result<()> {
         let mut app = App::new(catalog()?, true)?;
+        app.states.fill(Check::new(Status::Ready));
         app.command(&Command::All);
         app.receive(Message::State(0, Check::new(Status::Running), 0), 0);
         app.receive(Message::State(1, Check::new(Status::Running), 0), 0);
@@ -1783,6 +1946,7 @@ mod tests {
     #[test]
     fn stale_detection_cannot_replace_queued_or_running_status() -> Result<()> {
         let mut app = App::new(catalog()?, true)?;
+        app.states.fill(Check::new(Status::Ready));
         app.command(&Command::One(0));
         app.receive(Message::State(0, Check::new(Status::Checking), 0), 1);
         assert_eq!(app.states[0].state, Status::Queued);
@@ -1796,6 +1960,7 @@ mod tests {
     fn retry_keeps_the_selected_row_and_viewport_through_completion() -> Result<()> {
         use ratatui::{Terminal, backend::TestBackend};
         let mut app = App::new(catalog()?, true)?;
+        app.states.fill(Check::new(Status::Done));
         let mut terminal = Terminal::new(TestBackend::new(100, 24))?;
         app.receive(
             Message::Finished {

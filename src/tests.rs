@@ -230,17 +230,13 @@ fn frame_and_navigation_work_while_every_item_is_checking() -> anyhow::Result<()
             );
             assert!(app.table.selected().unwrap() > before_page);
             assert!(!app.busy);
-            app.command(&Command::All);
-            for (state, feature) in app.states.iter().zip(&app.catalog) {
-                assert_eq!(
-                    state.state,
-                    if feature.default_off {
-                        Status::PendingCheck
-                    } else {
-                        Status::Queued
-                    }
-                );
-            }
+            assert!(!app.command(&Command::All));
+            assert!(!app.busy);
+            assert!(
+                app.states
+                    .iter()
+                    .all(|state| state.state == Status::PendingCheck)
+            );
             terminal.draw(|f| app.draw(f))?;
         }
     }

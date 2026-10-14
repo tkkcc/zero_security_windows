@@ -222,11 +222,7 @@ impl Check {
     pub fn actionable(&self) -> bool {
         matches!(
             self.state,
-            Status::Ready
-                | Status::Restored
-                | Status::Failed
-                | Status::PendingCheck
-                | Status::Checking
+            Status::Ready | Status::Restored | Status::Failed
         )
     }
     pub fn recheckable(&self) -> bool {
@@ -357,7 +353,7 @@ impl Check {
                 "按 Space 切换菜单样式。",
                 "Press Space to switch the menu style.",
             ),
-            Status::Ready | Status::PendingCheck | Status::Checking => {
+            Status::Ready => {
                 if f.default_off {
                     choose(
                         zh,
