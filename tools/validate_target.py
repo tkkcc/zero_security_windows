@@ -1,10 +1,12 @@
 """在独立目标机批量验证；重启由测试脚本控制，每项保存独立结果。"""
 import argparse
+import atexit
 import base64
 from datetime import datetime
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import time
 
@@ -13,12 +15,35 @@ class Target:
     def __init__(self, configuration):
         self.folder = configuration.resolve().parent
         self.config = json.loads(configuration.read_text(encoding='utf-8'))
+        self.tunnel_log = (self.folder / 'tunnel.stderr').open('w', encoding='utf-8')
+        self.tunnel = subprocess.Popen(
+            [self.config['client_binary'], '--key=' + self.config['client_key'], 'forward',
+             '--bind=127.0.0.1', self.config['address'], '0:22'],
+            stdout=subprocess.DEVNULL, stderr=self.tunnel_log, text=True,
+            encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        atexit.register(self.close)
+        endpoint = None
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline and self.tunnel.poll() is None:
+            endpoint = re.search(r'127\.0\.0\.1:(\d+)', (self.folder / 'tunnel.stderr').read_text(encoding='utf-8'))
+            if endpoint:
+                break
+            time.sleep(.1)
+        if not endpoint:
+            raise RuntimeError('The persistent tailcat tunnel did not start')
         self.flags = [
             '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new',
             '-o', 'ConnectTimeout=20', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=2',
             '-o', 'UserKnownHostsFile=' + (self.folder / 'target_known_hosts').as_posix(),
-            '-o', 'ProxyCommand=tailcat --key=' + self.config['client_key'] + ' ' + self.config['address'] + ' 22',
+            '-o', 'Hostname=127.0.0.1', '-o', 'HostKeyAlias=zsw-target', '-o', 'Port=' + endpoint[1],
         ]
+
+    def close(self):
+        if self.tunnel.poll() is None:
+            self.tunnel.terminate()
+            self.tunnel.wait(timeout=5)
+        self.tunnel_log.close()
 
     def run(self, script, timeout=120):
         script = "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); $OutputEncoding=[Console]::OutputEncoding; $ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; " + script
@@ -36,8 +61,10 @@ class Target:
         return json.loads(base64.b64decode(self.run("""
 $os=Get-CimInstance Win32_OperatingSystem;
 $pending=if(Test-Path 'C:/ProgramData/ZeroSecurityWindows/rust-workflow.json'){[IO.File]::ReadAllText('C:/ProgramData/ZeroSecurityWindows/rust-workflow.json') | ConvertFrom-Json}else{$null};
-$processes=@(Get-CimInstance Win32_Process -Filter "Name='zero_security_windows.exe'" | Where-Object {$_.CommandLine -match '--(safe-resume|resume)'});
-$json=@{Host=$env:COMPUTERNAME; Boot=$os.LastBootUpTime.ToUniversalTime().ToString('o'); Phase=[string]$pending.phase; Resume=$processes.Count} | ConvertTo-Json -Compress;
+$processes=@(Get-CimInstance Win32_Process -Filter "Name='zero_security_windows.exe' OR Name='tailcat.exe'");
+$resume=@($processes | Where-Object {$_.Name -eq 'zero_security_windows.exe' -and $_.CommandLine -match '--(safe-resume|resume)'});
+$agents=@($processes | Where-Object {$_.ExecutablePath -eq 'C:\\ProgramData\\ZeroSecurityWindowsValidation\\tailcat.exe'});
+$json=@{Host=$env:COMPUTERNAME; Boot=$os.LastBootUpTime.ToUniversalTime().ToString('o'); Phase=[string]$pending.phase; Resume=$resume.Count; Control=(Get-ScheduledTask -TaskName 'ZeroSecurityWindowsValidationControl').State.ToString(); ControlInstances=$agents.Count} | ConvertTo-Json -Compress;
 [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
 """, timeout=60)))
 
@@ -109,7 +136,8 @@ def main():
     catalog=json.loads((Path(__file__).resolve().parents[1]/'resources/catalog.json').read_text(encoding='utf-8'))
     final_ids={'input-method','desktop-icons','start-menu','taskbar-pins'}
     standalone=[f['Id'] for f in catalog if f.get('DefaultOff')]
-    installers=[f['Id'] for f in catalog if f['Page']=='Install']
+    remote_id='install-netease.uuremote'
+    installers=[f['Id'] for f in catalog if f['Page']=='Install' and f['Id']!=remote_id]
     removals=[f['Id'] for f in catalog if f['Page']=='Remove']
     final=[f['Id'] for f in catalog if f['Id'] in final_ids]
     settings=[f['Id'] for f in catalog if f['Page'] not in ('Install','Remove') and f['Id'] not in final_ids and not f.get('DefaultOff')]
@@ -122,10 +150,15 @@ def main():
         ('installers-apply','apply',installers),('desktop-apply','apply',final),
         ('normal-restore','restore',normal_restore),('defender-restore','restore',defender),
         ('sac-restore','restore',['smart-app-control']),
+        ('remote-restore','restore',[remote_id]),('remote-apply','apply',[remote_id]),
     ]
     for name,stage,ids in batches:
         if args.only and args.only!=name or not args.only and name in progress['passed']:
             continue
+        if name=='remote-restore':
+            control=target.status()
+            if control['Control']!='Running' or control['ControlInstances']!=1:
+                raise RuntimeError('The independent controller must be running alone before testing UU removal')
         print(f'[{name}] {stage} {len(ids)} items',flush=True)
         selection=target.selection(ids)
         report=target.report(['--'+stage+'-items',selection],'C:/ProgramData/ZeroSecurityWindowsValidation/current-report.json',timeout=7200)

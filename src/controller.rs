@@ -396,8 +396,12 @@ pub(crate) fn batch(
         &indices,
         matches!(command, Command::One(_)),
     );
+    // MMAgent updates share one configuration and overwrite concurrent changes.
+    let (memory, local): (Vec<_>, Vec<_>) = local.into_iter().partition(|i| {
+        engine.catalog[*i].ops.iter().any(|op| op.kind == "MemoryAgent")
+    });
     // Start fast settings before slow removals; jobs from different categories overlap.
-    let mut processed = parallel_jobs(&local, |i| {
+    let run_local = |i: usize| {
         let f = &engine.catalog[i];
         if f.manual || f.default_off && matches!(command, Command::All) {
             publish(engine, tx, i, version);
@@ -435,7 +439,11 @@ pub(crate) fn batch(
         }
         perform(engine, tx, i, version, matches!(command, Command::One(_)))?;
         Ok(true)
-    })?;
+    };
+    let mut processed = parallel_jobs(&local, run_local)?;
+    for i in memory {
+        processed += usize::from(run_local(i)?);
+    }
     let safe = safe.into_inner().unwrap();
     if !engine.safe && !matches!(command, Command::One(_)) {
         processed += parallel_jobs(&installers, |i| {

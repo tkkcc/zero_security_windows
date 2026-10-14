@@ -1802,6 +1802,7 @@
       {
         "Name": "NetEase.UURemote",
         "Source": "winget",
+        "UninstallKey": "GameViewer",
         "Value": true,
         "Kind": "Winget"
       }
@@ -1817,6 +1818,8 @@
       {
         "Name": "NetEase.UURemote",
         "Source": "winget",
+        "UninstallKey": "GameViewer",
+        "UninstallArgs": "/S",
         "Value": false,
         "Kind": "Winget"
       }
@@ -6589,7 +6592,7 @@
     "Zh": "文件搜索索引",
     "En": "File search indexing",
     "PurposeZh": "将 Windows 文件搜索索引服务禁用。",
-    "PurposeEn": "Set Windows file search indexing to manual startup.",
+    "PurposeEn": "Disable Windows file search indexing.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -6620,7 +6623,7 @@
     "Zh": "文件链接跟踪",
     "En": "File link tracking",
     "PurposeZh": "将追踪 NTFS 快捷方式和文档链接的服务禁用。",
-    "PurposeEn": "Set the service tracking NTFS shortcuts and document links to manual startup.",
+    "PurposeEn": "Disable the service tracking NTFS shortcuts and document links.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -6651,7 +6654,7 @@
     "Zh": "IPsec 密钥交换",
     "En": "IPsec key exchange",
     "PurposeZh": "将 IPsec 身份验证和密钥交换服务禁用。",
-    "PurposeEn": "Set IPsec authentication and key exchange to manual startup.",
+    "PurposeEn": "Disable IPsec authentication and key exchange.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -6682,7 +6685,7 @@
     "Zh": "网络文件与打印共享",
     "En": "Network file and printer sharing",
     "PurposeZh": "将接收网络文件、打印和命名管道共享请求的服务禁用。",
-    "PurposeEn": "Set the service handling incoming network file, printer and named pipe sharing to manual startup.",
+    "PurposeEn": "Disable the service handling incoming network file, printer and named pipe sharing.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -6713,7 +6716,7 @@
     "Zh": "离线地图服务",
     "En": "Offline maps service",
     "PurposeZh": "将离线地图访问服务禁用。",
-    "PurposeEn": "Set the service providing access to offline maps to manual startup.",
+    "PurposeEn": "Disable the service providing access to offline maps.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -6752,13 +6755,6 @@
         "Kind": "Registry",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
         "Name": "EnablePrefetcher",
-        "Type": "DWord",
-        "Value": 0
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
-        "Name": "EnableSuperfetch",
         "Type": "DWord",
         "Value": 0
       },
@@ -6845,13 +6841,6 @@
         "Kind": "Registry",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
         "Name": "EnablePrefetcher",
-        "Type": "DWord",
-        "Value": 0
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
-        "Name": "EnableSuperfetch",
         "Type": "DWord",
         "Value": 0
       },
@@ -6989,7 +6978,7 @@
     "Zh": "程序兼容性助手",
     "En": "Program Compatibility Assistant",
     "PurposeZh": "将程序兼容性助手禁用。",
-    "PurposeEn": "Set Program Compatibility Assistant to manual startup.",
+    "PurposeEn": "Disable Program Compatibility Assistant.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -7020,7 +7009,7 @@
     "Zh": "诊断策略",
     "En": "Diagnostic Policy Service",
     "PurposeZh": "将系统故障排查的诊断策略服务禁用。",
-    "PurposeEn": "Set the Diagnostic Policy service to manual startup.",
+    "PurposeEn": "Disable the Diagnostic Policy service.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -7051,7 +7040,7 @@
     "Zh": "诊断服务主机",
     "En": "Diagnostic Service Host",
     "PurposeZh": "将故障排查的诊断服务主机禁用。",
-    "PurposeEn": "Set Diagnostic Service Host to manual startup.",
+    "PurposeEn": "Disable Diagnostic Service Host.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -7082,7 +7071,7 @@
     "Zh": "诊断系统主机",
     "En": "Diagnostic System Host",
     "PurposeZh": "将故障排查的诊断系统主机禁用。",
-    "PurposeEn": "Set Diagnostic System Host to manual startup.",
+    "PurposeEn": "Disable Diagnostic System Host.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -7113,7 +7102,7 @@
     "Zh": "诊断执行服务",
     "En": "Diagnostic Execution Service",
     "PurposeZh": "将故障排查的诊断执行服务禁用。",
-    "PurposeEn": "Set Diagnostic Execution Service to manual startup.",
+    "PurposeEn": "Disable Diagnostic Execution Service.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -8158,7 +8147,7 @@
     "Zh": "联系人与用户数据后台",
     "En": "Contacts and user data services",
     "PurposeZh": "将联系人索引、用户数据存储和访问服务禁用。",
-    "PurposeEn": "Set contact indexing, user data storage and access services to manual startup.",
+    "PurposeEn": "Disable contact indexing, user data storage and access services.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -8336,7 +8325,7 @@
     "Zh": "流量统计后台",
     "En": "Data usage reporting",
     "PurposeZh": "将网络流量统计服务禁用。",
-    "PurposeEn": "Set network data usage reporting to manual startup.",
+    "PurposeEn": "Disable network data usage reporting.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [

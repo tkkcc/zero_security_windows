@@ -635,6 +635,22 @@ pub fn install(op: &Operation, uninstall: bool) -> Result<bool> {
     result
 }
 fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
+    if uninstall && !op.uninstall_args.is_empty() {
+        for hive in ["HKCU:", "HKLM:"] {
+            let path = format!(
+                r"{hive}\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{}",
+                op.uninstall_key
+            );
+            if let Some(command) = reg::read(&path, "UninstallString")?.as_str() {
+                reg::set(
+                    &path,
+                    "QuietUninstallString",
+                    format!("{command} {}", op.uninstall_args),
+                    "String",
+                )?;
+            }
+        }
+    }
     let mut args = vec![
         if uninstall { "uninstall" } else { "install" },
         "--id",

@@ -1246,12 +1246,17 @@ pub fn memory_setting(name: &str, value: Option<bool>) -> Result<bool> {
         }
         let result = (|| -> Result<()> {
             start_service("SysMain")?;
-            #[derive(serde::Deserialize)]
-            #[serde(rename = "PS_MMAgent")]
-            struct Agent;
             let c = wmi::WMIConnection::with_namespace_path(r"root\Microsoft\Windows\PS_MMAgent")?;
-            let input = std::collections::HashMap::from([(name, true)]);
-            c.exec_class_method::<Agent, ()>(if enabled { "Enable" } else { "Disable" }, input)?;
+            let method = if enabled { "Enable" } else { "Disable" };
+            let input = c
+                .get_object("PS_MMAgent")?
+                .get_method(method)?
+                .unwrap()
+                .spawn_instance()?;
+            for parameter in input.list_properties()? {
+                input.put_property(&parameter, parameter == name)?;
+            }
+            c.exec_method("PS_MMAgent", method, Some(&input))?;
             Ok(())
         })();
         if temporary {
