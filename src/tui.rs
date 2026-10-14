@@ -712,7 +712,9 @@ impl App {
                     .count();
                 self.message.clear();
                 let unconfirmed = self.states.iter().filter(|s| s.recheckable()).count();
-                if auto && (failures == 0 && unconfirmed == 0 || native::safe_mode()) {
+                if auto {
+                    let restart =
+                        restart && (failures == 0 && unconfirmed == 0 || native::safe_mode());
                     self.countdown = Some((Instant::now() + Duration::from_secs(10), restart))
                 }
                 self.reorder();
@@ -1525,7 +1527,7 @@ mod tests {
             },
             0,
         );
-        assert!(app.countdown.is_none());
+        assert!(matches!(app.countdown, Some((_, false))));
         assert!(app.message.is_empty());
         app.states[0] = Check::new(Status::Restricted);
         app.receive(
@@ -1543,13 +1545,13 @@ mod tests {
         app.receive(
             Message::Finished {
                 processed: 1,
-                restart: false,
+                restart: true,
                 auto: true,
                 refresh: vec![],
             },
             0,
         );
-        assert!(app.countdown.is_none());
+        assert!(matches!(app.countdown, Some((_, false))));
         assert!(app.message.is_empty());
         Ok(())
     }

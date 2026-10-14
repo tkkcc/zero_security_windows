@@ -88,6 +88,7 @@ impl Feature {
                 matches!(
                     op.kind.as_str(),
                     "Registry"
+                        | "Mitigations"
                         | "ServiceStart"
                         | "UserServicesStart"
                         | "LocaleCodePages"

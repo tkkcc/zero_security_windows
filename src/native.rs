@@ -14,6 +14,40 @@ use windows::{
     core::{BSTR, GUID, Interface, PCWSTR},
 };
 pub type Handle = *mut c_void;
+pub fn smart_app_control() -> Result<u32> {
+    let data: Value = serde_json::from_str(&command("CiTool.exe", &["--list-policies", "-json"])?)?;
+    let policies = data["Policies"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("No Code Integrity policy inventory"))?;
+    for (id, mode) in [
+        ("0283ac0f-fff1-49ae-ada1-8a933130cad6", 1),
+        ("1283ac0f-fff1-49ae-ada1-8a933130cad6", 2),
+    ] {
+        if policies.iter().any(|policy| {
+            policy["PolicyID"]
+                .as_str()
+                .is_some_and(|value| value.eq_ignore_ascii_case(id))
+                && policy["IsEnforced"] == true
+        }) {
+            return Ok(mode);
+        }
+    }
+    Ok(0)
+}
+pub fn set_smart_app_control(mode: u32) -> Result<()> {
+    ensure!(
+        mode == 0,
+        "Smart App Control restoration requires offline recovery"
+    );
+    crate::registry::set(
+        r"HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy",
+        "VerifiedAndReputablePolicyState",
+        mode,
+        "DWord",
+    )?;
+    command("CiTool.exe", &["--refresh"])?;
+    Ok(())
+}
 pub fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(Some(0)).collect()
 }
@@ -1313,11 +1347,16 @@ pub fn delivery_mode(value: Option<u32>) -> Result<u32> {
         .mode)
 }
 pub fn expand(text: &str) -> String {
-    let mut result = text.to_owned();
-    for (k, v) in std::env::vars() {
-        result = result.replace(&format!("%{k}%"), &v);
+    use windows::Win32::System::Environment::ExpandEnvironmentStringsW;
+    let source = wide(text);
+    unsafe {
+        let length = ExpandEnvironmentStringsW(PCWSTR(source.as_ptr()), None);
+        let mut expanded = vec![0u16; length as usize];
+        ExpandEnvironmentStringsW(PCWSTR(source.as_ptr()), Some(&mut expanded));
+        String::from_utf16_lossy(&expanded)
+            .trim_end_matches('\0')
+            .into()
     }
-    result
 }
 pub fn uninstaller(text: &str) -> Result<Vec<String>> {
     use windows::Win32::UI::Shell::CommandLineToArgvW;
@@ -1530,6 +1569,19 @@ pub fn execute_blocked(path: &Path) -> Result<bool> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn environment_paths_follow_windows_case_insensitivity_and_preserve_unknown_names()
+    -> anyhow::Result<()> {
+        assert_eq!(
+            super::expand(r"%wInDiR%\System32"),
+            format!(r"{}\System32", std::env::var("windir")?)
+        );
+        assert_eq!(
+            super::expand("%ZSW_UNKNOWN_ENVIRONMENT_NAME%"),
+            "%ZSW_UNKNOWN_ENVIRONMENT_NAME%"
+        );
+        Ok(())
+    }
     use super::*;
     #[test]
     fn terminal_profile_updates_preserve_other_profiles_and_defaults() -> Result<()> {

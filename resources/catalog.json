@@ -526,11 +526,8 @@
     "GroupEn": "Security",
     "Ops": [
       {
-        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy",
-        "Name": "VerifiedAndReputablePolicyState",
-        "Type": "DWord",
-        "Value": 0,
-        "Kind": "Registry"
+        "Kind": "SmartAppControl",
+        "Value": 0
       }
     ],
     "Probe": "",
@@ -542,11 +539,8 @@
     "Refresh": "",
     "RestoreOps": [
       {
-        "Kind": "Registry",
-        "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy",
-        "Name": "VerifiedAndReputablePolicyState",
-        "Value": 2,
-        "Type": "DWord"
+        "Kind": "SmartAppControl",
+        "Value": 2
       }
     ],
     "RestoreSafe": false

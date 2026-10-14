@@ -284,6 +284,25 @@ fn perform(
     Ok(())
 }
 const PARALLELISM: usize = 6;
+fn needs_safe(engine: &Engine, f: &Feature, auto: bool) -> Result<bool> {
+    let needed = engine.needs_safe(f)?;
+    if needed && auto && engine.attempted_safe.lock().unwrap().contains(&f.id) {
+        let errors = engine
+            .store
+            .results
+            .lock()
+            .unwrap()
+            .get(&f.id)
+            .map(|record| record.errors.join("; "))
+            .unwrap_or_default();
+        anyhow::bail!(
+            "Safe Mode did not complete {}; automatic continuation stopped. {}",
+            f.id,
+            errors
+        );
+    }
+    Ok(needed)
+}
 fn parallel_jobs(indices: &[usize], run: impl Fn(usize) -> Result<bool> + Sync) -> Result<usize> {
     let next = AtomicUsize::new(0);
     let processed = AtomicUsize::new(0);
@@ -397,7 +416,7 @@ pub(crate) fn batch(
             publish(engine, tx, i, version);
             return Ok(false);
         }
-        let needs_safe = match engine.needs_safe(f) {
+        let needs_safe = match needs_safe(engine, f, auto) {
             Ok(needs_safe) => needs_safe,
             Err(error) => {
                 failure(engine, tx, i, version, error)?;
@@ -504,12 +523,62 @@ fn restore_batch(
             publish(engine, tx, i, version);
             continue;
         }
+        if f.id == "smart-app-control" && !engine.safe {
+            if auto && engine.attempted_safe.lock().unwrap().contains(&f.id) {
+                failure(
+                    engine,
+                    tx,
+                    i,
+                    version,
+                    anyhow::anyhow!(
+                        "Offline Smart App Control restoration did not complete; automatic continuation stopped"
+                    ),
+                )?;
+                engine
+                    .store
+                    .results
+                    .lock()
+                    .unwrap()
+                    .get_mut(&f.id)
+                    .unwrap()
+                    .restoring = true;
+            } else {
+                if let Err(error) = workflow::prepare_sac_recovery(engine) {
+                    failure(engine, tx, i, version, error)?;
+                    engine
+                        .store
+                        .results
+                        .lock()
+                        .unwrap()
+                        .get_mut(&f.id)
+                        .unwrap()
+                        .restoring = true;
+                }
+                publish(engine, tx, i, version);
+            }
+            continue;
+        }
         if engine.safe && !target.can_run_safe() {
             normal_ids.push(f.id.clone());
             let _ = tx.send(Message::State(i, Check::new(Status::Deferred), version));
             continue;
         }
-        if engine.needs_safe(&target)? {
+        let needs_safe = match needs_safe(engine, &target, auto) {
+            Ok(needed) => needed,
+            Err(error) => {
+                failure(engine, tx, i, version, error)?;
+                engine
+                    .store
+                    .results
+                    .lock()
+                    .unwrap()
+                    .get_mut(&f.id)
+                    .unwrap()
+                    .restoring = true;
+                continue;
+            }
+        };
+        if needs_safe {
             safe_ids.push(f.id.clone());
             let _ = tx.send(Message::State(i, Check::new(Status::SafeQueued), version));
             continue;
@@ -572,6 +641,24 @@ pub fn failure_message(engine: &Engine, error: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn failed_safe_restore_stops_automatic_boots_but_allows_an_explicit_retry() -> Result<()> {
+        let mut engine = Engine::new()?;
+        engine.safe = false;
+        let mut target = engine.feature("process-mitigations")?.restore_target();
+        target.safe = true;
+        assert!(needs_safe(&engine, &target, true)?);
+        engine
+            .attempted_safe
+            .lock()
+            .unwrap()
+            .push(target.id.clone());
+        assert!(needs_safe(&engine, &target, true).is_err());
+        assert!(needs_safe(&engine, &target, false)?);
+        engine.safe = true;
+        assert!(!needs_safe(&engine, &target, true)?);
+        Ok(())
+    }
     #[test]
     fn batch_groups_apply_local_settings_then_install_and_finalize_once() -> Result<()> {
         let catalog = catalog()?;

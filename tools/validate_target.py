@@ -121,6 +121,19 @@ def main():
                 check = next(value for value in report['items'] if value['id'] == item)
             if check['state'] not in (expected, 'Absent'):
                 raise RuntimeError(f"{item} {stage}: expected {expected}, actual {check}")
+            if item == 'defender' and stage == 'restore':
+                runtime = json.loads(base64.b64decode(target.run("""
+$mp=Get-MpComputerStatus;
+$json=@{Service=(Get-Service WinDefend).Status.ToString();
+  AMServiceEnabled=[bool]$mp.AMServiceEnabled; AntivirusEnabled=[bool]$mp.AntivirusEnabled;
+  RealTimeProtectionEnabled=[bool]$mp.RealTimeProtectionEnabled; IsTamperProtected=[bool]$mp.IsTamperProtected} | ConvertTo-Json -Compress;
+[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
+""")))
+                save(args.results / 'defender-restore-runtime.json', runtime)
+                if runtime['Service'] != 'Running' or not all(runtime[name] for name in (
+                    'AMServiceEnabled', 'AntivirusEnabled', 'RealTimeProtectionEnabled', 'IsTamperProtected',
+                )):
+                    raise RuntimeError('Defender runtime did not return to the fresh-system defaults: ' + str(runtime))
             progress['passed'].setdefault(item, {})[stage] = {
                 'state': check['state'], 'time': datetime.now().isoformat(timespec='seconds'),
                 'version': report['version'],

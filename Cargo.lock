@@ -1509,6 +1509,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "roxmltree"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1964b10c76125c36f8afe190065a4bf9a87bf324842c05701330bba9f1cacbb"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "rust-fsm"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2444,7 +2453,7 @@ dependencies = [
 
 [[package]]
 name = "zero_security_windows"
-version = "0.9.5"
+version = "0.9.6"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2455,6 +2464,7 @@ dependencies = [
  "rat-event",
  "rat-widget",
  "ratatui",
+ "roxmltree",
  "rust-fsm",
  "serde",
  "serde_json",

@@ -21,6 +21,7 @@ pub struct Engine {
     pub safe: bool,
     pub zh: bool,
     pub boot_entry: Mutex<String>,
+    pub attempted_safe: Mutex<Vec<String>>,
     facts: Mutex<HashMap<&'static str, Fact>>,
 }
 pub fn matches(text: &str, pattern: &str) -> bool {
@@ -47,6 +48,7 @@ impl Engine {
             safe: native::safe_mode(),
             zh: native::chinese(),
             boot_entry: Mutex::new(boot_entry),
+            attempted_safe: Mutex::new(vec![]),
             facts: Mutex::new(HashMap::new()),
         })
     }
@@ -305,6 +307,7 @@ impl Engine {
     }
     pub fn read(&self, op: &Operation) -> Result<Value> {
         Ok(match op.kind.as_str() {
+            "SmartAppControl" => json!(native::smart_app_control()?),
             "RegistryKey" => json!(reg::exists(&op.path)?),
             "Registry" | "RegistryDelete" | "UserServiceStart" => reg::read(&op.path, &op.name)?,
             "Service" | "ServiceRestore" => {
@@ -675,6 +678,10 @@ impl Engine {
                     mitigation::disable()?
                 }
             }
+            "SmartAppControl" => {
+                native::set_smart_app_control(op.value.as_u64().unwrap() as u32)?;
+                return Ok(true);
+            }
             _ => bail!("Unknown operation: {}", op.kind),
         }
         Ok(false)
@@ -935,6 +942,18 @@ fn block_command() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn protected_operations_use_the_required_boot_environment() -> Result<()> {
+        let engine = Engine::new()?;
+        assert!(
+            !engine
+                .feature("smart-app-control")?
+                .restore_target()
+                .can_run_safe()
+        );
+        assert!(engine.feature("process-mitigations")?.can_run_safe());
+        Ok(())
+    }
     #[test]
     fn task_restoration_keeps_factory_disabled_exceptions() -> Result<()> {
         let engine = Engine::new()?;

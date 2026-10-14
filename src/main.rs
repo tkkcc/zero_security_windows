@@ -7,6 +7,7 @@ mod engine;
 mod mitigation;
 mod model;
 mod native;
+mod offline;
 mod preferences;
 mod recovery;
 mod registry;

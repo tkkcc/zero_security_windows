@@ -30,6 +30,8 @@ pub struct Pending {
     pub normal_ids: Vec<String>,
     #[serde(default)]
     pub restoring: bool,
+    #[serde(default)]
+    pub recovery_boot: u64,
 }
 struct Flow;
 impl StateMachineImpl for Flow {
@@ -298,6 +300,72 @@ pub fn prepare_normal(engine: &Engine, all: bool, ids: &[String]) -> Result<()> 
     transition(engine, Trigger::QueueNormal)?;
     engine.store.save()
 }
+pub fn prepare_sac_recovery(engine: &Engine) -> Result<()> {
+    engine.store.initialize()?;
+    ensure!(
+        !bcd(&["/enum", "{bootmgr}"])?
+            .lines()
+            .any(|line| line.trim_start().starts_with("bootsequence")),
+        "Another one-time boot is pending"
+    );
+    let image = crate::offline::prepare(engine)?;
+    *engine.store.pending.lock().unwrap() = Some(Pending {
+        sid: engine.store.sid.clone(),
+        normal_entry: current()?,
+        normal_ids: vec!["smart-app-control".into()],
+        restoring: true,
+        recovery_boot: engine.boot,
+        ..Default::default()
+    });
+    engine.store.save()?;
+    let prepared = (|| -> Result<()> {
+        suspend(engine, 2)?;
+        let copied = entry(&bcd(&[
+            "/copy",
+            &image.recovery_entry,
+            "/d",
+            "Zero Security Windows - Recovery",
+        ])?)?;
+        engine
+            .store
+            .pending
+            .lock()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .safe_entry = copied.clone();
+        engine.store.save()?;
+        let file = image.file.to_string_lossy();
+        let disk = format!(
+            "ramdisk=[{}]{},{}",
+            &file[..2],
+            &file[2..],
+            image.disk_options
+        );
+        bcd(&["/set", &copied, "device", &disk])?;
+        bcd(&["/set", &copied, "osdevice", &disk])?;
+        bcd(&["/set", &copied, "recoveryenabled", "No"])?;
+        bcd(&["/displayorder", &copied, "/remove"])?;
+        register_return(engine)?;
+        engine.restore(engine.feature("smart-app-control")?, true, false)?;
+        engine
+            .store
+            .results
+            .lock()
+            .unwrap()
+            .get_mut("smart-app-control")
+            .unwrap()
+            .restart = true;
+        transition(engine, Trigger::QueueNormal)?;
+        engine.store.save()?;
+        bcd(&["/bootsequence", &copied])?;
+        Ok(())
+    })();
+    if prepared.is_err() {
+        cleanup(engine)?;
+    }
+    prepared
+}
 pub fn safe_resume(engine: &Engine) -> Result<bool> {
     let p = engine
         .store
@@ -335,6 +403,14 @@ pub fn normal_resume(engine: &Engine) -> Result<(bool, Vec<String>, bool)> {
         "Normal workflow does not match this boot"
     );
     *engine.boot_entry.lock().unwrap() = p.normal_entry;
+    *engine.attempted_safe.lock().unwrap() = p.safe_ids;
+    if p.recovery_boot != 0 {
+        engine
+            .attempted_safe
+            .lock()
+            .unwrap()
+            .push("smart-app-control".into());
+    }
     engine.store.initialize()?;
     cleanup(engine)?;
     if !p.restoring && !native::service_running("WinDefend")? {
@@ -362,11 +438,18 @@ pub fn cleanup(engine: &Engine) -> Result<()> {
         }
     }
     if let Some(p) = p {
-        if !p.safe_entry.is_empty() {
+        if !p.safe_entry.is_empty()
+            && bcd(&["/enum", "all", "/v"])?
+                .to_ascii_lowercase()
+                .contains(&p.safe_entry.to_ascii_lowercase())
+        {
             bcd(&["/delete", &p.safe_entry, "/cleanup"])?;
         }
         if p.suspended {
             native::command("manage-bde.exe", &["-protectors", "-enable", &drive()])?;
+        }
+        if p.recovery_boot != 0 {
+            crate::offline::cleanup(p.recovery_boot)?;
         }
         if p.phase != Phase::Idle {
             transition(engine, Trigger::Finish)?
