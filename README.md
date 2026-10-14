@@ -6,8 +6,6 @@ Zero Security Windows 是一款以精简与性能为优先的开源 Windows 优�
 
 [下载最新版](https://github.com/tkkcc/zero_security_windows/releases/latest/download/zero_security_windows.exe) · [反馈问题](https://github.com/tkkcc/zero_security_windows/issues)
 
-![Zero Security Windows 界面预览：项目状态与功能说明](docs/images/interface.png)
-
 ## 产品特色
 
 - **性能优先，精简深入系统**：从 Defender、虚拟化安全到漏洞缓解，处理常规设置之外的防护开销与软件运行限制。

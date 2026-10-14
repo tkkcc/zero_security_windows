@@ -936,6 +936,38 @@ fn block_command() -> String {
 mod tests {
     use super::*;
     #[test]
+    fn task_restoration_keeps_factory_disabled_exceptions() -> Result<()> {
+        let engine = Engine::new()?;
+        let disabled = r"\Microsoft\Windows\UpdateOrchestrator\Schedule Maintenance Work";
+        let enabled = r"\Microsoft\Windows\UpdateOrchestrator\Schedule Scan";
+        engine.fact("tasks", || Ok(json!([disabled, enabled, r"\Other\Task"])))?;
+        let target = engine.feature("windows-update")?.restore_target();
+        let tasks: Vec<_> = engine
+            .expand(&target)?
+            .into_iter()
+            .filter(|op| op.kind == "Task")
+            .collect();
+        assert_eq!(tasks.len(), 2);
+        assert_eq!(
+            tasks.iter().find(|op| op.path == disabled).unwrap().value,
+            json!(false)
+        );
+        assert_eq!(
+            tasks.iter().find(|op| op.path == enabled).unwrap().value,
+            json!(true)
+        );
+        Ok(())
+    }
+    #[test]
+    fn expanded_registry_strings_match_equivalent_environment_paths() {
+        let op = Operation {
+            value_type: "ExpandString".into(),
+            ..Operation::reg(r"HKCU:\Test", "Path", r"%SystemRoot%\System32\example.exe")
+        };
+        assert!(satisfied(&op, &json!(r"%windir%\System32\example.exe")));
+        assert!(!satisfied(&op, &json!(r"%windir%\System32\other.exe")));
+    }
+    #[test]
     fn desktop_targets_leave_unrelated_icons_and_files_untouched() -> Result<()> {
         let engine = Engine::new()?;
         let f = engine.feature("desktop-icons")?;

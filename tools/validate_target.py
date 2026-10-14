@@ -34,12 +34,13 @@ class Target:
         return result.stdout.strip()
 
     def status(self):
-        return json.loads(self.run("""
+        return json.loads(base64.b64decode(self.run("""
 $os=Get-CimInstance Win32_OperatingSystem;
 $processes=@(Get-CimInstance Win32_Process | Where-Object {$_.CommandLine -match 'zero_security_windows.exe.*--(safe-resume|resume)'});
-@{Host=$env:COMPUTERNAME; Boot=$os.LastBootUpTime.ToUniversalTime().ToString('o');
-  Pending=(Test-Path 'C:/ProgramData/ZeroSecurityWindows/rust-workflow.json'); Resume=$processes.Count} | ConvertTo-Json -Compress
-""", timeout=60))
+$json=@{Host=$env:COMPUTERNAME; Boot=$os.LastBootUpTime.ToUniversalTime().ToString('o');
+  Pending=(Test-Path 'C:/ProgramData/ZeroSecurityWindows/rust-workflow.json'); Resume=$processes.Count} | ConvertTo-Json -Compress;
+[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
+""", timeout=60)))
 
     def report(self, arguments, path, timeout=2400):
         quoted = ','.join("'" + value.replace("'", "''") + "'" for value in [*arguments, path])
@@ -47,9 +48,9 @@ $processes=@(Get-CimInstance Win32_Process | Where-Object {$_.CommandLine -match
 $report='{path}'; if(Test-Path -LiteralPath $report){{Remove-Item -LiteralPath $report}}
 $process=Start-Process -FilePath 'C:/ProgramData/ZeroSecurityWindowsValidation/zero_security_windows.exe' -ArgumentList @({quoted}) -WindowStyle Hidden -PassThru -Wait;
 if(-not (Test-Path -LiteralPath $report)){{throw ('No report, exit='+$process.ExitCode)}}
-Get-Content -LiteralPath $report -Raw
+[Convert]::ToBase64String([IO.File]::ReadAllBytes($report))
 """
-        return json.loads(self.run(script, timeout))
+        return json.loads(base64.b64decode(self.run(script, timeout)))
 
     def reboot(self):
         before = self.status()['Boot']
