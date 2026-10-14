@@ -92,6 +92,9 @@ impl Engine {
         {
             check = Check::new(Status::SafeQueued)
         }
+        if check.state == Status::Done {
+            check.detail.clear();
+        }
         check
     }
     pub fn default_check(&self, f: &Feature) -> Result<Check> {
@@ -230,42 +233,23 @@ impl Engine {
                         return Ok(Some(Check::new(Status::Ready)));
                     }
                 }
-                let (policy, enabled) = native::dep()?;
-                return Ok(Some(Check {
-                    state: if policy == 0 {
-                        Status::Done
-                    } else {
-                        Status::Restart
-                    },
-                    detail: if policy != 0 {
-                        choose(self.zh, "启动参数已设为关闭；当前系统 DEP 策略仍开启。", "The boot option is set to off; the current system DEP policy is still enabled.")
-                    } else if enabled {
-                        choose(self.zh, "启动策略已关闭；当前 64 位进程的 DEP 仍开启。", "The boot policy is off; DEP remains enabled for the current 64-bit process.")
-                    } else {
-                        choose(self.zh, "DEP 启动策略及当前进程 DEP 已关闭。", "The DEP boot policy and current process DEP are off.")
-                    }.into(),
-                }));
+                return Ok(Some(Check::new(if native::dep() == 0 {
+                    Status::Done
+                } else {
+                    Status::Restart
+                })));
             }
-            "lsa" | "driver-signing" => {
+            "lsa" => {
                 for op in self.expand(f)? {
                     if !satisfied(&op, &self.read(&op)?) {
                         return Ok(Some(Check::new(Status::Ready)));
                     }
                 }
-                let running = if f.probe == "lsa" {
-                    native::lsa_protected()?
+                return Ok(Some(Check::new(if native::lsa_protected()? {
+                    Status::Restart
                 } else {
-                    native::code_integrity()?
-                };
-                let mut check = Check::new(Status::Done);
-                if running {
-                    check.detail = if f.probe == "lsa" {
-                        choose(self.zh, "启动保护已设为关闭；当前登录安全进程仍以受保护模式运行。", "Startup protection is set to off; the sign-in security process is still running in protected mode.")
-                    } else {
-                        choose(self.zh, "启动参数已设为关闭；内核代码完整性检查仍开启。", "The boot option is set to off; kernel code integrity checks remain enabled.")
-                    }.into();
-                }
-                return Ok(Some(check));
+                    Status::Done
+                })));
             }
             "taskbar-pins" => {
                 let pins = prefs::taskbar_pin_names()?;
@@ -277,12 +261,7 @@ impl Engine {
                 }
                 let mut check = Check::active(active);
                 check.detail = if pins.is_empty() {
-                    choose(
-                        self.zh,
-                        "Windows 未保存任务栏固定项。",
-                        "Windows has no saved taskbar pins.",
-                    )
-                    .into()
+                    String::new()
                 } else {
                     format!(
                         "{} {}{}{}",
@@ -338,14 +317,7 @@ impl Engine {
                     return Ok(None);
                 }
                 if !native::service_running("WinDefend")? {
-                    return Ok(Some(if f.probe == "tamper" {
-                        Check {
-                            state: Status::Absent,
-                            detail: choose(self.zh, "Defender 未运行，篡改防护无需单独处理。", "Defender is not running; tamper protection needs no separate action.").into(),
-                        }
-                    } else {
-                        Check::new(Status::Done)
-                    }));
+                    return Ok(Some(Check::new(Status::Done)));
                 }
                 let rows = self.fact("mp", || {
                     native::wmi(
@@ -402,33 +374,7 @@ impl Engine {
                 {
                     return Ok(Some(Check::new(Status::Ready)));
                 }
-                let runtime = mitigation::runtime(self.zh)?;
-                return Ok(Some(Check {
-                    state: Status::Done,
-                    detail: if runtime.is_empty() {
-                        String::new()
-                    } else {
-                        format!(
-                            "{}{}",
-                            choose(
-                                self.zh,
-                                "启动配置已关闭。仍启用的防护（数量为已读取的 Windows 进程数）：\n",
-                                "Startup settings are off. Retained protections (counts are inspected Windows processes):\n"
-                            ),
-                            runtime
-                                .iter()
-                                .map(|(name, count)| format!(
-                                    "{name}{}{count}",
-                                    choose(self.zh, "：", ": ")
-                                ))
-                                .collect::<Vec<_>>()
-                                .chunks(2)
-                                .map(|pair| pair.join(choose(self.zh, "；", "; ")))
-                                .collect::<Vec<_>>()
-                                .join("\n")
-                        )
-                    },
-                }));
+                return Ok(Some(Check::new(Status::Done)));
             }
             "mouse" => prefs::mouse()? != [0, 0, 0, 20, 6],
             "keyboard" => {
@@ -464,13 +410,13 @@ impl Engine {
 mod tests {
     use super::*;
     #[test]
-    fn retained_dep_does_not_create_a_restart_request() -> Result<()> {
+    fn dep_completion_tracks_the_system_policy() -> Result<()> {
         let engine = Engine::new()?;
         let mut feature = engine.feature("dep")?.clone();
         feature.id = "test-dep-restart".into();
         feature.ops.clear();
         let before = engine.check(&feature);
-        let (policy, _) = native::dep()?;
+        let policy = native::dep();
         assert_eq!(
             before.state,
             if policy == 0 {
@@ -509,7 +455,9 @@ mod tests {
         f.id = "test-taskbar-shell-refresh".into();
         let before = engine.check(&f);
         assert!(matches!(before.state, Status::Ready | Status::Done));
-        assert!(!before.detail.is_empty());
+        if before.state == Status::Done {
+            assert!(before.detail.is_empty());
+        }
         let shell = native::shell_stamp()?;
         assert_ne!(shell, 0);
         engine.store.results.lock().unwrap().insert(
@@ -560,7 +508,7 @@ mod tests {
             assert_eq!(done.state, Status::Done);
             assert!(!done.actionable());
             assert!(!done.recheckable());
-            assert!(!done.detail.is_empty());
+            assert!(done.detail.is_empty());
             assert!(
                 engine.store.results.lock().unwrap()[&f.id]
                     .errors

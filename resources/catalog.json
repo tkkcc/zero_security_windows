@@ -1202,8 +1202,8 @@
     "Id": "install-xpfftq032ptphf",
     "Zh": "UniGetUI",
     "En": "UniGetUI",
-    "PurposeZh": "安装 UniGetUI，用于管理、安装和更新软件包。",
-    "PurposeEn": "Install UniGetUI to manage, install and update software packages.",
+    "PurposeZh": "安装 UniGetUI 管理软件包，关闭其登录自启。",
+    "PurposeEn": "Install UniGetUI to manage packages and turn off its login startup.",
     "GroupZh": "安装",
     "GroupEn": "Install",
     "Ops": [
@@ -1213,6 +1213,11 @@
         "UninstallKey": "{889610CC-4337-4BDB-AC3B-4F21806C0BDE}_is1",
         "Value": true,
         "Kind": "Winget"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "Name": "WingetUI"
       }
     ],
     "Probe": "",
@@ -1220,7 +1225,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "Install",
-    "Intent": "Install",
+    "Intent": "Apply",
     "Refresh": "",
     "RestoreOps": [
       {
@@ -1229,6 +1234,11 @@
         "UninstallKey": "{889610CC-4337-4BDB-AC3B-4F21806C0BDE}_is1",
         "Value": false,
         "Kind": "Winget"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "Name": "WingetUI"
       }
     ],
     "RestoreSafe": false
@@ -2839,8 +2849,8 @@
     "Id": "remove-ai",
     "Zh": "微软 AI 应用",
     "En": "Microsoft AI apps",
-    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
-    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
+    "PurposeZh": "卸载 Copilot、微软 365 与必应 AI 应用。",
+    "PurposeEn": "Uninstall Copilot, Microsoft 365 and Bing AI apps.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2889,6 +2899,67 @@
         }
       }
     ],
+    "RestoreSafe": false
+  },
+  {
+    "Id": "windows-ai-components",
+    "Zh": "Windows AI 组件",
+    "En": "Windows AI components",
+    "PurposeZh": "卸载单击以执行与 AI 上下文组件，禁用 Windows AI 组件主机。",
+    "PurposeEn": "Uninstall Click to Do and AI context components, and disable the Windows AI component host.",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
+    "Ops": [
+      {
+        "Kind": "Service",
+        "Name": "WSAIFabricSvc"
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
+        "Name": "DisableClickToDo",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "Apps",
+        "Name": "core-ai",
+        "Patterns": [
+          "MicrosoftWindows.Client.CoreAI"
+        ],
+        "Value": false,
+        "PackageSources": {}
+      }
+    ],
+    "RestoreOps": [
+      {
+        "Kind": "Apps",
+        "Name": "core-ai",
+        "Patterns": [
+          "MicrosoftWindows.Client.CoreAI"
+        ],
+        "Value": true,
+        "PackageSources": {}
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "WSAIFabricSvc",
+        "Value": 2,
+        "Source": "Restore"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
+        "Name": "DisableClickToDo"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Refresh": "Shell",
     "RestoreSafe": false
   },
   {
@@ -5292,10 +5363,10 @@
   },
   {
     "Id": "process-mitigations",
-    "Zh": "程序漏洞防护",
-    "En": "Exploit Protection",
-    "PurposeZh": "关闭系统与 Windows 程序的漏洞防护启动配置。",
-    "PurposeEn": "Disable exploit-protection startup settings for Windows and its programs.",
+    "Zh": "程序防护启动策略",
+    "En": "Exploit-protection startup policies",
+    "PurposeZh": "关闭系统与 Windows 程序的可配置漏洞防护启动策略。",
+    "PurposeEn": "Turn off configurable exploit-protection startup policies for Windows and its programs.",
     "GroupZh": "漏洞防护",
     "GroupEn": "Exploit protection",
     "Ops": [
@@ -5321,10 +5392,10 @@
   },
   {
     "Id": "dep",
-    "Zh": "DEP 数据执行保护",
-    "En": "Data execution prevention",
-    "PurposeZh": "关闭数据执行保护（DEP）的启动策略。",
-    "PurposeEn": "Disable the Data Execution Prevention (DEP) boot policy.",
+    "Zh": "32 位程序 DEP 策略",
+    "En": "32-bit DEP policy",
+    "PurposeZh": "关闭 32 位程序的数据执行保护启动策略。",
+    "PurposeEn": "Turn off the DEP boot policy for 32-bit programs.",
     "GroupZh": "漏洞防护",
     "GroupEn": "Exploit protection",
     "Ops": [
@@ -5391,37 +5462,6 @@
         "Kind": "RegistryDelete",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SCMConfig",
         "Name": "EnableSvchostMitigationPolicy"
-      }
-    ],
-    "RestoreSafe": false
-  },
-  {
-    "Id": "driver-signing",
-    "Zh": "驱动签名检查",
-    "En": "Driver signature checks",
-    "PurposeZh": "关闭驱动完整性检查的启动配置。",
-    "PurposeEn": "Disable driver-integrity check boot settings.",
-    "GroupZh": "漏洞防护",
-    "GroupEn": "Exploit protection",
-    "Ops": [
-      {
-        "Name": "nointegritychecks",
-        "Value": "On",
-        "Kind": "Bcd"
-      }
-    ],
-    "Probe": "driver-signing",
-    "Safe": false,
-    "Manual": false,
-    "Restart": true,
-    "Page": "System",
-    "Intent": "Disable",
-    "Refresh": "",
-    "RestoreOps": [
-      {
-        "Name": "nointegritychecks",
-        "Value": null,
-        "Kind": "Bcd"
       }
     ],
     "RestoreSafe": false
@@ -5515,12 +5555,14 @@
           "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Maintenance Work": false,
           "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Wake To Work": false,
           "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Work": false
-        }
+        },
+        "Source": "Prerequisite"
       },
       {
         "Kind": "TaskGroup",
         "Pattern": "\\Microsoft\\Windows\\WindowsUpdate\\*",
-        "Value": true
+        "Value": true,
+        "Source": "Prerequisite"
       },
       {
         "Kind": "TaskGroup",
@@ -5528,7 +5570,8 @@
         "Value": true,
         "TaskStates": {
           "\\Microsoft\\Windows\\WaaSMedic\\PerformRemediation": false
-        }
+        },
+        "Source": "Prerequisite"
       }
     ],
     "Probe": "",
@@ -5615,12 +5658,14 @@
           "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Maintenance Work": false,
           "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Wake To Work": false,
           "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Work": false
-        }
+        },
+        "Source": "Prerequisite"
       },
       {
         "Kind": "TaskGroup",
         "Pattern": "\\Microsoft\\Windows\\WindowsUpdate\\*",
-        "Value": true
+        "Value": true,
+        "Source": "Prerequisite"
       },
       {
         "Kind": "TaskGroup",
@@ -5628,7 +5673,8 @@
         "Value": true,
         "TaskStates": {
           "\\Microsoft\\Windows\\WaaSMedic\\PerformRemediation": false
-        }
+        },
+        "Source": "Prerequisite"
       }
     ],
     "RestoreSafe": false
@@ -5777,6 +5823,161 @@
         "Kind": "TaskGroup",
         "Pattern": "\\Microsoft\\Windows\\SystemRestore\\*",
         "Value": true
+      }
+    ],
+    "RestoreSafe": false
+  },
+  {
+    "Id": "windows-backup",
+    "Zh": "Windows 备份与同步",
+    "En": "Windows backup and sync",
+    "PurposeZh": "关闭 Windows 备份、文件历史与云端同步，并隐藏相关设置入口。",
+    "PurposeEn": "Disable Windows backup, File History and cloud sync, block the backup app, and hide backup entries in Settings and Control Panel.",
+    "GroupZh": "更新与还原",
+    "GroupEn": "Updates & restore",
+    "Ops": [
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "DisableSettingSync",
+        "Type": "DWord",
+        "Value": 2
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "DisableSettingSyncUserOverride",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{98F2AB62-0E29-4E4C-8EE7-B542E66740B1}",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "EnableWindowsBackup",
+        "Type": "DWord",
+        "Value": 0
+      },
+      {
+        "Kind": "ProcessBlock",
+        "Name": "WindowsBackupClient.exe",
+        "Value": true
+      },
+      {
+        "Kind": "SettingsPage",
+        "Name": "backup",
+        "Value": false
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\FileHistory",
+        "Name": "Disabled",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "Service",
+        "Name": "fhsvc"
+      },
+      {
+        "Kind": "Service",
+        "Name": "SDRSVC"
+      },
+      {
+        "Kind": "Service",
+        "Name": "wbengine"
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{B98A2BEA-7D42-4558-8BD1-832F41BAC6FD}",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{F6B6E965-E9B2-444B-9286-10C9152EDBC5}",
+        "Type": "DWord",
+        "Value": 1
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": "Shell",
+    "RestoreOps": [
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "DisableSettingSync"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "DisableSettingSyncUserOverride"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{98F2AB62-0E29-4E4C-8EE7-B542E66740B1}"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
+        "Name": "EnableWindowsBackup"
+      },
+      {
+        "Kind": "ProcessBlock",
+        "Name": "WindowsBackupClient.exe",
+        "Value": false
+      },
+      {
+        "Kind": "SettingsPage",
+        "Name": "backup",
+        "Value": true
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\FileHistory",
+        "Name": "Disabled"
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "fhsvc",
+        "Value": 3,
+        "Source": "Restore"
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "SDRSVC",
+        "Value": 3,
+        "Source": "Restore"
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "wbengine",
+        "Value": 3,
+        "Source": "Restore"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{B98A2BEA-7D42-4558-8BD1-832F41BAC6FD}"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{F6B6E965-E9B2-444B-9286-10C9152EDBC5}"
       }
     ],
     "RestoreSafe": false
@@ -7485,8 +7686,8 @@
     "Id": "privacy-access",
     "Zh": "在线语音与输入个性化",
     "En": "Online speech and input personalization",
-    "PurposeZh": "关闭在线语音识别、输入个性化、应用诊断信息访问和跨设备设置同步。",
-    "PurposeEn": "Turn off online speech recognition, input personalization, access to application diagnostic information and cross-device settings sync.",
+    "PurposeZh": "关闭在线语音识别、输入个性化和应用诊断信息访问。",
+    "PurposeEn": "Turn off online speech recognition, input personalization and access to app diagnostic information.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -7562,34 +7763,6 @@
       },
       {
         "Kind": "Registry",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
-        "Name": "EnableCdp",
-        "Type": "DWord",
-        "Value": 0
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
-        "Name": "DisableSettingSync",
-        "Type": "DWord",
-        "Value": 2
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
-        "Name": "DisableSettingSyncUserOverride",
-        "Type": "DWord",
-        "Value": 1
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
-        "Name": "{98F2AB62-0E29-4E4C-8EE7-B542E66740B1}",
-        "Type": "DWord",
-        "Value": 1
-      },
-      {
-        "Kind": "Registry",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\appDiagnostics",
         "Name": "Value",
         "Type": "String",
@@ -7661,26 +7834,6 @@
         "Kind": "RegistryDelete",
         "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         "Name": "LetAppsGetDiagnosticInfo"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
-        "Name": "EnableCdp"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
-        "Name": "DisableSettingSync"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
-        "Name": "DisableSettingSyncUserOverride"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
-        "Name": "{98F2AB62-0E29-4E4C-8EE7-B542E66740B1}"
       },
       {
         "Kind": "RegistryDelete",

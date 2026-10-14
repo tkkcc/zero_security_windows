@@ -921,7 +921,6 @@ fn apply_requested_background_and_boot_settings_on_this_machine() -> anyhow::Res
         "data-usage",
         "lsa",
         "process-mitigations",
-        "driver-signing",
     ] {
         let f = engine.feature(id)?;
         let before = engine.check(f);
@@ -954,7 +953,6 @@ fn apply_requested_background_and_boot_settings_on_this_machine() -> anyhow::Res
         "data-usage",
         "lsa",
         "process-mitigations",
-        "driver-signing",
     ] {
         let f = engine.feature(id)?;
         let result = engine.execute(f, false, false, false)?;

@@ -364,6 +364,18 @@ pub(crate) fn batch(
     if matches!(command, Command::Restore(_) | Command::RestoreItems(_)) {
         return restore_batch(engine, tx, version, command, auto);
     }
+    if !auto
+        && engine
+            .store
+            .pending
+            .lock()
+            .unwrap()
+            .as_ref()
+            .is_some_and(|pending| pending.restoring)
+    {
+        engine.store.initialize()?;
+        workflow::cleanup(engine)?;
+    }
     let all = matches!(command, Command::All);
     let safe_ids = engine
         .store
@@ -380,6 +392,20 @@ pub(crate) fn batch(
     };
     if matches!(command, Command::All) {
         indices.retain(|i| !engine.catalog[*i].default_off);
+    }
+    if !auto {
+        let mut results = engine.store.results.lock().unwrap();
+        for &index in &indices {
+            if let Some(result) = results.get_mut(&engine.catalog[index].id)
+                && result.restoring
+            {
+                result.restoring = false;
+                result.restart = false;
+                result.shell = 0;
+                result.logon = 0;
+                result.errors.clear();
+            }
+        }
     }
     let resume_ids = if all {
         vec![]
@@ -431,13 +457,22 @@ pub(crate) fn batch(
                 .get(&f.id)
                 .is_some_and(|r| r.changed && r.restart && r.boot != engine.boot)
         {
-            failure(
-                engine,
-                tx,
-                i,
-                version,
-                anyhow::anyhow!("App removal did not finish after restart; retry manually"),
-            )?;
+            let cleanup = (|| {
+                for op in f.ops.iter().filter(|op| op.kind == "Apps") {
+                    crate::apps::finish_removal(op)?;
+                }
+                engine.invalidate(f);
+                anyhow::ensure!(
+                    matches!(engine.check(f).state, Status::Done | Status::Absent),
+                    "App removal did not finish after restart; retry manually"
+                );
+                engine.store.save()
+            })();
+            if let Err(error) = cleanup {
+                failure(engine, tx, i, version, error)?;
+            } else {
+                publish(engine, tx, i, version);
+            }
             return Ok(false);
         }
         if !check.actionable()
@@ -707,6 +742,40 @@ pub fn failure_message(engine: &Engine, error: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn applying_after_restore_replaces_the_old_wait_state() -> Result<()> {
+        use winreg::{RegKey, enums::HKEY_CURRENT_USER};
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let name = format!(r"Software\ZeroSecurityWindowsDirectionTest{}", std::process::id());
+        let (key, _) = root.create_subkey(&name)?;
+        key.set_value("Enabled", &1u32)?;
+        let mut engine = Engine::new()?;
+        engine.catalog = vec![Feature {
+            id: "test-switch-direction".into(),
+            ops: vec![Operation::reg(format!(r"HKCU:\{name}"), "Enabled", 0)],
+            ..Default::default()
+        }];
+        *engine.store.pending.lock().unwrap() = None;
+        engine.store.results.lock().unwrap().clear();
+        engine.store.results.lock().unwrap().insert(engine.catalog[0].id.clone(), ResultRecord {
+            boot: engine.boot,
+            restoring: true,
+            restart: true,
+            ..Default::default()
+        });
+        assert_eq!(engine.check(&engine.catalog[0]).state, Status::Restart);
+        let (tx, _) = std::sync::mpsc::channel();
+        let result = batch(&engine, &tx, 0, &Command::One(0), false);
+        let value = key.get_value::<u32, _>("Enabled")?;
+        let completed = engine.check(&engine.catalog[0]);
+        drop(key);
+        root.delete_subkey_all(&name)?;
+        result?;
+        assert_eq!(value, 0);
+        assert_eq!(completed.state, Status::Done);
+        assert!(!engine.store.results.lock().unwrap()["test-switch-direction"].restoring);
+        Ok(())
+    }
     #[test]
     fn unchanged_protected_restore_does_not_schedule_safe_mode() -> Result<()> {
         use winreg::{RegKey, enums::HKEY_CURRENT_USER};

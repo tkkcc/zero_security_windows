@@ -156,6 +156,20 @@ fn latest<'a>(entries: &[&'a AppEntry]) -> Vec<&'a AppEntry> {
 pub fn state(entries: &[AppEntry], op: &Operation) -> Result<bool> {
     let saved = records(op)?;
     let present = state_with_records(entries, op, &saved);
+    if !bool_value(&op.value) && !present {
+        let applications = PathBuf::from(std::env::var("ProgramFiles")?).join("WindowsApps");
+        for package in &saved {
+            let original = package
+                .materials
+                .iter()
+                .find(|material| material.full == package.full)
+                .map(|material| material.original.clone())
+                .unwrap_or_else(|| applications.join(&package.full));
+            if original.try_exists()? {
+                return Ok(true);
+            }
+        }
+    }
     if present && bool_value(&op.value) {
         let families: BTreeSet<_> = saved
             .iter()
@@ -309,18 +323,70 @@ fn remove_payload(path: &Path) -> Result<()> {
             || original.parent() == Some(applications.as_path()),
         "Unexpected system package location"
     );
-    let _guard = if original.starts_with(&system) {
-        native::trusted_installer().context("Use TrustedInstaller for the system app")?
-    } else {
-        native::system()?
-    };
+    if original.starts_with(&system) {
+        let report = store::root().join(format!("payload-removal-{}.txt", std::process::id()));
+        let command = format!(
+            "try {{Remove-Item -LiteralPath '{}' -Recurse -Force -ErrorAction Stop}} catch {{[IO.File]::WriteAllText('{}',($_.ToString()+'; '+$_.TargetObject)); exit 1}}",
+            path.to_string_lossy().replace('\'', "''"),
+            report.to_string_lossy().replace('\'', "''")
+        );
+        let code = native::run_as_installer(
+            &native::expand(r"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"),
+            &["-NoProfile", "-NonInteractive", "-Command", &command],
+        )?;
+        ensure!(
+            code == 0,
+            "Remove system app payload: {}",
+            fs::read_to_string(&report).unwrap_or_else(|_| path.display().to_string())
+        );
+        if report.try_exists()? {
+            fs::remove_file(report)?;
+        }
+        return Ok(());
+    }
+    let _guard = native::system()?;
     fs::remove_dir_all(original).context("Remove app payload")
+}
+pub fn finish_removal(op: &Operation) -> Result<()> {
+    let entries = inventory()?;
+    ensure!(
+        matching(&entries, op).iter().all(|package| {
+            !package.provisioned && package.users.iter().all(|sid| sid == "S-1-5-18")
+        }),
+        "App removal did not finish after restart; retry manually"
+    );
+    let applications = PathBuf::from(std::env::var("ProgramFiles")?).join("WindowsApps");
+    for package in records(op)? {
+        let original = package
+            .materials
+            .iter()
+            .find(|material| material.full == package.full)
+            .map(|material| material.original.clone())
+            .unwrap_or_else(|| applications.join(&package.full));
+        if original.try_exists()? {
+            remove_payload(&original)?;
+        }
+    }
+    ensure!(!state(&inventory()?, op)?, "App payload cleanup did not finish");
+    Ok(())
 }
 pub fn remove(op: &Operation) -> Result<bool> {
     native::com()?;
     let entries = inventory()?;
     let targets = matching(&entries, op);
     if targets.is_empty() {
+        let applications = PathBuf::from(std::env::var("ProgramFiles")?).join("WindowsApps");
+        for package in records(op)? {
+            let original = package
+                .materials
+                .iter()
+                .find(|material| material.full == package.full)
+                .map(|material| material.original.clone())
+                .unwrap_or_else(|| applications.join(&package.full));
+            if original.try_exists()? {
+                remove_payload(&original)?;
+            }
+        }
         return Ok(false);
     }
     let manager = PackageManager::new()?;
@@ -329,6 +395,12 @@ pub fn remove(op: &Operation) -> Result<bool> {
     let mut saved = records(op)?;
     // Finish all required recovery copies before removing registrations or provisioning.
     for a in latest(&targets) {
+        if !a.provisioned
+            && a.users.iter().all(|sid| sid == "S-1-5-18")
+            && saved.iter().any(|package| package.full == a.full)
+        {
+            continue;
+        }
         let mut source = source_for(op, &a.name).to_string();
         if !source.is_empty() && !source_available(&source)? {
             source.clear();
@@ -499,6 +571,7 @@ pub fn remove(op: &Operation) -> Result<bool> {
         let remaining = inventory()?;
         let targets = matching(&remaining, op);
         let mut cleaned = false;
+        let mut deferred = false;
         for target in &targets {
             if !target.path.is_empty()
                 && Path::new(&target.path).try_exists()?
@@ -506,9 +579,22 @@ pub fn remove(op: &Operation) -> Result<bool> {
                     || !target.provisioned
                         && target.users.iter().all(|sid| sid == "S-1-5-18"))
             {
-                remove_payload(Path::new(&target.path))?;
-                cleaned = true;
+                if let Err(error) = remove_payload(Path::new(&target.path)) {
+                    if manager.IsPackageRemovalPending(&HSTRING::from(&target.full))?
+                        || !target.provisioned
+                            && target.users.iter().all(|sid| sid == "S-1-5-18")
+                    {
+                        deferred = true;
+                    } else {
+                        return Err(error);
+                    }
+                } else {
+                    cleaned = true;
+                }
             }
+        }
+        if deferred {
+            break remaining;
         }
         if cleaned {
             continue;
@@ -959,6 +1045,40 @@ pub fn remove_copilot() -> Result<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn unregistered_payload_still_prevents_completed_removal() -> Result<()> {
+        let op = Operation {
+            name: format!("payload-check-{}", std::process::id()),
+            patterns: vec!["Test.Payload".into()],
+            value: serde_json::json!(false),
+            ..Default::default()
+        };
+        let root = recovery_root(&op);
+        let payload = root.join("payload");
+        fs::create_dir_all(&payload)?;
+        fs::write(payload.join("AppxManifest.xml"), "payload")?;
+        let saved = Removal {
+            name: "Test.Payload".into(),
+            full: "Test.Payload_1".into(),
+            family: "Test.Payload_family".into(),
+            source: String::new(),
+            non_removable: false,
+            provisioned: false,
+            materials: vec![Material {
+                full: "Test.Payload_1".into(),
+                original: payload.clone(),
+            }],
+            registrations: vec![],
+        };
+        fs::write(root.join("packages.json"), serde_json::to_vec(&vec![saved])?)?;
+        assert!(state(&[], &op)?);
+        ensure!(payload.canonicalize()?.starts_with(root.canonicalize()?));
+        fs::remove_dir_all(payload)?;
+        assert!(!state(&[], &op)?);
+        ensure!(root.canonicalize()?.starts_with(store::root().canonicalize()?));
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
     use serde_json::json;
 
     fn entry(name: &str, version: u16, installed: bool, provisioned: bool) -> AppEntry {

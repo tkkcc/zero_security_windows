@@ -174,7 +174,6 @@ unsafe extern "system" {
         size: *mut u32,
     ) -> i32;
     fn GetSystemDEPPolicy() -> u32;
-    fn GetProcessMitigationPolicy(process: Handle, policy: u32, data: Handle, size: usize) -> i32;
     fn GetUserPreferredUILanguages(
         flags: u32,
         count: *mut u32,
@@ -503,24 +502,8 @@ pub fn lsa_protected() -> Result<bool> {
         Ok(protection_active(protection))
     }
 }
-pub fn dep() -> Result<(u32, bool)> {
-    unsafe {
-        let mut flags = [0u32; 2];
-        ok(GetProcessMitigationPolicy(
-            GetCurrentProcess(),
-            0,
-            flags.as_mut_ptr().cast(),
-            std::mem::size_of_val(&flags),
-        ))?;
-        Ok((GetSystemDEPPolicy(), flags[0] & 1 != 0))
-    }
-}
-pub fn code_integrity() -> Result<bool> {
-    let mut data = [8u32, 0];
-    let status =
-        unsafe { NtQuerySystemInformation(103, data.as_mut_ptr().cast(), 8, std::ptr::null_mut()) };
-    ensure!(status >= 0, "Code integrity query: {status:08X}");
-    Ok(data[1] & 1 != 0)
+pub fn dep() -> u32 {
+    unsafe { GetSystemDEPPolicy() }
 }
 pub fn stop_process(name: &str) -> Result<()> {
     let _guard = system()?;
