@@ -1638,7 +1638,8 @@
         "Name": "Microsoft.PowerShell",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "RequiresDelivery": true
       }
     ],
     "Probe": "",
@@ -1839,7 +1840,8 @@
         "Name": "Microsoft.WindowsTerminal",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "RequiresDelivery": true
       }
     ],
     "Probe": "",

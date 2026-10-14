@@ -473,8 +473,22 @@ pub(crate) fn batch(
         processed += usize::from(run_local(i)?);
     }
     let safe = safe.into_inner().unwrap();
-    if !engine.safe && !matches!(command, Command::One(_)) {
-        processed += parallel_jobs(&installers, |i| {
+    let (delivery, installers): (Vec<_>, Vec<_>) = installers.into_iter().partition(|i| {
+        engine.catalog[*i]
+            .ops
+            .iter()
+            .any(|op| op.source == "msstore" || op.requires_delivery)
+    });
+    if !engine.safe && !safe.is_empty() && !auto {
+        let mut results = engine.store.results.lock().unwrap();
+        for i in installers.iter().chain(&delivery).chain(&finalizers) {
+            if let Some(record) = results.get_mut(&engine.catalog[*i].id) {
+                record.errors.clear();
+            }
+        }
+    }
+    if !engine.safe && safe.is_empty() && !matches!(command, Command::One(_)) {
+        let install = |i| {
             let check = engine.check(&engine.catalog[i]);
             if !check.actionable() || auto && check.state == Status::Failed {
                 publish(engine, tx, i, version);
@@ -482,7 +496,12 @@ pub(crate) fn batch(
             }
             perform(engine, tx, i, version, false)?;
             Ok(true)
-        })?;
+        };
+        processed += parallel_jobs(&installers, install)?;
+        // Packaged installations share Delivery Optimization and Windows Update.
+        for i in delivery {
+            processed += usize::from(install(i)?);
+        }
         processed += parallel_jobs(&finalizers, |i| {
             let f = &engine.catalog[i];
             let check = engine.check(f);
@@ -518,7 +537,7 @@ pub(crate) fn batch(
     } else if workflow::requires_restart(engine) {
         workflow::prepare_normal(engine, all, &resume_ids)?;
     }
-    if engine.safe && !matches!(command, Command::One(_)) {
+    if (engine.safe || !safe.is_empty()) && !matches!(command, Command::One(_)) {
         for &i in &indices {
             let f = &engine.catalog[i];
             if f.page == "Install" || final_item(f) {

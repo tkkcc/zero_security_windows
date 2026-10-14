@@ -120,6 +120,7 @@ pub struct Operation {
     pub package_family: String,
     pub uninstall_key: String,
     pub uninstall_args: String,
+    pub requires_delivery: bool,
     pub group: String,
     pub scheme: String,
     pub service: String,

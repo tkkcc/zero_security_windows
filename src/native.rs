@@ -506,7 +506,15 @@ pub fn service_running(name: &str) -> Result<bool> {
 }
 pub fn service_start(name: &str, value: Option<u32>) -> Result<u32> {
     use windows::Win32::System::Services::{QUERY_SERVICE_CONFIGW, QueryServiceConfigW, SC_HANDLE};
-    let _guard = value.map(|_| system()).transpose()?;
+    let _guard = value
+        .map(|_| {
+            if name == "DoSvc" {
+                trusted_installer()
+            } else {
+                system()
+            }
+        })
+        .transpose()?;
     service_call(name, if value.is_some() { 3 } else { 1 }, |h| unsafe {
         if let Some(start) = value {
             let null = std::ptr::null();
@@ -579,7 +587,11 @@ pub fn time_sync(apply: bool) -> Result<bool> {
     })
 }
 pub fn disable_service(name: &str) -> Result<bool> {
-    let _guard = system()?;
+    let _guard = if name == "DoSvc" {
+        trusted_installer()?
+    } else {
+        system()?
+    };
     let result = service_call(name, 0x26, |h| unsafe {
         let mut restart = false;
         let null = std::ptr::null();

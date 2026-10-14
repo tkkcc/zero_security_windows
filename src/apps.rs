@@ -691,26 +691,39 @@ pub fn registered_tool(op: &Operation) -> Result<Option<bool>> {
     Ok(None)
 }
 pub fn install(op: &Operation, uninstall: bool) -> Result<bool> {
-    if uninstall || op.source != "msstore" {
+    if uninstall || !(op.source == "msstore" || op.requires_delivery) {
         return install_run(op, uninstall);
     }
-    let temporary = native::service_start("DoSvc", None)? == 4;
-    if temporary {
-        native::service_start("DoSvc", Some(3))?;
-    }
-    let result = install_run(op, uninstall);
-    if temporary {
-        let restart = native::disable_service("DoSvc")?;
-        reg::set(
-            r"HKLM:\SYSTEM\CurrentControlSet\Services\DoSvc",
-            "Start",
-            4,
-            "DWord",
-        )?;
-        ensure!(
-            !restart,
-            "Delivery Optimization could not return to its disabled state"
-        );
+    let dependencies: Vec<_> = ["DoSvc", "wuauserv"]
+        .into_iter()
+        .map(|service| {
+            let path = format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{service}");
+            reg::number(&path, "Start", 3).map(|desired| (service, path, desired as u32))
+        })
+        .collect::<Result<_>>()?;
+    let result = (|| {
+        for (service, _, desired) in &dependencies {
+            if native::service_start(service, None)? == 4 {
+                native::service_start(service, Some(if *desired == 4 { 3 } else { *desired }))?;
+            }
+        }
+        install_run(op, uninstall)
+    })();
+    let cleanup: Vec<Result<()>> = dependencies
+        .into_iter()
+        .map(|(service, path, desired)| {
+            if desired == 4 {
+                let restart = native::disable_service(service)?;
+                reg::set(&path, "Start", 4, "DWord")?;
+                ensure!(!restart, "{service} could not return to its disabled state");
+            } else if native::service_start(service, None)? != desired {
+                native::service_start(service, Some(desired))?;
+            }
+            Ok(())
+        })
+        .collect();
+    for restored in cleanup {
+        restored?;
     }
     result
 }
