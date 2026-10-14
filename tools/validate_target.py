@@ -52,12 +52,13 @@ class Target:
         script = "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); $OutputEncoding=[Console]::OutputEncoding; $ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; " + script
         encoded = base64.b64encode(script.encode('utf-16-le')).decode()
         result = subprocess.run(
-            ['ssh', '-T', *self.flags, 'zsw-target', 'powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand ' + encoded],
+            ['ssh', '-n', '-T', *self.flags, 'zsw-target', 'powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand ' + encoded],
             capture_output=True, encoding='utf-8', errors='replace', timeout=timeout,
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
         if result.returncode:
-            raise RuntimeError((result.stderr + result.stdout).replace(self.config['address'], '[target]'))
+            detail=(result.stderr + result.stdout).replace(self.config['address'], '[target]')
+            raise RuntimeError(f'SSH command failed ({result.returncode}): {detail}')
         return result.stdout.strip()
 
     def status(self):

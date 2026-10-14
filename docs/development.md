@@ -10,7 +10,7 @@
 - 首次检测、重新检测和执行后的复查完成前，单项、类别、全部、恢复及重启均不接受键盘或鼠标操作；保留浏览、切换类别和退出。空闲状态栏留空，检测期间显示剩余项数。
 - 专用后台直接禁用；商店下载、网络计费和系统故障诊断所需服务设为手动启动。系统自动更新由策略关闭，保留商店和手动安装能力。跨设备、手机连接、远程桌面和文件共享禁用对应服务及入口。恢复解除策略并恢复默认启动方式。
 - SysMain 总服务默认禁用。预读、内存压缩与页面合并分别定义，`DefaultOff` 子项不参与类别或全部执行；单独执行子项启用总服务，再修改指定能力。MMAgent 调用明确传入全部开关，只设置所选能力；同一批次的内存项顺序执行，防止共享配置互相覆盖。W32Time 保留独立自动校时项目；通知与硬件功耗、温度控制服务保留正常运行配置。
-- 应用包卸载所有用户注册并清除预配，禁用状态也计入待卸载对象。卸载前核对 `PackageSources` 在当前系统是否提供 winget 安装清单；有源包只保存卸载清单，恢复直接重装。商店游戏及当前区域未提供的包保存最新签名主包、依赖及语言资源，恢复原路径并由 Windows 注册；来源核对失败时停止卸载。恢复选择主包，卸载选择包集合；安全中心及 SystemApps 中的组件移除实际文件，保留签名恢复材料；受保护文件使用 TrustedInstaller 权限处理。没有安装路径的待清理记录不计为已安装。恢复确认当前用户可用及原有预配，安全中心按默认不可卸载策略复原，并同步设置和托盘入口；界面缓存按重新登录刷新。
+- 应用包卸载所有用户注册并清除预配，禁用状态也计入待卸载对象。卸载前核对 `PackageSources` 在当前系统是否提供 winget 安装清单；有源包只保存卸载清单，恢复直接重装。商店游戏及当前区域未提供的包保存最新签名主包、依赖及语言资源，恢复原路径并由 Windows 注册；来源核对失败时停止卸载。恢复选择主包，卸载选择包集合；安全中心及 SystemApps 中的组件由 TrustedInstaller 身份的后台进程通过 Windows 包管理器卸载，保留签名恢复材料。卸载后仅剩 SYSTEM 的待清理包时清除实际文件，不继续安排重启。没有安装路径的待清理记录不计为已安装。恢复确认当前用户可用及原有预配，安全中心按默认不可卸载策略复原，并同步设置和托盘入口；界面缓存按重新登录刷新。
 - 桌面项只显示此电脑，回收站可见时将此电脑放在其前；保留其他图标、文件和快捷方式。任务栏快捷方式移动到用户对应的恢复目录，保存移动清单；恢复不覆盖同名现有内容。固定项保存必要的数据文件，恢复前解除清空策略。系统还原通过策略与任务关闭，保留现有还原点；恢复解除限制并还原任务默认配置。
 - 重试保持列表顺序和选中项，失败只阻断有依赖的操作。合并重启与重新登录的生效步骤，避免不必要的等待。
 - 安全模式返回后，同一项未完成时停止自动接续，禁止再次自动安排安全模式；正常模式接续也不重试执行失败项，用户明确重试才启动新一轮。临时启动项已经移除时，仍能完成剩余接续清理。
@@ -47,7 +47,7 @@
 | `ResumeAccess` | 拒绝指定程序的执行权限 | 移除执行拒绝项，保留其他访问控制权限 |
 | `Firewall` | 调整各配置文件的防火墙或安全通知开关，配套策略限制手动切换 | 解除策略并恢复定义中的开关值 |
 | `FirewallGroup` | 关闭规则组，确认没有剩余启用规则 | 从 Windows 的 SystemDefaults 存储读取每条规则的默认开关，恢复对应规则 |
-| `MemoryAgent` | 单独关闭指定内存能力，调用时启用 SysMain；总服务项目最后禁用 SysMain | 重新启用预启动、内存压缩和页面合并；子项不参加批量执行，页面合并采用可用恢复目标 |
+| `MemoryAgent` | 单独关闭指定内存能力，调用时启用 SysMain；总服务项目最后禁用 SysMain | 重新启用预启动、内存压缩和页面合并；子项不参加批量执行 |
 | `TimeSync` | W32Time 自动启动、运行并取消域触发限制 | 恢复手动启动与域加入/退出触发器 |
 | `Power` | 修改当前方案的交流电或电池设置 | 读取当前方案类型的 Windows 默认值，仅恢复本项；不删除其他电源方案 |
 | `DesktopIcons`、`DesktopOrder` | 只显示此电脑；通过 Windows 桌面接口读取位置，必要时与回收站交换位置；不移动其他图标 | 先将回收站放回两者的前方，再删除此电脑的显示覆盖，交由 Windows 默认设置决定可见性 |
@@ -65,7 +65,7 @@
 
 电源默认值使用 [PowerReadACDefaultIndex](https://learn.microsoft.com/en-us/windows/win32/api/powrprof/nf-powrprof-powerreadacdefaultindex) 和对应电池接口；不同方案类型和供电方式可有不同默认值。预配记录、签名材料和任务定义只覆盖仍存在或本工具保存过的内容；旧版已经删除且没有可靠来源的组件无法凭空重建。
 
-页面合并的[微软默认关闭说明](https://learn.microsoft.com/en-us/windows-server/administration/performance-tuning/subsystem/cache-memory-management/improvements-in-windows-server)针对 Windows Server；[客户端实验资料](https://martinschwarzl.at/media/files/thesis_main.pdf)记录过默认启用的 Windows 10 版本。本工具按 R 启用该能力，不将固定关闭值宣称为所有客户端的出厂默认。
+新装 Windows 11 专业版 26300 的实际快照中，预启动、内存压缩与页面合并均开启，R 按此默认配置恢复。
 
 ## 构建与验证
 
@@ -97,6 +97,10 @@ python tools/check_console.py target/release/zero_security_windows.exe
 Smart App Control 从关闭状态恢复使用微软的[离线配置方法](https://learn.microsoft.com/en-us/windows/apps/develop/smart-app-control/test-your-app-with-smart-app-control#configure-smart-app-control-by-using-the-registry)，安全模式仍会拒绝修改受保护状态。恢复环境采用原机的临时副本，不修改原有恢复环境。
 
 `--snapshot 文件` 记录读回目标；`--apply 项目 文件`、`--restore 项目 文件` 和 `--apply-all 文件` 使用界面相同的执行流程。`--apply-items 选择文件 报告文件`、`--restore-items 选择文件 报告文件` 批量处理 JSON 项目 ID 数组。`--check 报告文件 [选择文件]` 核对当前状态与默认配置，`--continue 报告文件` 后台接续正常模式任务，均不自动重启。
+
+家庭安全同时处理系统家长控制包与 WpcMonSvc，恢复服务为默认手动启动。远程桌面按[微软策略定义](https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-remotedesktopservices)禁止连接，同时禁用客户端、隐藏设置与控制面板入口；R 删除策略及入口隐藏值，恢复默认服务配置。跨设备设置同步的旧控制面板入口通过枚举策略隐藏，R 删除该策略。
+
+文件共享同时禁用 LanmanServer、LanmanWorkstation、CscService 和 workfolderssvc，隐藏同步中心与工作文件夹。R 将前两个服务恢复为自动，后两个恢复为手动，并重新显示入口。
 
 `tools/validate_target.py` 按系统设置、应用精简、安装项和桌面设置批量验证，合并重启，再分别核对每项结果。恢复按普通配置、Defender 和离线配置处理；Defender 另核对服务、实时保护和防篡改的运行状态。UU 卸载与重装放到这些重启验证之后，先确认独立控制任务正常且只有一个实例。调试连接使用独立的 tailcat 0.6.0；配置中的 `client_binary` 指定该客户端路径，每次验证复用一个后台转发进程；工具安装项仍由 winget 安装最新版。重启由测试脚本控制，不依赖正常模式的界面计时器。失败只重试对应项目，再核对整个批次。固定 tailcat 身份只运行一个远程会话，连接密钥、快照、结果和检查点均放在忽略目录。示例：
 

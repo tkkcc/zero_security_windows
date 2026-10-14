@@ -296,6 +296,26 @@ fn eol(sid: &str, full: &str) -> String {
         r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\EndOfLife\{sid}\{full}"
     )
 }
+fn remove_payload(path: &Path) -> Result<()> {
+    let original = path.canonicalize()?;
+    let system = PathBuf::from(std::env::var("SystemRoot")?)
+        .join("SystemApps")
+        .canonicalize()?;
+    let applications = PathBuf::from(std::env::var("ProgramFiles")?)
+        .join("WindowsApps")
+        .canonicalize()?;
+    ensure!(
+        original.parent() == Some(system.as_path())
+            || original.parent() == Some(applications.as_path()),
+        "Unexpected system package location"
+    );
+    let _guard = if original.starts_with(&system) {
+        native::trusted_installer().context("Use TrustedInstaller for the system app")?
+    } else {
+        native::system()?
+    };
+    fs::remove_dir_all(original).context("Remove app payload")
+}
 pub fn remove(op: &Operation) -> Result<bool> {
     native::com()?;
     let entries = inventory()?;
@@ -400,27 +420,48 @@ pub fn remove(op: &Operation) -> Result<bool> {
     for a in matching(&after_deprovision, op) {
         let system_location = PathBuf::from(std::env::var("SystemRoot")?).join("SystemApps");
         if op.non_removable || Path::new(&a.path).starts_with(&system_location) {
-            let original = PathBuf::from(&a.path).canonicalize()?;
-            let system = PathBuf::from(std::env::var("SystemRoot")?)
-                .join("SystemApps")
-                .canonicalize()?;
-            let applications = PathBuf::from(std::env::var("ProgramFiles")?)
-                .join("WindowsApps")
-                .canonicalize()?;
-            ensure!(
-                original.parent() == Some(system.as_path())
-                    || original.parent() == Some(applications.as_path()),
-                "Unexpected system package location"
-            );
-            let _guard = if original.starts_with(&system) {
-                native::trusted_installer().context("Use TrustedInstaller for the system app")?
-            } else {
-                native::system()?
-            };
-            if !original.starts_with(&system) {
-                manager.SetPackageStatus(&HSTRING::from(&a.full), PackageStatus::Disabled)?;
+            let report = store::root().join(format!("package-removal-{}.json", std::process::id()));
+            let script_path = report.with_extension("ps1");
+            if report.try_exists()? {
+                fs::remove_file(&report)?;
             }
-            fs::remove_dir_all(&original).context("Remove system app payload")?;
+            let script = format!(
+                "$ErrorActionPreference='Stop'\ntry {{\n\
+                 $package=Get-AppxPackage -AllUsers | Where-Object PackageFullName -eq '{}'\n\
+                 foreach($user in $package.PackageUserInformation){{\n\
+                 New-Item -Path ('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\EndOfLife\\'+$user.UserSecurityId.Sid+'\\'+$package.PackageFullName) -Force | Out-Null\n}}\n\
+                 dism.exe /Online /English /Set-NonRemovableAppPolicy '/PackageFamily:{}' /NonRemovable:0 | Out-Null\n\
+                 if($LASTEXITCODE -ne 0){{throw ('Package policy: '+$LASTEXITCODE)}}\n\
+                 Remove-AppxPackage -Package $package.PackageFullName -AllUsers -ErrorAction Stop\n\
+                 $result=@{{error=''}}\n}} catch {{$result=@{{error=$_.Exception.Message}}}}\n\
+                 [IO.File]::WriteAllText('{}',($result|ConvertTo-Json -Compress),[Text.UTF8Encoding]::new($false))",
+                a.full.replace('\'', "''"),
+                a.family.replace('\'', "''"),
+                report.to_string_lossy().replace('\'', "''")
+            );
+            let mut text = b"\xef\xbb\xbf".to_vec();
+            text.extend_from_slice(script.as_bytes());
+            fs::write(&script_path, text)?;
+            let code = native::run_as_installer(
+                &native::expand(r"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"),
+                &[
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    script_path.to_str().unwrap(),
+                ],
+            )?;
+            let result: serde_json::Value = serde_json::from_slice(&fs::read(&report)?)?;
+            ensure!(
+                code == 0 && result["error"] == "",
+                "Remove system package {}: {}",
+                a.full,
+                result["error"]
+            );
+            fs::remove_file(report)?;
+            fs::remove_file(script_path)?;
             continue;
         }
         if !removed_families.insert(&a.family) {
@@ -457,6 +498,21 @@ pub fn remove(op: &Operation) -> Result<bool> {
     let remaining = loop {
         let remaining = inventory()?;
         let targets = matching(&remaining, op);
+        let mut cleaned = false;
+        for target in &targets {
+            if !target.path.is_empty()
+                && Path::new(&target.path).try_exists()?
+                && (manager.IsPackageRemovalPending(&HSTRING::from(&target.full))?
+                    || !target.provisioned
+                        && target.users.iter().all(|sid| sid == "S-1-5-18"))
+            {
+                remove_payload(Path::new(&target.path))?;
+                cleaned = true;
+            }
+        }
+        if cleaned {
+            continue;
+        }
         if targets.is_empty() || std::time::Instant::now() >= deadline {
             break remaining;
         }

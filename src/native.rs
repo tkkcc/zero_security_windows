@@ -312,6 +312,79 @@ pub fn trusted_installer() -> Result<SystemGuard> {
     }
     anyhow::bail!("TrustedInstaller did not start")
 }
+pub fn run_as_installer(program: &str, args: &[&str]) -> Result<u32> {
+    use windows::Win32::{
+        Foundation::HANDLE,
+        System::Threading::{
+            CREATE_NO_WINDOW, CREATE_PROCESS_LOGON_FLAGS, CREATE_UNICODE_ENVIRONMENT,
+            CreateProcessWithTokenW, GetExitCodeProcess, PROCESS_INFORMATION, STARTF_USESHOWWINDOW,
+            STARTUPINFOW,
+        },
+    };
+    use windows::core::PWSTR;
+    let guard = trusted_installer()?;
+    let id = processes()?
+        .into_iter()
+        .find(|(_, n)| n.eq_ignore_ascii_case("TrustedInstaller.exe"))
+        .ok_or_else(|| anyhow::anyhow!("TrustedInstaller not running"))?
+        .0;
+    unsafe {
+        let process = OpenProcess(0x1000, 0, id);
+        ensure!(!process.is_null(), "Open TrustedInstaller process");
+        let mut token = std::ptr::null_mut();
+        let opened = ok(OpenProcessToken(process, 0x0e, &mut token));
+        CloseHandle(process);
+        opened?;
+        let mut primary = std::ptr::null_mut();
+        let copied = ok(DuplicateTokenEx(
+            token,
+            0xf01ff,
+            std::ptr::null_mut(),
+            2,
+            1,
+            &mut primary,
+        ));
+        CloseHandle(token);
+        copied?;
+        let application = wide(program);
+        let mut command = wide(&format!(
+            "\"{}\" {}",
+            program,
+            args.iter()
+                .map(|arg| format!("\"{arg}\""))
+                .collect::<Vec<_>>()
+                .join(" ")
+        ));
+        let startup = STARTUPINFOW {
+            cb: std::mem::size_of::<STARTUPINFOW>() as u32,
+            dwFlags: STARTF_USESHOWWINDOW,
+            ..Default::default()
+        };
+        let mut child = PROCESS_INFORMATION::default();
+        let created = CreateProcessWithTokenW(
+            HANDLE(primary),
+            CREATE_PROCESS_LOGON_FLAGS(0),
+            PCWSTR(application.as_ptr()),
+            Some(PWSTR(command.as_mut_ptr())),
+            CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT,
+            None,
+            PCWSTR::null(),
+            &startup,
+            &mut child,
+        );
+        CloseHandle(primary);
+        created?;
+        drop(guard);
+        let waited = WaitForSingleObject(child.hProcess.0, u32::MAX);
+        let mut code = 0;
+        let result = GetExitCodeProcess(child.hProcess, &mut code);
+        CloseHandle(child.hThread.0);
+        CloseHandle(child.hProcess.0);
+        ensure!(waited == 0, "Wait for package helper: {waited}");
+        result?;
+        Ok(code)
+    }
+}
 fn impersonate_process(name: &str) -> Result<SystemGuard> {
     privilege("SeDebugPrivilege")?;
     let id = processes()?

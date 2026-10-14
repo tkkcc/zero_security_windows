@@ -2701,14 +2701,15 @@
     "Id": "remove-family",
     "Zh": "家庭安全",
     "En": "Family Safety",
-    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
-    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
+    "PurposeZh": "卸载家庭安全与家长控制应用，清除预配并禁用监护服务。",
+    "PurposeEn": "Uninstall Family Safety and Parental Controls, remove provisioning and disable the monitoring service.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
       {
         "Patterns": [
-          "MicrosoftCorporationII.MicrosoftFamily"
+          "MicrosoftCorporationII.MicrosoftFamily",
+          "Microsoft.Windows.ParentalControls"
         ],
         "Name": "family",
         "Value": false,
@@ -2716,6 +2717,10 @@
         "PackageSources": {
           "MicrosoftCorporationII.MicrosoftFamily": "9PDJDJS743XF"
         }
+      },
+      {
+        "Kind": "Service",
+        "Name": "WpcMonSvc"
       }
     ],
     "Probe": "",
@@ -2728,7 +2733,8 @@
     "RestoreOps": [
       {
         "Patterns": [
-          "MicrosoftCorporationII.MicrosoftFamily"
+          "MicrosoftCorporationII.MicrosoftFamily",
+          "Microsoft.Windows.ParentalControls"
         ],
         "Name": "family",
         "Value": true,
@@ -2736,6 +2742,11 @@
         "PackageSources": {
           "MicrosoftCorporationII.MicrosoftFamily": "9PDJDJS743XF"
         }
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "WpcMonSvc",
+        "Value": 3
       }
     ],
     "RestoreSafe": false
@@ -6696,14 +6707,40 @@
     "Id": "svc-lanmanserver",
     "Zh": "网络文件与打印共享",
     "En": "Network file and printer sharing",
-    "PurposeZh": "将接收网络文件、打印和命名管道共享请求的服务禁用。",
-    "PurposeEn": "Disable the service handling incoming network file, printer and named pipe sharing.",
+    "PurposeZh": "禁用 SMB 客户端、文件打印共享、脱机文件和工作文件夹，隐藏同步入口。",
+    "PurposeEn": "Disable the SMB client, file and printer sharing, Offline Files and Work Folders, and hide sync entries.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
         "Kind": "Service",
         "Name": "LanmanServer"
+      },
+      {
+        "Kind": "Service",
+        "Name": "LanmanWorkstation"
+      },
+      {
+        "Kind": "Service",
+        "Name": "CscService"
+      },
+      {
+        "Kind": "Service",
+        "Name": "workfolderssvc"
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{9C73F5E5-7AE7-4E32-A8E8-8D23B85255BF}",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{ECDB0924-4208-451E-8EE0-373C0956DE16}",
+        "Type": "DWord",
+        "Value": 1
       }
     ],
     "Probe": "",
@@ -6719,6 +6756,34 @@
         "Name": "LanmanServer",
         "Value": 2,
         "Source": "Restore"
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "LanmanWorkstation",
+        "Value": 2,
+        "Source": "Restore"
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "CscService",
+        "Value": 3,
+        "Source": "Restore"
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "workfolderssvc",
+        "Value": 3,
+        "Source": "Restore"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{9C73F5E5-7AE7-4E32-A8E8-8D23B85255BF}"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{ECDB0924-4208-451E-8EE0-373C0956DE16}"
       }
     ],
     "RestoreSafe": false
@@ -7252,8 +7317,8 @@
     "Id": "remote-desktop",
     "Zh": "远程桌面",
     "En": "Remote Desktop",
-    "PurposeZh": "关闭远程桌面连接。",
-    "PurposeEn": "Turn off Remote Desktop connections.",
+    "PurposeZh": "禁用远程桌面服务和客户端，隐藏设置与控制面板连接入口。",
+    "PurposeEn": "Disable Remote Desktop services and the client, and hide connection entries in Settings and Control Panel.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -7275,6 +7340,30 @@
       {
         "Kind": "Service",
         "Name": "UmRdpService"
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services",
+        "Name": "fDenyTSConnections",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{241D7C96-F8BF-4F85-B01F-E2B043341A4B}",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "SettingsPage",
+        "Name": "remotedesktop",
+        "Value": false
+      },
+      {
+        "Kind": "ProcessBlock",
+        "Name": "mstsc.exe",
+        "Value": true
       }
     ],
     "Probe": "",
@@ -7309,6 +7398,26 @@
         "Name": "UmRdpService",
         "Value": 3,
         "Source": "Restore"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services",
+        "Name": "fDenyTSConnections"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{241D7C96-F8BF-4F85-B01F-E2B043341A4B}"
+      },
+      {
+        "Kind": "SettingsPage",
+        "Name": "remotedesktop",
+        "Value": true
+      },
+      {
+        "Kind": "ProcessBlock",
+        "Name": "mstsc.exe",
+        "Value": false
       }
     ],
     "RestoreSafe": false
@@ -7376,8 +7485,8 @@
     "Id": "privacy-access",
     "Zh": "在线语音与输入个性化",
     "En": "Online speech and input personalization",
-    "PurposeZh": "关闭在线语音识别、输入个性化和应用诊断信息访问。",
-    "PurposeEn": "Turn off online speech recognition, input personalization and access to application diagnostic information.",
+    "PurposeZh": "关闭在线语音识别、输入个性化、应用诊断信息访问和跨设备设置同步。",
+    "PurposeEn": "Turn off online speech recognition, input personalization, access to application diagnostic information and cross-device settings sync.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -7474,6 +7583,13 @@
       },
       {
         "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{98F2AB62-0E29-4E4C-8EE7-B542E66740B1}",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "Registry",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\appDiagnostics",
         "Name": "Value",
         "Type": "String",
@@ -7560,6 +7676,11 @@
         "Kind": "RegistryDelete",
         "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
         "Name": "DisableSettingSyncUserOverride"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{98F2AB62-0E29-4E4C-8EE7-B542E66740B1}"
       },
       {
         "Kind": "RegistryDelete",
