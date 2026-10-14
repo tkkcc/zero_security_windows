@@ -34,6 +34,55 @@ fn registry_notifications_rearm_without_polling_values() -> anyhow::Result<()> {
     root.delete_subkey_all(&name)?;
     result
 }
+#[test]
+fn restoration_history_does_not_replace_the_current_configuration_state() -> anyhow::Result<()> {
+    use winreg::{RegKey, enums::HKEY_CURRENT_USER};
+    let root = RegKey::predef(HKEY_CURRENT_USER);
+    let name = format!(
+        r"Software\ZeroSecurityWindowsCurrentStateTest{}",
+        std::process::id()
+    );
+    let (key, _) = root.create_subkey(&name)?;
+    let path = format!(r"HKCU:\{name}");
+    let feature = Feature {
+        id: "test-current-state".into(),
+        ops: vec![Operation::reg(&path, "Enabled", 0)],
+        restore_ops: vec![Operation::reg(&path, "Enabled", 1)],
+        ..Default::default()
+    };
+    let engine = Engine::new()?;
+    engine.store.results.lock().unwrap().insert(
+        feature.id.clone(),
+        ResultRecord {
+            restoring: true,
+            ..Default::default()
+        },
+    );
+    let result = (|| -> anyhow::Result<()> {
+        key.set_value("Enabled", &1u32)?;
+        assert_eq!(engine.default_check(&feature)?.state, Status::Done);
+        assert_eq!(engine.check(&feature).state, Status::Ready);
+        key.set_value("Enabled", &0u32)?;
+        assert_eq!(engine.default_check(&feature)?.state, Status::Ready);
+        assert_eq!(engine.check(&feature).state, Status::Done);
+        engine
+            .store
+            .results
+            .lock()
+            .unwrap()
+            .get_mut(&feature.id)
+            .unwrap()
+            .errors
+            .push("restore failed".into());
+        assert_eq!(engine.check(&feature).state, Status::Failed);
+        key.set_value("Enabled", &1u32)?;
+        assert_eq!(engine.check(&feature).state, Status::Ready);
+        Ok(())
+    })();
+    drop(key);
+    root.delete_subkey_all(name)?;
+    result
+}
 
 #[test]
 fn native_app_registration_and_current_state_resolve_an_old_install_error() -> anyhow::Result<()> {

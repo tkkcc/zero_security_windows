@@ -176,7 +176,6 @@ pub enum Status {
     Checking,
     Ready,
     Done,
-    Restored,
     Unknown,
     Restricted,
     Absent,
@@ -207,17 +206,13 @@ impl Check {
         !f.manual
     }
     pub fn actionable(&self) -> bool {
-        matches!(
-            self.state,
-            Status::Ready | Status::Restored | Status::Failed
-        )
+        matches!(self.state, Status::Ready | Status::Failed)
     }
     pub fn recheckable(&self) -> bool {
         self.state == Status::Unknown
     }
     pub fn label(&self, f: &Feature, zh: bool) -> String {
         match self.state {
-            Status::Restored => choose(zh, "已恢复", "Restored"),
             Status::PendingCheck => choose(zh, "待检测", "Awaiting check"),
             Status::Checking => choose(zh, "检测中", "Checking"),
             Status::Ready if f.default_off => choose(zh, "可单独关闭", "Run separately"),

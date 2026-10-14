@@ -23,7 +23,6 @@ pub enum Message {
     Finished {
         processed: usize,
         restart: bool,
-        auto: bool,
         refresh: Vec<usize>,
     },
     Error(String),
@@ -101,31 +100,13 @@ pub fn launch(
                 };
                 batch(&engine, &tx, version, &command, true)?;
             } else if mode == "--resume" {
-                let (all, ids, restoring) = workflow::normal_resume(&engine)?;
-                if all || !ids.is_empty() {
+                if let Some(command) = resume_command(&engine)? {
                     let version = epoch.fetch_add(1, Ordering::SeqCst) + 1;
-                    let command = if all {
-                        Command::All
-                    } else {
-                        let indices = engine
-                            .catalog
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, f)| ids.contains(&f.id))
-                            .map(|(i, _)| i)
-                            .collect();
-                        if restoring {
-                            Command::RestoreItems(indices)
-                        } else {
-                            Command::Items(indices)
-                        }
-                    };
                     batch(&engine, &tx, version, &command, automatic)?;
                 } else {
                     let _ = tx.send(Message::Finished {
                         processed: 0,
                         restart: workflow::requires_restart(&engine),
-                        auto: true,
                         refresh: vec![],
                     });
                 }
@@ -162,6 +143,24 @@ pub fn launch(
             let _ = tx.send(Message::Error(format!("{e:#}")));
         }
     });
+}
+pub(crate) fn resume_command(engine: &Engine) -> Result<Option<Command>> {
+    let (all, ids, restoring) = workflow::normal_resume(engine)?;
+    if all {
+        return Ok(Some(Command::All));
+    }
+    let indices: Vec<_> = engine
+        .catalog
+        .iter()
+        .enumerate()
+        .filter(|(_, feature)| ids.contains(&feature.id))
+        .map(|(i, _)| i)
+        .collect();
+    Ok((!indices.is_empty()).then_some(if restoring {
+        Command::RestoreItems(indices)
+    } else {
+        Command::Items(indices)
+    }))
 }
 fn checks(engine: Arc<Engine>, tx: Sender<Message>, epoch: Arc<AtomicUsize>, indices: Vec<usize>) {
     if indices.is_empty() {
@@ -379,7 +378,7 @@ pub(crate) fn batch(
         Command::Items(indices) => indices.clone(),
         _ => order(&engine.catalog),
     };
-    if !matches!(command, Command::One(_)) {
+    if matches!(command, Command::All) {
         indices.retain(|i| !engine.catalog[*i].default_off);
     }
     let resume_ids = if all {
@@ -400,7 +399,7 @@ pub(crate) fn batch(
     // Start fast settings before slow removals; jobs from different categories overlap.
     let mut processed = parallel_jobs(&local, |i| {
         let f = &engine.catalog[i];
-        if f.manual || f.default_off && !matches!(command, Command::One(_)) {
+        if f.manual || f.default_off && matches!(command, Command::All) {
             publish(engine, tx, i, version);
             return Ok(false);
         }
@@ -492,7 +491,6 @@ pub(crate) fn batch(
     let _ = tx.send(Message::Finished {
         processed,
         restart: workflow::requires_restart(engine),
-        auto,
         refresh: affected(engine, command),
     });
     Ok(())
@@ -519,7 +517,12 @@ fn restore_batch(
     for &i in &indices {
         let f = &engine.catalog[i];
         let target = f.restore_target();
-        if auto && engine.check(f).state == Status::Restored {
+        if auto
+            && matches!(
+                engine.default_check(f)?.state,
+                Status::Done | Status::Absent
+            )
+        {
             publish(engine, tx, i, version);
             continue;
         }
@@ -623,7 +626,6 @@ fn restore_batch(
     let _ = tx.send(Message::Finished {
         processed,
         restart: workflow::requires_restart(engine),
-        auto,
         refresh: affected(engine, command),
     });
     Ok(())

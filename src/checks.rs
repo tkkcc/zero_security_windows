@@ -29,16 +29,18 @@ fn check_error(error: &anyhow::Error) -> Check {
 
 impl Engine {
     pub fn check(&self, f: &Feature) -> Check {
-        let restoring = self
+        let restore_error = self
             .store
             .results
             .lock()
             .unwrap()
             .get(&f.id)
-            .is_some_and(|r| r.restoring);
-        let target = f.restore_target();
-        let checked = if restoring { &target } else { f };
-        let mut check = match self.check_inner(checked) {
+            .is_some_and(|r| r.restoring && !r.errors.is_empty());
+        let default_matches = restore_error
+            && self
+                .default_check(f)
+                .is_ok_and(|c| matches!(c.state, Status::Done | Status::Absent));
+        let mut check = match self.check_inner(f) {
             Ok(v) => v,
             Err(e) => {
                 let check = check_error(&e);
@@ -49,15 +51,10 @@ impl Engine {
                 check
             }
         };
-        if restoring && check.state == Status::Done {
-            check.state = Status::Restored;
-            check.detail.clear();
-        }
         if let Some(result) = self.store.results.lock().unwrap().get_mut(&f.id) {
-            if matches!(
-                check.state,
-                Status::Done | Status::Absent | Status::Restored
-            ) {
+            if default_matches
+                || !result.restoring && matches!(check.state, Status::Done | Status::Absent)
+            {
                 result.errors.clear();
             }
             if !result.errors.is_empty() && check.state != Status::Restricted {
@@ -96,6 +93,20 @@ impl Engine {
             check = Check::new(Status::SafeQueued)
         }
         check
+    }
+    pub fn default_check(&self, f: &Feature) -> Result<Check> {
+        let mut check = self.check_inner(&f.restore_target())?;
+        if let Some(result) = self.store.results.lock().unwrap().get(&f.id) {
+            if result.restart && result.boot == self.boot {
+                check.state = Status::Restart;
+            } else if result.boot == self.boot
+                && (result.logon != 0 && native::logon().ok() == Some(result.logon)
+                    || result.shell != 0 && native::shell_stamp().ok() == Some(result.shell))
+            {
+                check.state = Status::SignIn;
+            }
+        }
+        Ok(check)
     }
     fn check_inner(&self, f: &Feature) -> Result<Check> {
         if f.manual {

@@ -6,6 +6,7 @@
 
 - 描述区只说明所选项的用途；状态由右栏表达，操作集中在按钮栏。README 只介绍产品。
 - 检测只读取设置。每项通过 `Ops` 定义优化，通过 `RestoreOps` 定义 Windows 默认可用配置；`R` 恢复当前项，`F10` 重启。恢复记录和启动流程保存执行方向，返回正常模式后只接续该方向。
+- 正常模式不设自动重启或关闭倒计时；只有安全模式执行后倒计时重启。列表检测当前优化配置，恢复方向只用于接续和错误核对，不形成“已恢复”状态。
 - 首次检测、重新检测和执行后的复查完成前，单项、类别、全部、恢复及重启均不接受键盘或鼠标操作；保留浏览、切换类别和退出。空闲状态栏留空，检测期间显示剩余项数。
 - 禁用项目直接禁用服务、任务与配套程序，使用策略锁定功能；系统入口可能隐藏或无法切换。恢复解除策略并恢复服务的默认启动方式，需要重启时在界面说明。
 - SysMain 总服务默认禁用。预读、内存压缩与页面合并分别定义，`DefaultOff` 子项不参与类别或全部执行；单独执行子项启用总服务，再修改指定能力。W32Time 保留独立自动校时项目；通知与硬件功耗、温度控制服务保留正常运行配置。
@@ -94,9 +95,9 @@ python tools/check_console.py target/release/zero_security_windows.exe
 
 Smart App Control 从关闭状态恢复使用微软的[离线配置方法](https://learn.microsoft.com/en-us/windows/apps/develop/smart-app-control/test-your-app-with-smart-app-control#configure-smart-app-control-by-using-the-registry)，安全模式仍会拒绝修改受保护状态。恢复环境采用原机的临时副本，不修改原有恢复环境。
 
-`--snapshot 文件` 记录读回目标，`--apply 项目 文件`、`--restore 项目 文件` 和 `--apply-all 文件` 使用界面相同的执行流程，`--check 文件` 复查状态。
+`--snapshot 文件` 记录读回目标；`--apply 项目 文件`、`--restore 项目 文件` 和 `--apply-all 文件` 使用界面相同的执行流程。`--apply-items 选择文件 报告文件`、`--restore-items 选择文件 报告文件` 批量处理 JSON 项目 ID 数组。`--check 报告文件 [选择文件]` 核对当前状态与默认配置，`--continue 报告文件` 后台接续正常模式任务，均不自动重启。
 
-`tools/validate_target.py` 使用独立目标机的固定 tailcat 连接，逐项执行、恢复并验证重启后的状态。连接密钥、原始快照、阶段结果和检查点均放在忽略目录。示例：
+`tools/validate_target.py` 按系统设置、应用精简、安装项和桌面设置批量验证，合并重启，再分别核对每项结果。恢复按普通配置、Defender 和离线配置处理；Defender 另核对服务、实时保护和防篡改的运行状态。重启由测试脚本控制，不依赖正常模式的界面计时器。失败只复测对应批次。固定 tailcat 身份只运行一个远程会话，连接密钥、快照、结果和检查点均放在忽略目录。示例：
 
 ```text
 python tools/validate_target.py --connection artifacts/target_connection.json --hostname DESKTOP-BPDS8UM --results artifacts/target-validation --finish-all

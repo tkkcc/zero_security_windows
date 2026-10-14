@@ -37,7 +37,26 @@ pub fn snapshot(path: &str) -> Result<()> {
 pub fn execute(mode: &str, args: &[String]) -> Result<()> {
     ensure!(native::admin()?, "Administrator rights are required");
     let engine = Engine::new()?;
-    let (command, report) = if mode == "--apply-all" {
+    let (command, report) = if mode == "--continue" {
+        (
+            controller::resume_command(&engine)?.unwrap_or(Command::Items(vec![])),
+            args.first(),
+        )
+    } else if matches!(mode, "--apply-items" | "--restore-items") {
+        let ids: Vec<String> = serde_json::from_slice(&std::fs::read(
+            args.first()
+                .ok_or_else(|| anyhow::anyhow!("Missing selection file"))?,
+        )?)?;
+        let indices = select(&engine, &ids)?;
+        (
+            if mode == "--restore-items" {
+                Command::RestoreItems(indices)
+            } else {
+                Command::Items(indices)
+            },
+            args.get(1),
+        )
+    } else if mode == "--apply-all" {
         (Command::All, args.first())
     } else {
         let id = args
@@ -58,7 +77,7 @@ pub fn execute(mode: &str, args: &[String]) -> Result<()> {
         )
     };
     let (tx, rx) = std::sync::mpsc::channel();
-    controller::batch(&engine, &tx, 0, &command, false)?;
+    controller::batch(&engine, &tx, 0, &command, mode == "--continue")?;
     drop(tx);
     let processed = rx
         .into_iter()
@@ -69,12 +88,10 @@ pub fn execute(mode: &str, args: &[String]) -> Result<()> {
         .unwrap_or(0);
     let indices: Vec<_> = match command {
         Command::One(i) | Command::Restore(i) => vec![i],
+        Command::Items(indices) | Command::RestoreItems(indices) => indices,
         _ => (0..engine.catalog.len()).collect(),
     };
-    let items: Vec<_> = indices.iter().map(|i| {
-        let f = &engine.catalog[*i];
-        json!({"id": f.id, "check": engine.check(f), "result": engine.store.results.lock().unwrap().get(&f.id).cloned()})
-    }).collect();
+    let items = states(&engine, &indices);
     let failed = items
         .iter()
         .any(|item| item["check"]["state"] == json!("Failed"));
@@ -86,5 +103,64 @@ pub fn execute(mode: &str, args: &[String]) -> Result<()> {
         !failed,
         "One or more items failed; inspect the operation log"
     );
+    Ok(())
+}
+fn states(engine: &Engine, indices: &[usize]) -> Vec<Value> {
+    use std::sync::{
+        Mutex,
+        atomic::{AtomicUsize, Ordering},
+    };
+    let results = Mutex::new(vec![Value::Null; indices.len()]);
+    let next = AtomicUsize::new(0);
+    std::thread::scope(|scope| {
+        for _ in 0..4.min(indices.len()) {
+            let (results, next) = (&results, &next);
+            scope.spawn(move || {
+                loop {
+                    let position = next.fetch_add(1, Ordering::Relaxed);
+                    let Some(&i) = indices.get(position) else {
+                        break;
+                    };
+                    let f = &engine.catalog[i];
+                    let defaults = match engine.default_check(f) {
+                        Ok(check) => serde_json::to_value(check).unwrap(),
+                        Err(error) => json!({"state":"Unknown","detail":format!("{error:#}")}),
+                    };
+                    let check = engine.check(f);
+                    let result = engine.store.results.lock().unwrap().get(&f.id).cloned();
+                    results.lock().unwrap()[position] =
+                        json!({"id":f.id,"check":check,"defaults":defaults,"result":result});
+                }
+            });
+        }
+    });
+    results.into_inner().unwrap()
+}
+pub(crate) fn select(engine: &Engine, ids: &[String]) -> Result<Vec<usize>> {
+    ids.iter()
+        .map(|id| {
+            engine
+                .catalog
+                .iter()
+                .position(|f| f.id == *id)
+                .ok_or_else(|| anyhow::anyhow!("Unknown item: {id}"))
+        })
+        .collect()
+}
+pub fn check(args: &[String]) -> Result<()> {
+    let engine = Engine::new()?;
+    let indices = if let Some(file) = args.get(1) {
+        let ids: Vec<String> = serde_json::from_slice(&std::fs::read(file)?)?;
+        select(&engine, &ids)?
+    } else {
+        (0..engine.catalog.len()).collect()
+    };
+    let items = states(&engine, &indices);
+    let report = json!({"version":env!("CARGO_PKG_VERSION"),"boot":engine.boot,"safe_mode":engine.safe,"items":items});
+    std::fs::write(
+        args.first()
+            .ok_or_else(|| anyhow::anyhow!("Missing report file"))?,
+        serde_json::to_vec_pretty(&report)?,
+    )?;
     Ok(())
 }

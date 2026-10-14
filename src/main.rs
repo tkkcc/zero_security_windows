@@ -25,37 +25,11 @@ fn run() -> anyhow::Result<()> {
             args.get(1)
                 .ok_or_else(|| anyhow::anyhow!("Missing snapshot path"))?,
         ),
-        Some(mode @ ("--apply" | "--restore" | "--apply-all")) => {
-            diagnostics::execute(mode, &args[1..])
-        }
-        Some("--check") => {
-            let engine = std::sync::Arc::new(engine::Engine::new()?);
-            let results = std::sync::Mutex::new(vec![None; engine.catalog.len()]);
-            let next = std::sync::atomic::AtomicUsize::new(0);
-            let started = std::time::Instant::now();
-            std::thread::scope(|scope| {
-                for _ in 0..4 {
-                    let (engine, results, next) = (&engine, &results, &next);
-                    scope.spawn(move || loop {
-                        let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                        if i >= engine.catalog.len() { break; }
-                        let f = &engine.catalog[i];
-                        let check = engine.check(f);
-                        results.lock().unwrap()[i] = Some(serde_json::json!({
-                            "id": f.id, "name": f.name(engine.zh), "state": check.state, "detail": check.detail
-                        }));
-                    });
-                }
-            });
-            let report = serde_json::json!({"version":env!("CARGO_PKG_VERSION"),"elapsed_ms":started.elapsed().as_millis(),"safe_mode":engine.safe,"boot":engine.boot,"items":*results.lock().unwrap()});
-            let text = serde_json::to_string_pretty(&report)?;
-            if let Some(path) = args.get(1) {
-                std::fs::write(path, text)?;
-            } else {
-                println!("{text}")
-            }
-            Ok(())
-        }
+        Some(
+            mode @ ("--apply" | "--restore" | "--apply-all" | "--apply-items" | "--restore-items"
+            | "--continue"),
+        ) => diagnostics::execute(mode, &args[1..]),
+        Some("--check") => diagnostics::check(&args[1..]),
         _ => {
             if !native::admin()? {
                 native::elevate(&args)?;
@@ -86,6 +60,9 @@ fn main() {
                     | "--apply"
                     | "--restore"
                     | "--apply-all"
+                    | "--apply-items"
+                    | "--restore-items"
+                    | "--continue"
                     | "--tray"
                     | "--blocked"
             )

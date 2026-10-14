@@ -102,7 +102,7 @@ pub struct App {
     pub busy: bool,
     pub message: String,
     pub engine: Option<Arc<Engine>>,
-    pub countdown: Option<(Instant, bool)>,
+    pub countdown: Option<Instant>,
     pub restart: bool,
     categories: Vec<usize>,
     category: usize,
@@ -237,7 +237,13 @@ impl App {
         true
     }
     fn category_command(&self) -> Command {
-        Command::Items(self.visible.clone())
+        Command::Items(
+            self.visible
+                .iter()
+                .copied()
+                .filter(|i| !self.catalog[*i].default_off)
+                .collect(),
+        )
     }
     fn checks_remaining(&self) -> usize {
         self.states
@@ -402,22 +408,14 @@ impl App {
                 choose(self.zh, "项待完成", "remaining")
             );
         }
-        if let Some((deadline, restart)) = self.countdown {
+        if let Some(deadline) = self.countdown {
             let seconds = deadline.saturating_duration_since(Instant::now()).as_secs() + 1;
             message = format!(
                 "{seconds}{}",
                 choose(
                     self.zh,
-                    if restart {
-                        " 秒后重启，任意键停止"
-                    } else {
-                        " 秒后关闭，任意键停止"
-                    },
-                    if restart {
-                        "s to restart; any key stops"
-                    } else {
-                        "s to close; any key stops"
-                    }
+                    " 秒后重启，任意键停止",
+                    "s to restart; any key stops"
                 )
             );
         }
@@ -690,7 +688,7 @@ impl App {
                     }
                 }
             }
-            Message::Finished { restart, auto, .. } => {
+            Message::Finished { restart, .. } => {
                 self.busy = false;
                 self.countdown = None;
                 self.restart = restart;
@@ -705,17 +703,9 @@ impl App {
                         }
                     }
                 }
-                let failures = self
-                    .states
-                    .iter()
-                    .filter(|s| s.state == Status::Failed)
-                    .count();
                 self.message.clear();
-                let unconfirmed = self.states.iter().filter(|s| s.recheckable()).count();
-                if auto {
-                    let restart =
-                        restart && (failures == 0 && unconfirmed == 0 || native::safe_mode());
-                    self.countdown = Some((Instant::now() + Duration::from_secs(10), restart))
+                if restart && self.engine.as_ref().is_some_and(|engine| engine.safe) {
+                    self.countdown = Some(Instant::now() + Duration::from_secs(10))
                 }
                 self.reorder();
             }
@@ -817,16 +807,12 @@ fn event_loop(
             }
             dirty = true
         }
-        if let Some((deadline, restart)) = app.countdown {
+        if let Some(deadline) = app.countdown {
             let remaining = deadline.saturating_duration_since(Instant::now());
             if remaining.is_zero() {
-                if restart {
-                    commands.send(Command::Restart)?;
-                    app.countdown = None;
-                    app.message = choose(app.zh, "正在重启", "Restarting").into()
-                } else {
-                    return Ok(());
-                }
+                commands.send(Command::Restart)?;
+                app.countdown = None;
+                app.message = choose(app.zh, "正在重启", "Restarting").into()
             }
             if last_second != Some(remaining.as_secs()) {
                 last_second = Some(remaining.as_secs());
@@ -1050,9 +1036,15 @@ mod tests {
             );
             assert!(app.visible.windows(2).all(|pair| pair[0] < pair[1]));
             seen.extend_from_slice(&app.visible);
+            let expected: Vec<_> = app
+                .visible
+                .iter()
+                .copied()
+                .filter(|i| !app.catalog[*i].default_off)
+                .collect();
             for key in ['c', 'C'] {
                 assert!(
-                    matches!(app.key_command(KeyCode::Char(key)), Some(Command::Items(indices)) if indices == app.visible)
+                    matches!(app.key_command(KeyCode::Char(key)), Some(Command::Items(indices)) if indices == expected)
                 );
             }
         }
@@ -1344,7 +1336,6 @@ mod tests {
         for zh in [true, false] {
             for state in [
                 Status::Done,
-                Status::Restored,
                 Status::Restricted,
                 Status::Unknown,
                 Status::Failed,
@@ -1357,7 +1348,6 @@ mod tests {
                     Message::Finished {
                         processed: 1,
                         restart: true,
-                        auto: false,
                         refresh: vec![],
                     },
                     0,
@@ -1493,66 +1483,42 @@ mod tests {
         Ok(())
     }
     #[test]
-    fn manual_actions_have_no_countdown_but_boot_continuation_does() -> Result<()> {
+    fn only_safe_mode_has_an_automatic_restart_countdown() -> Result<()> {
         let mut app = App::new(catalog()?, true)?;
+        for state in [Status::Ready, Status::Done, Status::Unknown, Status::Failed] {
+            app.states[0] = Check::new(state);
+            app.receive(
+                Message::Finished {
+                    processed: 1,
+                    restart: true,
+                    refresh: vec![],
+                },
+                0,
+            );
+            assert!(app.countdown.is_none());
+            assert!(app.restart);
+        }
+        let mut engine = Engine::new()?;
+        engine.safe = true;
+        app.engine = Some(Arc::new(engine));
         app.receive(
             Message::Finished {
                 processed: 1,
                 restart: true,
-                auto: false,
+                refresh: vec![],
+            },
+            0,
+        );
+        assert!(app.countdown.is_some());
+        app.receive(
+            Message::Finished {
+                processed: 1,
+                restart: false,
                 refresh: vec![],
             },
             0,
         );
         assert!(app.countdown.is_none());
-        assert!(app.restart);
-        assert!(app.message.is_empty());
-        app.receive(
-            Message::Finished {
-                processed: 1,
-                restart: true,
-                auto: true,
-                refresh: vec![],
-            },
-            0,
-        );
-        assert!(app.countdown.is_some());
-        app.states[0] = Check::new(Status::Unknown);
-        app.receive(
-            Message::Finished {
-                processed: 1,
-                restart: false,
-                auto: true,
-                refresh: vec![],
-            },
-            0,
-        );
-        assert!(matches!(app.countdown, Some((_, false))));
-        assert!(app.message.is_empty());
-        app.states[0] = Check::new(Status::Restricted);
-        app.receive(
-            Message::Finished {
-                processed: 1,
-                restart: false,
-                auto: true,
-                refresh: vec![],
-            },
-            0,
-        );
-        assert!(app.countdown.is_some());
-        assert!(app.message.is_empty());
-        app.states[0] = Check::new(Status::Failed);
-        app.receive(
-            Message::Finished {
-                processed: 1,
-                restart: true,
-                auto: true,
-                refresh: vec![],
-            },
-            0,
-        );
-        assert!(matches!(app.countdown, Some((_, false))));
-        assert!(app.message.is_empty());
         Ok(())
     }
     #[test]
@@ -1578,7 +1544,6 @@ mod tests {
             Message::Finished {
                 processed: 1,
                 restart: false,
-                auto: false,
                 refresh: vec![],
             },
             0,
@@ -1608,7 +1573,6 @@ mod tests {
             Message::Finished {
                 processed: 1,
                 restart: false,
-                auto: false,
                 refresh: vec![],
             },
             0,
