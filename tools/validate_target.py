@@ -15,6 +15,10 @@ class Target:
     def __init__(self, configuration):
         self.folder = configuration.resolve().parent
         self.config = json.loads(configuration.read_text(encoding='utf-8'))
+        self.connect()
+        atexit.register(self.close)
+
+    def connect(self):
         self.tunnel_log = (self.folder / 'tunnel.stderr').open('w', encoding='utf-8')
         self.tunnel = subprocess.Popen(
             [self.config['client_binary'], '--key=' + self.config['client_key'], 'forward',
@@ -22,7 +26,6 @@ class Target:
             stdout=subprocess.DEVNULL, stderr=self.tunnel_log, text=True,
             encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW,
         )
-        atexit.register(self.close)
         endpoint = None
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline and self.tunnel.poll() is None:
@@ -104,6 +107,8 @@ if($p.ExitCode -ne 0){{throw ('Check failed: '+$p.ExitCode)}}
             try:
                 state=self.status()
             except (RuntimeError,subprocess.TimeoutExpired):
+                self.close()
+                self.connect()
                 continue
             if state['Boot']!=before and state['Resume']==0:
                 if state['Phase']=='AwaitNormal':
@@ -111,6 +116,8 @@ if($p.ExitCode -ne 0){{throw ('Check failed: '+$p.ExitCode)}}
                     return continued['restart']
                 if not state['Phase']:
                     return False
+                if state['Phase']=='AwaitSafe':
+                    raise RuntimeError('Normal mode returned without completing the Safe Mode workflow')
         raise RuntimeError('Target did not return to normal mode within 15 minutes')
 
 

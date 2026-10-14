@@ -188,18 +188,42 @@ fn register_return(engine: &Engine) -> Result<()> {
 }
 pub fn prepare_safe(engine: &Engine, ids: &[String], all: bool, restoring: bool) -> Result<()> {
     engine.store.initialize()?;
+    if reg::exists(r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending")?
+        || reg::exists(r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired")?
+    {
+        prepare_normal(engine, all, ids)?;
+        let mut results = engine.store.results.lock().unwrap();
+        for id in ids {
+            let result = results.entry(id.clone()).or_default();
+            result.boot = engine.boot;
+            result.restoring = restoring;
+            result.restart = true;
+        }
+        drop(results);
+        engine.store.pending.lock().unwrap().as_mut().unwrap().restoring = restoring;
+        return engine.store.save();
+    }
     let prior = engine.store.pending.lock().unwrap().clone();
     if let Some(p) = &prior
         && p.phase == Phase::AwaitSafe
     {
-        engine.store.copy_executable()?;
         let mut pending = engine.store.pending.lock().unwrap();
         let p = pending.as_mut().unwrap();
         p.safe_ids.extend_from_slice(ids);
         p.safe_ids.sort();
         p.safe_ids.dedup();
         p.continue_all |= all;
+        let safe_entry = p.safe_entry.clone();
         drop(pending);
+        let exe = engine.store.copy_executable()?;
+        reg::set(
+            RUN_ONCE,
+            "*ZeroSecurityWindows.SafeApply",
+            format!("\"{}\" --safe-resume", exe.display()),
+            "String",
+        )?;
+        register_return(engine)?;
+        bcd(&["/bootsequence", &safe_entry])?;
         for id in ids {
             if restoring {
                 engine.restore(engine.feature(id)?, true, false)?;
