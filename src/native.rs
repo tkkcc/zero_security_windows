@@ -696,6 +696,19 @@ pub fn firewall_group(group: &str, value: Option<bool>) -> Result<bool> {
         }
     }
 }
+pub fn firewall_group_defaults(group: &str, apply: bool) -> Result<bool> {
+    let script = format!(
+        "$ErrorActionPreference='Stop'; $defaults=@{{}}; Get-NetFirewallRule -PolicyStore SystemDefaults | Where-Object {{ $_.Group -eq '{}' }} | ForEach-Object {{ $defaults[$_.Name]=$_.Enabled }}; $matched=$true; Get-NetFirewallRule -PolicyStore PersistentStore | Where-Object {{ $_.Group -eq '{}' }} | ForEach-Object {{ if ($defaults.ContainsKey($_.Name) -and $_.Enabled -ne $defaults[$_.Name]) {{ $matched=$false; if ({}) {{ Set-NetFirewallRule -PolicyStore PersistentStore -Name $_.Name -Enabled $defaults[$_.Name] }} }} }}; ConvertTo-Json -Compress ($matched -or {})",
+        group,
+        group,
+        if apply { "$true" } else { "$false" },
+        if apply { "$true" } else { "$false" },
+    );
+    Ok(serde_json::from_str(&command(
+        "powershell.exe",
+        &["-NoProfile", "-NonInteractive", "-Command", &script],
+    )?)?)
+}
 pub fn firewall_group_all(group: &str) -> Result<bool> {
     com()?;
     unsafe {

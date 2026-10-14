@@ -76,14 +76,12 @@ pub fn default_input_active() -> Result<bool> {
             "-NoProfile",
             "-NonInteractive",
             "-Command",
-            "$ErrorActionPreference='Stop'; @{Current=@(Get-WinUserLanguageList | Select-Object LanguageTag,InputMethodTips); Default=@(New-WinUserLanguageList (Get-WinSystemLocale).Name | Select-Object LanguageTag,InputMethodTips); Override=@(Get-WinDefaultInputMethodOverride)} | ConvertTo-Json -Depth 5 -Compress",
+            "$ErrorActionPreference='Stop'; $current=Get-WinUserLanguageList; $default=New-WinUserLanguageList (Get-WinSystemLocale).Name; @{Current=@(foreach($language in $current){@{Language=[Globalization.CultureInfo]::GetCultureInfo($language.LanguageTag).LCID; Tips=@($language.InputMethodTips)}}); Default=@(foreach($language in $default){@{Language=[Globalization.CultureInfo]::GetCultureInfo($language.LanguageTag).LCID; Tips=@($language.InputMethodTips)}}); Override=Get-WinDefaultInputMethodOverride} | ConvertTo-Json -Depth 5 -Compress",
         ],
     )?;
     let state: serde_json::Value = serde_json::from_str(&state)?;
     Ok(state["Current"] == state["Default"]
-        && state["Override"]
-            .as_array()
-            .is_some_and(|values| values.is_empty())
+        && state["Override"].is_null()
         && reg::read(r"HKCU:\Software\Microsoft\CTF\SortOrder", "Default")?.is_null())
 }
 pub fn default_input() -> Result<()> {

@@ -6,7 +6,7 @@ Zero Security Windows 是一款以精简与性能为优先的开源 Windows 优�
 
 [下载最新版](https://github.com/tkkcc/zero_security_windows/releases/latest/download/zero_security_windows.exe) · [反馈问题](https://github.com/tkkcc/zero_security_windows/issues)
 
-![Zero Security Windows 界面预览：项目列表与选中项详情](docs/images/interface.png)
+![Zero Security Windows 界面预览：项目状态与功能说明](docs/images/interface.png)
 
 ## 产品特色
 
@@ -16,7 +16,7 @@ Zero Security Windows 是一款以精简与性能为优先的开源 Windows 优�
 - **一键恢复默认配置**：每个项目都可按 `R` 恢复 Windows 默认可用配置，包括 Defender、安全设置和应用安装。恢复安装项会卸载应用；恢复精简项会重新安装应用。
 - **运行环境独立**：没有 Windows Terminal 也能使用系统控制台打开；SysMain 总服务与预读、内存压缩、页面合并可分别调整。
 
-管理员身份运行下载的可执行文件。检测完成后，`Space` 执行当前项，`C` 执行当前类别，`A` 执行全部，`R` 恢复当前项，`F10` 在需要时重启，`Q` 退出。检测期间可浏览和退出，操作入口置灰；空闲时不显示默认“就绪”提示。
+管理员身份运行下载的可执行文件。检测完成后，`Space` 执行当前项，`C` 执行当前类别，`A` 执行全部，`R` 恢复当前项，`F10` 在需要时重启，`Q` 退出。检测期间可浏览和退出，操作入口置灰。右侧显示项目状态，下方说明所选项的作用。
 
 默认禁用整个 SysMain；三个子项需单独执行，执行子项会启用总服务。预装应用卸载并清除预配，移除用户可见注册；有可靠 winget 源的应用不保留安装文件，按 `R` 联网重装。没有安装源的组件只保存必要恢复材料。卸载可能移除应用数据，缓存入口在重新登录后刷新。桌面项只添加此电脑并放在回收站前，保留其他图标和文件。恢复材料保存在 `%ProgramData%\ZeroSecurityWindows\recovery`。
 

@@ -2,6 +2,7 @@
 mod apps;
 mod checks;
 mod controller;
+mod diagnostics;
 mod engine;
 mod mitigation;
 mod model;
@@ -19,6 +20,13 @@ fn run() -> anyhow::Result<()> {
     match args.first().map(String::as_str) {
         Some("--blocked") => Ok(()),
         Some("--tray") => tray::run(),
+        Some("--snapshot") => diagnostics::snapshot(
+            args.get(1)
+                .ok_or_else(|| anyhow::anyhow!("Missing snapshot path"))?,
+        ),
+        Some(mode @ ("--apply" | "--restore" | "--apply-all")) => {
+            diagnostics::execute(mode, &args[1..])
+        }
         Some("--check") => {
             let engine = std::sync::Arc::new(engine::Engine::new()?);
             let results = std::sync::Mutex::new(vec![None; engine.catalog.len()]);
@@ -69,7 +77,18 @@ fn main() {
         let error = format!("{e:#}");
         let _ = store::append("errors.log", &error);
         eprintln!("{error}");
-        if !std::env::args().any(|a| a == "--check" || a == "--tray" || a == "--blocked") {
+        if !std::env::args().any(|a| {
+            matches!(
+                a.as_str(),
+                "--check"
+                    | "--snapshot"
+                    | "--apply"
+                    | "--restore"
+                    | "--apply-all"
+                    | "--tray"
+                    | "--blocked"
+            )
+        }) {
             let _ = native::open_console();
             eprintln!("{error}\n{}", store::root().join("errors.log").display());
             let _ = std::io::stdin().read_line(&mut String::new());

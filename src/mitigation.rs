@@ -228,61 +228,80 @@ pub fn disable() -> Result<()> {
     Ok(())
 }
 pub fn defaults() -> Result<bool> {
-    for image in targets()? {
-        for &(id, len) in POLICIES {
-            if image.is_empty() && !system_policy(id) {
-                continue;
-            }
-            for flags in [0, 8] {
-                if flags == 8 && (image.is_empty() || !audit_policy(id)) {
-                    continue;
-                }
-                if read(&image, id, flags, len)?
-                    .is_some_and(|data| data[..options(id, len)].iter().any(|v| v & 3 != 0))
-                {
-                    return Ok(false);
-                }
-            }
+    let defaults = default_images()?;
+    for path in configured_paths(&defaults)? {
+        let expected = defaults
+            .iter()
+            .find(|image| path.eq_ignore_ascii_case(&format!(r"{IFEO}\{}", image.name)));
+        if reg::read(&path, "MitigationOptions")?
+            != expected.map_or(serde_json::Value::Null, |image| image.value.clone())
+            || !reg::read(&path, "MitigationAuditOptions")?.is_null()
+        {
+            return Ok(false);
         }
     }
     Ok(true)
 }
 pub fn restore() -> Result<()> {
     let _system = native::system()?;
-    for image in targets()? {
-        let wide = native::wide(&image);
-        let p = if image.is_empty() {
-            std::ptr::null()
-        } else {
-            wide.as_ptr()
-        };
-        for &(id, len) in POLICIES {
-            if image.is_empty() && !system_policy(id) {
-                continue;
-            }
-            for flags in [0, 8] {
-                if flags == 8 && (image.is_empty() || !audit_policy(id)) {
-                    continue;
-                }
-                let data = vec![0u64; len];
-                let hr = unsafe {
-                    RtlSetImageMitigationPolicy(
-                        p,
-                        id,
-                        flags,
-                        data.as_ptr().cast(),
-                        (len * 8) as u32,
-                    )
-                };
-                ensure!(hr >= 0, "Mitigation reset {image}/{id}: {hr:08X}");
-            }
-        }
+    let images = default_images()?;
+    for path in configured_paths(&images)? {
+        reg::delete(&path, "MitigationOptions")?;
+        reg::delete(&path, "MitigationAuditOptions")?;
+    }
+    for image in images {
+        reg::set(
+            &format!(r"{IFEO}\{}", image.name),
+            "MitigationOptions",
+            image.value,
+            &image.kind,
+        )?;
     }
     ensure!(
         defaults()?,
         "Mitigation policies did not return to defaults"
     );
     Ok(())
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "PascalCase")]
+struct DefaultImage {
+    name: String,
+    value: serde_json::Value,
+    #[serde(rename = "Type")]
+    kind: String,
+}
+fn default_images() -> Result<Vec<DefaultImage>> {
+    #[derive(serde::Deserialize)]
+    struct Defaults {
+        #[serde(rename = "Mitigations")]
+        mitigations: Vec<DefaultImage>,
+    }
+    Ok(
+        serde_json::from_str::<Defaults>(include_str!("../resources/windows-defaults.json"))?
+            .mitigations,
+    )
+}
+fn configured_paths(defaults: &[DefaultImage]) -> Result<Vec<String>> {
+    let mut paths = vec![r"HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel".into()];
+    paths.extend(
+        defaults
+            .iter()
+            .map(|image| format!(r"{IFEO}\{}", image.name)),
+    );
+    for name in reg::children(IFEO)? {
+        let path = format!(r"{IFEO}\{name}");
+        paths.push(path.clone());
+        paths.extend(
+            reg::children(&path)?
+                .iter()
+                .map(|child| format!(r"{path}\{child}")),
+        );
+    }
+    paths.sort();
+    paths.dedup();
+    Ok(paths)
 }
 
 #[cfg(test)]

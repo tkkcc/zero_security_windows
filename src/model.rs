@@ -9,10 +9,6 @@ pub struct Feature {
     pub en: String,
     pub purpose_zh: String,
     pub purpose_en: String,
-    pub impact_zh: String,
-    pub impact_en: String,
-    pub result_zh: String,
-    pub result_en: String,
     pub group_zh: String,
     pub group_en: String,
     pub probe: String,
@@ -35,10 +31,6 @@ impl Default for Feature {
             en: String::new(),
             purpose_zh: String::new(),
             purpose_en: String::new(),
-            impact_zh: String::new(),
-            impact_en: String::new(),
-            result_zh: String::new(),
-            result_en: String::new(),
             group_zh: String::new(),
             group_en: String::new(),
             probe: String::new(),
@@ -68,12 +60,6 @@ impl Feature {
     }
     pub fn category(&self, zh: bool) -> &str {
         choose(zh, &self.group_zh, &self.group_en)
-    }
-    pub fn impact(&self, zh: bool) -> &str {
-        choose(zh, &self.impact_zh, &self.impact_en)
-    }
-    pub fn result(&self, zh: bool) -> &str {
-        choose(zh, &self.result_zh, &self.result_en)
     }
     pub fn security(&self) -> bool {
         self.page == "System"
@@ -111,7 +97,6 @@ impl Feature {
                         | "UserServices"
                         | "Asr"
                         | "Bcd"
-                        | "UpdatePause"
                         | "ProcessBlock"
                         | "ResumeAccess"
                         | "Task"
@@ -139,6 +124,7 @@ pub struct Operation {
     pub names: Vec<String>,
     pub patterns: Vec<String>,
     pub package_sources: std::collections::BTreeMap<String, String>,
+    pub task_states: std::collections::BTreeMap<String, bool>,
     pub non_removable: bool,
     pub value: Value,
 }
@@ -228,189 +214,6 @@ impl Check {
     pub fn recheckable(&self) -> bool {
         self.state == Status::Unknown
     }
-    pub fn summary<'a>(&self, f: &'a Feature, zh: bool) -> &'a str {
-        match self.state {
-            Status::Restored => choose(
-                zh,
-                "已恢复为 Windows 默认可用配置。",
-                "Restored to usable Windows defaults.",
-            ),
-            Status::PendingCheck => choose(
-                zh,
-                "尚未读取当前设置。",
-                "Current settings have not been checked yet.",
-            ),
-            Status::Checking => choose(zh, "正在读取当前设置。", "Reading current settings."),
-            Status::Ready if f.toggle() => choose(
-                zh,
-                "当前配置为 Windows 11 右键菜单。",
-                "The Windows 11 context menu is selected.",
-            ),
-            Status::Done if f.toggle() => choose(
-                zh,
-                "当前配置为 Windows 10 经典右键菜单。",
-                "The Windows 10 classic context menu is selected.",
-            ),
-            Status::Ready => match f.intent.as_str() {
-                "Install" => choose(zh, "尚未安装此应用。", "This application is not installed."),
-                "Remove" => choose(
-                    zh,
-                    "检测到可卸载的应用或组件。",
-                    "An application or component is available to uninstall.",
-                ),
-                _ => choose(
-                    zh,
-                    "仍有设置需要更改。",
-                    "Some settings still need to be changed.",
-                ),
-            },
-            Status::Done if f.security() && !self.detail.is_empty() => "",
-            Status::Done if !f.result(zh).is_empty() => f.result(zh),
-            Status::Done => match f.intent.as_str() {
-                "Install" => choose(zh, "此应用已安装。", "This application is installed."),
-                "Remove" => choose(
-                    zh,
-                    "未检测到此应用或组件。",
-                    "This application or component is not installed.",
-                ),
-                "Disable" => choose(zh, "此功能已关闭。", "This feature is turned off."),
-                "Enable" => choose(zh, "此功能已开启。", "This feature is turned on."),
-                "Hide" => choose(zh, "对应入口已隐藏。", "The entry is hidden."),
-                "Show" => choose(zh, "对应内容已显示。", "The contents are visible."),
-                "Clean" => choose(zh, "清理已完成。", "Cleanup is complete."),
-                "Pause" => choose(zh, "系统更新已暂停。", "System updates are paused."),
-                _ => f.result(zh),
-            },
-            Status::Unknown => choose(
-                zh,
-                "Windows 暂未提供可用的状态信息。",
-                "Windows has not provided usable status information.",
-            ),
-            Status::Restricted => choose(
-                zh,
-                "Windows 限制了此设置的访问，此项目已跳过。",
-                "Windows restricts access to this setting; this item has been skipped.",
-            ),
-            Status::Absent => choose(
-                zh,
-                "当前系统未提供此功能，或没有需要处理的对象。",
-                "This feature is unavailable on this system, or there is nothing to change.",
-            ),
-            Status::Deferred => choose(
-                zh,
-                "此项目需要在正常模式下执行。",
-                "This item requires normal mode.",
-            ),
-            Status::Running => match f.intent.as_str() {
-                "Install" => choose(zh, "正在安装此应用。", "Installing this application."),
-                "Remove" => choose(
-                    zh,
-                    "正在卸载应用或组件。",
-                    "Uninstalling the application or component.",
-                ),
-                _ => choose(
-                    zh,
-                    "正在应用此项目的设置。",
-                    "Applying this item's settings.",
-                ),
-            },
-            Status::Queued => choose(
-                zh,
-                "已加入执行队列，尚未开始执行。",
-                "Queued and waiting to run.",
-            ),
-            Status::SafeQueued => choose(
-                zh,
-                "已加入安全模式执行队列。",
-                "Queued to run in Safe Mode.",
-            ),
-            Status::Restart => choose(
-                zh,
-                "配置已保存，等待重启生效。",
-                "Settings are saved and will take effect after restart.",
-            ),
-            Status::SignIn => choose(
-                zh,
-                "配置已保存，等待重新登录后更新界面。",
-                "Settings are saved; the interface will update after signing in again.",
-            ),
-            Status::Failed => choose(
-                zh,
-                "上次执行未完成，部分设置可能已应用。",
-                "The last run was incomplete; some settings may have been applied.",
-            ),
-        }
-    }
-    pub fn instruction(&self, f: &Feature, zh: bool) -> Option<&str> {
-        Some(match self.state {
-            Status::Restored => choose(
-                zh,
-                "按 Space 再次执行；按 R 恢复默认配置。",
-                "Press Space to apply again; R restores defaults.",
-            ),
-            Status::Ready | Status::Done if f.toggle() => choose(
-                zh,
-                "按 Space 切换菜单样式。",
-                "Press Space to switch the menu style.",
-            ),
-            Status::Ready => {
-                if f.default_off {
-                    choose(
-                        zh,
-                        "按 Space 单独执行；执行全部不包含此项。",
-                        "Press Space to run separately; Run all excludes this item.",
-                    )
-                } else if f.safe {
-                    choose(
-                        zh,
-                        "按 Space 执行；必要时进入安全模式。",
-                        "Press Space to run; Safe Mode will be used if needed.",
-                    )
-                } else if f.restart {
-                    choose(
-                        zh,
-                        "按 Space 执行；更改需要重启生效。",
-                        "Press Space to run; changes require a restart.",
-                    )
-                } else if matches!(f.refresh.as_str(), "Shell" | "Wallpaper") {
-                    choose(
-                        zh,
-                        "按 Space 执行；更改需要重新登录生效。",
-                        "Press Space to run; changes require signing in again.",
-                    )
-                } else {
-                    choose(zh, "按 Space 执行此项目。", "Press Space to run this item.")
-                }
-            }
-            Status::Failed => choose(zh, "按 Space 重试。", "Press Space to retry."),
-            Status::Unknown => choose(
-                zh,
-                "按 Space 重新检测；执行全部时暂时跳过此项目。",
-                "Press Space to check again; Run all skips this item for now.",
-            ),
-            Status::SafeQueued => choose(
-                zh,
-                "按 F10 重启，进入安全模式后自动继续。",
-                "Press F10 to restart; execution continues in Safe Mode.",
-            ),
-            Status::Restart => choose(
-                zh,
-                "重启电脑以应用更改。",
-                "Restart the computer to apply changes.",
-            ),
-            Status::SignIn => choose(
-                zh,
-                "注销并重新登录以应用更改。",
-                "Sign out and sign in again to apply changes.",
-            ),
-            Status::Deferred => choose(
-                zh,
-                "返回正常模式后执行此项目。",
-                "Run this item after returning to normal mode.",
-            ),
-            _ => return None,
-        })
-    }
     pub fn label(&self, f: &Feature, zh: bool) -> String {
         match self.state {
             Status::Restored => choose(zh, "已恢复", "Restored"),
@@ -418,10 +221,8 @@ impl Check {
             Status::Checking => choose(zh, "检测中", "Checking"),
             Status::Ready if f.default_off => choose(zh, "可单独关闭", "Run separately"),
             Status::Ready if f.id == "taskbar-pins" => choose(zh, "可清理", "Can clean up"),
-            Status::Done if f.id == "taskbar-pins" => choose(zh, "无固定项", "No pins"),
             Status::Ready if f.toggle() => "Windows 11",
             Status::Done if f.toggle() => "Windows 10",
-            Status::Done if !f.result(zh).is_empty() => f.result(zh),
             Status::Ready => match f.intent.as_str() {
                 "Install" => choose(zh, "可安装", "Can install"),
                 "Remove" => choose(zh, "可卸载", "Can uninstall"),
@@ -433,23 +234,13 @@ impl Check {
                 "Pause" => choose(zh, "可暂停", "Can pause"),
                 _ => choose(zh, "可关闭", "Can turn off"),
             },
-            Status::Done => match f.intent.as_str() {
-                "Install" => choose(zh, "已安装", "Installed"),
-                "Remove" => choose(zh, "未安装", "Not installed"),
-                "Apply" => f.result(zh),
-                "Enable" => choose(zh, "已开启", "Enabled"),
-                "Hide" => choose(zh, "已隐藏", "Hidden"),
-                "Show" => choose(zh, "已显示", "Visible"),
-                "Clean" => choose(zh, "已清理", "Cleaned up"),
-                "Pause" => choose(zh, "已暂停", "Paused"),
-                _ => choose(zh, "已关闭", "Off"),
-            },
+            Status::Done => choose(zh, "已完成", "Done"),
             Status::Running => choose(zh, "执行中", "Running"),
             Status::Queued => choose(zh, "排队中", "Queued"),
             Status::SafeQueued => choose(zh, "待安全模式", "Needs Safe Mode"),
             Status::Restart => choose(zh, "待重启", "Needs restart"),
             Status::SignIn => choose(zh, "待重新登录", "Needs sign-in"),
-            Status::Failed => choose(zh, "执行未完成", "Incomplete"),
+            Status::Failed => choose(zh, "执行失败", "Failed"),
             Status::Deferred => choose(zh, "待正常模式", "Needs normal mode"),
             Status::Unknown => choose(zh, "状态待确认", "Unconfirmed"),
             Status::Restricted => choose(zh, "已跳过", "Skipped"),

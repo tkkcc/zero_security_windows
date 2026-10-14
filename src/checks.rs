@@ -110,36 +110,27 @@ impl Engine {
         {
             return Ok(Check::new(Status::Absent));
         }
-        if let Some(check) = if self.safe && f.can_run_safe() {
+        let probe = if self.safe && f.can_run_safe() {
             None
         } else {
             self.probe(f)?
-        } {
-            if check.state != Status::Done {
-                return Ok(check);
-            }
-            if !f
-                .ops
-                .iter()
-                .any(|op| matches!(op.kind.as_str(), "Service" | "UserServices"))
-            {
-                return Ok(check);
-            }
-            for op in self.expand(f)?.iter().filter(|op| op.kind == "Service") {
-                if !satisfied(op, &self.read(op)?) || native::service_running(&op.service)? {
-                    return Ok(Check::new(Status::Ready));
-                }
-            }
-            return Ok(check);
+        };
+        if let Some(check) = &probe
+            && check.state != Status::Done
+        {
+            return Ok(check.clone());
         }
         let ops = self.expand(f)?;
         if ops.is_empty() {
-            return Ok(Check::new(Status::Absent));
+            return Ok(probe.unwrap_or_else(|| Check::new(Status::Absent)));
         }
         let mut done = true;
         let mut available = 0;
         let mut running_until_restart = false;
         for op in ops {
+            if op.source == "Prerequisite" {
+                continue;
+            }
             let value = self.read(&op)?;
             if op.kind == "OptionalFeature" && value.is_null() {
                 continue;
@@ -176,7 +167,11 @@ impl Engine {
                 .into(),
             });
         }
-        Ok(Check::active(!done))
+        Ok(if done {
+            probe.unwrap_or_else(|| Check::new(Status::Done))
+        } else {
+            Check::new(Status::Ready)
+        })
     }
     fn probe(&self, f: &Feature) -> Result<Option<Check>> {
         let active = match f.probe.as_str() {
@@ -424,43 +419,6 @@ impl Engine {
                     },
                 }));
             }
-            "updates" => {
-                let path = r"HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings";
-                let mut ends = vec![];
-                for name in [
-                    "PauseUpdatesExpiryTime",
-                    "PauseFeatureUpdatesEndTime",
-                    "PauseQualityUpdatesEndTime",
-                ] {
-                    let v = reg::read(path, name)?;
-                    let Some(s) = v.as_str() else {
-                        return Ok(Some(Check::new(Status::Ready)));
-                    };
-                    ends.push(chrono::DateTime::parse_from_rfc3339(s)?)
-                }
-                let expiry = *ends.iter().min().unwrap();
-                let mut active = expiry <= chrono::Utc::now()
-                    || reg::number(path, "FlightSettingsMaxPauseDays", 0)? < 7000;
-                let components = Feature {
-                    ops: f
-                        .ops
-                        .iter()
-                        .filter(|op| op.kind != "UpdatePause")
-                        .cloned()
-                        .collect(),
-                    ..Default::default()
-                };
-                for op in self.expand(&components)? {
-                    active |= !satisfied(&op, &self.read(&op)?);
-                }
-                let mut check = Check::active(active);
-                check.detail = format!(
-                    "{}{}",
-                    choose(self.zh, "更新暂停至 ", "Updates paused until "),
-                    expiry.format("%Y-%m-%d")
-                );
-                return Ok(Some(check));
-            }
             "mouse" => prefs::mouse()? != [0, 0, 0, 20, 6],
             "keyboard" => {
                 let k = prefs::keyboard()?;
@@ -558,8 +516,7 @@ mod tests {
     }
 
     #[test]
-    fn phishing_completion_uses_background_or_policy_without_reading_internal_state() -> Result<()>
-    {
+    fn phishing_completion_checks_the_policy_even_when_background_is_disabled() -> Result<()> {
         use winreg::{RegKey, enums::HKEY_CURRENT_USER};
         let root = RegKey::predef(HKEY_CURRENT_USER);
         let name = format!(
@@ -579,8 +536,8 @@ mod tests {
         f.id = "test-phishing-completion".into();
         let result = (|| -> Result<()> {
             key.set_value("Background", &0u32)?;
-            // The feature is complete without opening even an invalid policy path.
-            f.ops[0].path = "HKLM:\\invalid\0path".into();
+            f.ops[0].path = path.clone();
+            key.set_value("ServiceEnabled", &0u32)?;
             engine.store.results.lock().unwrap().insert(
                 f.id.clone(),
                 ResultRecord {
@@ -599,8 +556,9 @@ mod tests {
                     .is_empty()
             );
 
+            key.set_value("ServiceEnabled", &1u32)?;
+            assert_eq!(engine.check(&f).state, Status::Ready);
             key.set_value("Background", &1u32)?;
-            f.ops[0].path = path.clone();
             assert_eq!(engine.check(&f).state, Status::Ready);
             key.set_value("ServiceEnabled", &0u32)?;
             assert_eq!(engine.check(&f).state, Status::Done);

@@ -335,7 +335,7 @@ fn prerequisite(engine: &Engine, tx: &Sender<Message>, f: &Feature, version: usi
     }
     Ok(())
 }
-fn batch(
+pub(crate) fn batch(
     engine: &Engine,
     tx: &Sender<Message>,
     version: usize,

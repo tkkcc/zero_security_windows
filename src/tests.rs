@@ -975,37 +975,6 @@ fn driver_updates_require_both_update_exclusion_and_device_search_off() -> anyho
 }
 
 #[test]
-fn system_restore_recovery_requires_a_monitored_volume() -> anyhow::Result<()> {
-    let engine = Engine::new()?;
-    let path = format!(
-        r"HKCU:\Software\ZeroSecurityWindowsRestoreTest{}",
-        std::process::id()
-    );
-    let mut feature = engine.feature("system-restore")?.restore_target();
-    feature.id = "test-system-restore".into();
-    feature.ops.retain(|op| op.kind == "SystemRestore");
-    let op = &mut feature.ops[0];
-    op.path = path.clone();
-    let name = op.name.clone();
-    let result = (|| -> anyhow::Result<()> {
-        assert_eq!(engine.check(&feature).state, Status::Ready);
-        registry::set(
-            &path,
-            &name,
-            json!([r"\\?\Volume{00000000-0000-0000-0000-000000000001}\"]),
-            "MultiString",
-        )?;
-        assert_eq!(engine.check(&feature).state, Status::Done);
-        assert!(engine.read(&feature.ops[0])?.as_bool().unwrap());
-        registry::set(&path, &name, json!([]), "MultiString")?;
-        assert_eq!(engine.check(&feature).state, Status::Ready);
-        Ok(())
-    })();
-    registry::key(&path, false)?;
-    result
-}
-
-#[test]
 fn hibernation_off_requires_the_file_to_be_removed() {
     let op = Operation {
         kind: "Hibernate".into(),

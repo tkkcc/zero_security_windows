@@ -216,7 +216,9 @@ impl Engine {
                                 out.push(Operation {
                                     kind: "Task".into(),
                                     path: path.into(),
-                                    value: if op.value.is_null() {
+                                    value: if let Some(enabled) = op.task_states.get(path) {
+                                        json!(enabled)
+                                    } else if op.value.is_null() {
                                         json!(false)
                                     } else {
                                         op.value.clone()
@@ -244,7 +246,6 @@ impl Engine {
                         })
                     }
                 }
-                "UpdatePause" => out.extend(update_pause()),
                 "DesktopIcons" => out.extend(desktop_icons(op.value == json!("WindowsDefault"))?),
                 "LocaleCodePages" => {
                     for (name, value) in ["ACP", "OEMCP", "MACCP"]
@@ -328,7 +329,7 @@ impl Engine {
                     .unwrap_or(Value::Null)
             }
             "Firewall" => json!(native::firewall(&op.name, op.property == "NotifyOnListen", None)?),
-            "FirewallGroup" => json!(if bool_value(&op.value) { native::firewall_group_all(&op.name)? } else { native::firewall_group(&op.name, None)? }),
+            "FirewallGroup" => json!(if op.source == "WindowsDefault" { native::firewall_group_defaults(&op.name, false)? } else if bool_value(&op.value) { native::firewall_group_all(&op.name)? } else { native::firewall_group(&op.name, None)? }),
             "Task" => json!(native::task_enabled(&op.path)?),
             "Apps" => {
                 let entries: Vec<apps::AppEntry> = serde_json::from_value(self.fact("apps", || Ok(serde_json::to_value(apps::inventory()?)?))?)?;
@@ -375,7 +376,7 @@ impl Engine {
             }
             "ProcessBlock" => json!(same(&reg::read(&block_path(&op.name), "Debugger")?, &json!(block_command())) && (!bool_value(&op.value) || !native::process_running(&op.name)?)),
             "ResumeAccess" => json!(!PathBuf::from(&op.path).exists() || !native::execute_blocked(&PathBuf::from(&op.path))?),
-            "DesktopFiles" => json!(if bool_value(&op.value) { desktop_items()?.is_empty() } else { crate::recovery::files_restored(&op.name)? }),
+            "DesktopFiles" => json!(if bool_value(&op.value) { desktop_items()?.is_empty() } else { !crate::recovery::files_restored(&op.name)? }),
             "StartPins" => {
                 if !bool_value(&op.value) && !crate::recovery::start_pins_restored()? {
                     return Ok(json!(true));
@@ -424,7 +425,11 @@ impl Engine {
                 )?;
             }
             "FirewallGroup" => {
-                native::firewall_group(&op.name, Some(bool_value(&op.value)))?;
+                if op.source == "WindowsDefault" {
+                    native::firewall_group_defaults(&op.name, true)?;
+                } else {
+                    native::firewall_group(&op.name, Some(bool_value(&op.value)))?;
+                }
             }
             "Task" => native::set_task_enabled(&op.path, bool_value(&op.value))?,
             "TimeSync" => {
@@ -856,6 +861,11 @@ pub fn satisfied(op: &Operation, v: &Value) -> bool {
         same(&v["scm"], &op.value) && same(&v["registry"], &op.value)
     } else if op.kind == "Hibernate" {
         same(&v["enabled"], &op.value) && v["file"] == json!(op.value != json!(0))
+    } else if op.value_type == "ExpandString" && v.is_string() {
+        same(
+            &json!(native::expand(v.as_str().unwrap())),
+            &reg::desired(op),
+        )
     } else {
         same(v, &reg::desired(op))
     }
@@ -870,37 +880,6 @@ fn service_op(name: &str) -> Operation {
             4,
         )
     }
-}
-const UPDATES: &str = r"HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings";
-pub fn update_pause() -> Vec<Operation> {
-    let now = chrono::Utc::now();
-    let mut out = vec![Operation::reg(UPDATES, "FlightSettingsMaxPauseDays", 7000)];
-    for (names, date) in [
-        (
-            vec![
-                "PauseUpdatesStartTime",
-                "PauseFeatureUpdatesStartTime",
-                "PauseQualityUpdatesStartTime",
-            ],
-            now,
-        ),
-        (
-            vec![
-                "PauseUpdatesExpiryTime",
-                "PauseFeatureUpdatesEndTime",
-                "PauseQualityUpdatesEndTime",
-            ],
-            now + chrono::Duration::days(7000),
-        ),
-    ] {
-        for name in names {
-            out.push(Operation {
-                value_type: "String".into(),
-                ..Operation::reg(UPDATES, name, date.format("%Y-%m-%dT%H:%M:%SZ").to_string())
-            })
-        }
-    }
-    out
 }
 fn desktop_icons(restoring: bool) -> Result<Vec<Operation>> {
     let mut out = vec![];

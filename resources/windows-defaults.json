@@ -1,0 +1,170 @@
+{
+  "Mitigations": [
+    {
+      "Type": "QWord",
+      "Name": "ExtExport.exe",
+      "Value": 256
+    },
+    {
+      "Type": "QWord",
+      "Name": "ie4uinit.exe",
+      "Value": 256
+    },
+    {
+      "Type": "QWord",
+      "Name": "ieinstal.exe",
+      "Value": 256
+    },
+    {
+      "Type": "QWord",
+      "Name": "ielowutil.exe",
+      "Value": 256
+    },
+    {
+      "Type": "QWord",
+      "Name": "ieUnatt.exe",
+      "Value": 256
+    },
+    {
+      "Type": "QWord",
+      "Name": "iexplore.exe",
+      "Value": 256
+    },
+    {
+      "Type": "QWord",
+      "Name": "mscorsvw.exe",
+      "Value": 4294967296
+    },
+    {
+      "Type": "QWord",
+      "Name": "msfeedssync.exe",
+      "Value": 256
+    },
+    {
+      "Type": "QWord",
+      "Name": "mshta.exe",
+      "Value": 256
+    },
+    {
+      "Type": "QWord",
+      "Name": "MsSense.exe",
+      "Value": 16777232
+    },
+    {
+      "Type": "QWord",
+      "Name": "ngen.exe",
+      "Value": 4294967296
+    },
+    {
+      "Type": "QWord",
+      "Name": "ngentask.exe",
+      "Value": 4294967296
+    },
+    {
+      "Type": "QWord",
+      "Name": "PresentationHost.exe",
+      "Value": 1118481
+    },
+    {
+      "Type": "QWord",
+      "Name": "PrintIsolationHost.exe",
+      "Value": 2097152
+    },
+    {
+      "Type": "QWord",
+      "Name": "runtimebroker.exe",
+      "Value": 4294967296
+    },
+    {
+      "Type": "QWord",
+      "Name": "splwow64.exe",
+      "Value": 2097152
+    },
+    {
+      "Type": "QWord",
+      "Name": "spoolsv.exe",
+      "Value": 2097152
+    },
+    {
+      "Type": "Binary",
+      "Name": "ssh-agent.exe",
+      "Value": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        16
+      ]
+    },
+    {
+      "Type": "QWord",
+      "Name": "SystemSettings.exe",
+      "Value": 4294967296
+    },
+    {
+      "Type": "Binary",
+      "Name": "wpr.exe",
+      "Value": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        16
+      ]
+    },
+    {
+      "Type": "Binary",
+      "Name": "wprui.exe",
+      "Value": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        16
+      ]
+    }
+  ],
+  "Build": "26300"
+}

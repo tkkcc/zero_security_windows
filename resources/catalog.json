@@ -56,8 +56,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "其他应用的通知弹窗、声音和通知中心由 Windows 管理。",
-    "ImpactEn": "Windows continues to manage other application notifications, sounds and Notification Center.",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -75,18 +73,14 @@
         "Name": "HideSystray"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.Defender.SecurityCenter",
-        "Name": "Enabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "Enabled"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.SecurityAndMaintenance",
-        "Name": "Enabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "Enabled"
       },
       {
         "Kind": "Registry",
@@ -333,28 +327,34 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "更改系统级权限控制，不仅是隐藏提示。",
-    "ImpactEn": "Changes system-level privilege control, beyond hiding approval prompts.",
     "RestoreOps": [
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
-        "Name": "ConsentPromptBehaviorAdmin"
+        "Name": "ConsentPromptBehaviorAdmin",
+        "Value": 5,
+        "Type": "DWord"
       },
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
-        "Name": "PromptOnSecureDesktop"
+        "Name": "PromptOnSecureDesktop",
+        "Value": 1,
+        "Type": "DWord"
       },
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
-        "Name": "EnableInstallerDetection"
+        "Name": "EnableInstallerDetection",
+        "Value": 1,
+        "Type": "DWord"
       },
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
-        "Name": "EnableLUA"
+        "Name": "EnableLUA",
+        "Value": 1,
+        "Type": "DWord"
       }
     ],
     "RestoreSafe": false
@@ -409,18 +409,14 @@
         "Name": "EnableSmartScreen"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer",
-        "Name": "SmartScreenEnabled",
-        "Type": "String",
-        "Value": "Warn"
+        "Name": "SmartScreenEnabled"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppHost",
-        "Name": "EnableWebContentEvaluation",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "EnableWebContentEvaluation"
       },
       {
         "Name": "smartscreen.exe",
@@ -479,8 +475,8 @@
     "Id": "open-file-warning",
     "Zh": "下载文件安全提示",
     "En": "Downloaded file warnings",
-    "PurposeZh": "停止为新下载的文件标记来源，并减少打开文件时的安全提示。",
-    "PurposeEn": "Stop marking the origin of newly downloaded files and reduce file-opening security prompts.",
+    "PurposeZh": "关闭下载来源标记和打开文件时的安全提示。",
+    "PurposeEn": "Disable download origin tagging and file-opening security prompts.",
     "GroupZh": "安全",
     "GroupEn": "Security",
     "Ops": [
@@ -506,10 +502,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "不会移除现有文件的来源标记。",
-    "ImpactEn": "Existing file origin markers are not removed.",
-    "ResultZh": "来源标记已关闭",
-    "ResultEn": "Source marking off",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -550,15 +542,14 @@
     "Refresh": "",
     "RestoreOps": [
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy",
         "Name": "VerifiedAndReputablePolicyState",
-        "Value": 2
+        "Value": 2,
+        "Type": "DWord"
       }
     ],
-    "RestoreSafe": false,
-    "ImpactZh": "R 恢复评估配置；Windows 是否重新启用取决于系统安装与评估状态。",
-    "ImpactEn": "R restores evaluation configuration; activation depends on Windows installation and evaluation state."
+    "RestoreSafe": false
   },
   {
     "Id": "applocker",
@@ -581,8 +572,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -618,13 +607,11 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
         "Name": "UCPD",
-        "Value": 1,
+        "Value": 2,
         "Source": "Restore"
       },
       {
@@ -702,8 +689,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -750,7 +735,7 @@
       {
         "Kind": "ServiceStart",
         "Name": "MsSecFlt",
-        "Value": 0,
+        "Value": 3,
         "Source": "Restore"
       },
       {
@@ -802,7 +787,7 @@
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Features",
         "Name": "TamperProtection",
         "Type": "DWord",
-        "Value": 5
+        "Value": 1
       }
     ],
     "RestoreSafe": true
@@ -1938,10 +1923,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -1985,10 +1966,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2037,10 +2014,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2106,10 +2079,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2179,10 +2148,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2198,11 +2163,9 @@
         }
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "TaskbarDa",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "TaskbarDa"
       }
     ],
     "RestoreSafe": false
@@ -2242,10 +2205,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2294,10 +2253,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2337,10 +2292,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2382,10 +2333,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2429,10 +2376,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2476,10 +2419,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2523,10 +2462,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2570,10 +2505,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2622,10 +2553,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2675,10 +2602,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2722,10 +2645,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2770,10 +2689,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2818,10 +2733,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2866,10 +2777,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2912,10 +2819,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -2966,10 +2869,6 @@
     "Page": "Remove",
     "Intent": "Remove",
     "Refresh": "Shell",
-    "ImpactZh": "有可靠 winget 源的包不保留安装文件，按 R 联网重装；其他包只保存必要恢复材料。应用数据可能随卸载移除，界面缓存需重新登录刷新。",
-    "ImpactEn": "Packages with a reliable winget source retain no installer files; R reinstalls online. Other packages retain only recovery materials. Uninstallation may remove app data; sign in again to refresh cached entries.",
-    "ResultZh": "应用已卸载",
-    "ResultEn": "App uninstalled",
     "RestoreOps": [
       {
         "Patterns": [
@@ -3078,8 +2977,6 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Mouse",
-    "ResultZh": "速度 20 · 无加速",
-    "ResultEn": "20 · no acceleration",
     "RestoreOps": [
       {
         "Kind": "Registry",
@@ -3178,10 +3075,6 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Keyboard",
-    "ResultZh": "140 / 16 ms",
-    "ResultEn": "140 / 16 ms",
-    "ImpactZh": "筛选键保持开启以支持此重复速度，不延迟或过滤普通按键。",
-    "ImpactEn": "Filter Keys stays on to support this repeat rate, without delaying or filtering ordinary key presses.",
     "RestoreOps": [
       {
         "Kind": "Registry",
@@ -3399,15 +3292,11 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Cursors",
-    "ResultZh": "黑色 · 大小 3",
-    "ResultEn": "Black · size 3",
     "RestoreOps": [
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\Control Panel\\Cursors",
-        "Name": "",
-        "Type": "String",
-        "Value": "Windows Default"
+        "Name": ""
       },
       {
         "Kind": "Registry",
@@ -3424,18 +3313,14 @@
         "Value": 2
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Accessibility",
-        "Name": "CursorSize",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "CursorSize"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Accessibility",
-        "Name": "CursorType",
-        "Type": "DWord",
-        "Value": 0
+        "Name": "CursorType"
       },
       {
         "Kind": "Registry",
@@ -3473,11 +3358,9 @@
         "Value": "%SystemRoot%\\Cursors\\aero_busy.ani"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\Control Panel\\Cursors",
-        "Name": "Person",
-        "Type": "ExpandString",
-        "Value": "%SystemRoot%\\Cursors\\aero_person.cur"
+        "Name": "Person"
       },
       {
         "Kind": "Registry",
@@ -3498,14 +3381,14 @@
         "Path": "HKCU:\\Control Panel\\Cursors",
         "Name": "Crosshair",
         "Type": "ExpandString",
-        "Value": "%SystemRoot%\\Cursors\\cross_r.cur"
+        "Value": ""
       },
       {
         "Kind": "Registry",
         "Path": "HKCU:\\Control Panel\\Cursors",
         "Name": "IBeam",
         "Type": "ExpandString",
-        "Value": "%SystemRoot%\\Cursors\\beam_r.cur"
+        "Value": ""
       },
       {
         "Kind": "Registry",
@@ -3550,11 +3433,9 @@
         "Value": "%SystemRoot%\\Cursors\\aero_ew.cur"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\Control Panel\\Cursors",
-        "Name": "Pin",
-        "Type": "ExpandString",
-        "Value": "%SystemRoot%\\Cursors\\aero_pin.cur"
+        "Name": "Pin"
       }
     ],
     "RestoreSafe": false
@@ -3597,15 +3478,13 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Appearance",
-    "ResultZh": "浅色 · 不透明",
-    "ResultEn": "Light · opaque",
     "RestoreOps": [
       {
         "Kind": "Registry",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
         "Name": "SystemUsesLightTheme",
         "Type": "DWord",
-        "Value": 0
+        "Value": 1
       },
       {
         "Kind": "Registry",
@@ -3720,15 +3599,11 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Visuals",
-    "ResultZh": "动画已关闭",
-    "ResultEn": "Animations off",
     "RestoreOps": [
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
-        "Name": "VisualFXSetting",
-        "Type": "DWord",
-        "Value": 0
+        "Name": "VisualFXSetting"
       },
       {
         "Kind": "Registry",
@@ -3872,8 +3747,6 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "",
-    "ResultZh": "仅微信输入法",
-    "ResultEn": "WeType only",
     "RestoreOps": [
       {
         "Name": "WeType",
@@ -3942,8 +3815,6 @@
     "Page": "Desktop",
     "Intent": "Disable",
     "Refresh": "Power",
-    "ImpactZh": "按 R 从 Windows 读取当前电源方案的交流电与电池默认值，只恢复本项设置。",
-    "ImpactEn": "R reads the current power plan personality defaults for AC and battery power, restoring only this item.",
     "RestoreOps": [
       {
         "Group": "7516b95f-f776-4464-8c53-06167f40cc99",
@@ -4049,10 +3920,6 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Power",
-    "ResultZh": "不采取任何操作",
-    "ResultEn": "Do nothing",
-    "ImpactZh": "按 R 从 Windows 读取当前电源方案的交流电与电池默认值，只恢复本项设置。",
-    "ImpactEn": "R reads the current power plan personality defaults for AC and battery power, restoring only this item.",
     "RestoreOps": [
       {
         "Group": "4f971e89-eebd-4455-a8de-9e59040e7347",
@@ -4120,8 +3987,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "删除 hiberfil.sys，并关闭依赖休眠的快速启动；虚拟内存不受影响。",
-    "ImpactEn": "Removes hiberfil.sys and disables Fast Startup; virtual memory is unaffected.",
     "RestoreOps": [
       {
         "Kind": "Hibernate",
@@ -4206,59 +4071,43 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Start",
-    "ResultZh": "列表 · 无固定项",
-    "ResultEn": "List · no pins",
-    "ImpactZh": "保留应用启动跟踪，使“显示最常用的应用”可在 Windows 设置中重新开启；固定区仅清空一次。",
-    "ImpactEn": "Keep app launch tracking so Show most used apps can be enabled in Windows Settings; clear pins only once.",
     "RestoreOps": [
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Start",
-        "Name": "ShowRecentList",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "ShowRecentList"
       },
       {
         "Kind": "Registry",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Start",
         "Name": "ShowFrequentList",
         "Type": "DWord",
-        "Value": 1
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Start",
-        "Name": "AllAppsViewMode",
-        "Type": "DWord",
         "Value": 0
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Start",
-        "Name": "ShowAllPinsList",
-        "Type": "DWord",
-        "Value": 0
+        "Name": "AllAppsViewMode"
       },
       {
-        "Kind": "Registry",
-        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "Start_TrackDocs",
-        "Type": "DWord",
-        "Value": 1
+        "Kind": "RegistryDelete",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Start",
+        "Name": "ShowAllPinsList"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "Start_TrackProgs",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "Start_TrackDocs"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "Start_IrisRecommendations",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "Start_TrackProgs"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "Name": "Start_IrisRecommendations"
       },
       {
         "Kind": "RegistryDelete",
@@ -4353,29 +4202,21 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Shell",
-    "ResultZh": "靠左 · 满时合并",
-    "ResultEn": "Left · combine full",
     "RestoreOps": [
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "TaskbarAl",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "TaskbarAl"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "TaskbarGlomLevel",
-        "Type": "DWord",
-        "Value": 0
+        "Name": "TaskbarGlomLevel"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "MMTaskbarGlomLevel",
-        "Type": "DWord",
-        "Value": 0
+        "Name": "MMTaskbarGlomLevel"
       }
     ],
     "RestoreSafe": false
@@ -4417,14 +4258,12 @@
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search",
         "Name": "SearchboxTaskbarMode",
         "Type": "DWord",
-        "Value": 1
+        "Value": 2
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "ShowTaskViewButton",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "ShowTaskViewButton"
       }
     ],
     "RestoreSafe": false
@@ -4455,8 +4294,6 @@
     "Page": "Desktop",
     "Intent": "Clean",
     "Refresh": "Shell",
-    "ImpactZh": "已打开的窗口仍会显示在任务栏；应用可重新固定。",
-    "ImpactEn": "Open windows still appear on the taskbar; applications can be pinned again.",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -4527,11 +4364,9 @@
     "Refresh": "Shell",
     "RestoreOps": [
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\Control Panel\\Bluetooth",
-        "Name": "Notification Area Icon",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "Notification Area Icon"
       }
     ],
     "RestoreSafe": false
@@ -4629,8 +4464,6 @@
     "Page": "Desktop",
     "Intent": "Show",
     "Refresh": "Explorer",
-    "ImpactZh": "受保护的系统文件继续隐藏。",
-    "ImpactEn": "Protected system files remain hidden.",
     "RestoreOps": [
       {
         "Kind": "Registry",
@@ -4720,8 +4553,6 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Explorer",
-    "ResultZh": "默认打开此电脑",
-    "ResultEn": "Opens This PC",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -4739,34 +4570,46 @@
         "Name": "ThisPCPolicy"
       },
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{fdd39ad0-238f-46af-adb4-6c85480369c7}\\PropertyBag",
-        "Name": "ThisPCPolicy"
+        "Name": "ThisPCPolicy",
+        "Value": "Hide",
+        "Type": "String"
       },
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{f42ee2d3-909f-4907-8871-4c22fc0bf756}\\PropertyBag",
-        "Name": "ThisPCPolicy"
+        "Name": "ThisPCPolicy",
+        "Value": "Show",
+        "Type": "String"
       },
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{7d83ee9b-2244-4e70-b1f5-5393042af1e4}\\PropertyBag",
-        "Name": "ThisPCPolicy"
+        "Name": "ThisPCPolicy",
+        "Value": "Show",
+        "Type": "String"
       },
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{0ddd015d-b06c-45d5-8c4c-f59713854639}\\PropertyBag",
-        "Name": "ThisPCPolicy"
+        "Name": "ThisPCPolicy",
+        "Value": "Show",
+        "Type": "String"
       },
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{a0c69a99-21c8-4671-8703-7934162fcf1d}\\PropertyBag",
-        "Name": "ThisPCPolicy"
+        "Name": "ThisPCPolicy",
+        "Value": "Show",
+        "Type": "String"
       },
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FolderDescriptions\\{35286a68-3c57-41a1-bbb1-0eae73d76c95}\\PropertyBag",
-        "Name": "ThisPCPolicy"
+        "Name": "ThisPCPolicy",
+        "Value": "Show",
+        "Type": "String"
       }
     ],
     "RestoreSafe": false
@@ -4800,8 +4643,6 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Shell",
-    "ResultZh": "无名称后缀",
-    "ResultEn": "No suffix",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -4880,15 +4721,11 @@
     "Page": "Desktop",
     "Intent": "Apply",
     "Refresh": "Wallpaper",
-    "ResultZh": "图片背景",
-    "ResultEn": "Picture background",
     "RestoreOps": [
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Wallpapers",
-        "Name": "BackgroundType",
-        "Type": "DWord",
-        "Value": 2
+        "Name": "BackgroundType"
       },
       {
         "Kind": "Registry",
@@ -4964,11 +4801,9 @@
         "Value": 1
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-        "Name": "SubscribedContent-338387Enabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "SubscribedContent-338387Enabled"
       },
       {
         "Kind": "RegistryDelete",
@@ -5032,18 +4867,14 @@
         "Value": 1
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard",
-        "Name": "RequirePlatformSecurityFeatures",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "RequirePlatformSecurityFeatures"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard",
-        "Name": "Mandatory",
-        "Type": "DWord",
-        "Value": 0
+        "Name": "Mandatory"
       },
       {
         "Kind": "RegistryDelete",
@@ -5140,11 +4971,9 @@
     "Refresh": "",
     "RestoreOps": [
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa",
-        "Name": "LsaCfgFlags",
-        "Type": "DWord",
-        "Value": 2
+        "Name": "LsaCfgFlags"
       },
       {
         "Kind": "RegistryDelete",
@@ -5152,11 +4981,9 @@
         "Name": "LsaCfgFlags"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\CredentialGuard",
-        "Name": "Enabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "Enabled"
       }
     ],
     "RestoreSafe": false
@@ -5199,10 +5026,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "不停止正在运行的登录安全进程。",
-    "ImpactEn": "The running sign-in security process is not stopped.",
-    "ResultZh": "启动保护已关闭",
-    "ResultEn": "Startup guard off",
     "RestoreOps": [
       {
         "Kind": "Registry",
@@ -5259,18 +5082,14 @@
     "Refresh": "",
     "RestoreOps": [
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\KernelShadowStacks",
-        "Name": "Enabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "Enabled"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\KernelShadowStacks",
-        "Name": "AuditModeEnabled",
-        "Type": "DWord",
-        "Value": 0
+        "Name": "AuditModeEnabled"
       }
     ],
     "RestoreSafe": false
@@ -5308,11 +5127,9 @@
     "Refresh": "",
     "RestoreOps": [
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\SystemGuard",
-        "Name": "Enabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "Enabled"
       },
       {
         "Kind": "RegistryDelete",
@@ -5415,8 +5232,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -5437,8 +5252,8 @@
     "Id": "cpu-mitigations",
     "Zh": "CPU 漏洞防护",
     "En": "CPU vulnerability protection",
-    "PurposeZh": "关闭可配置的 Spectre、Meltdown 等 CPU 漏洞防护。",
-    "PurposeEn": "Turn off configurable CPU mitigations for Spectre, Meltdown and related vulnerabilities.",
+    "PurposeZh": "关闭 Spectre、Meltdown 等 CPU 漏洞防护配置。",
+    "PurposeEn": "Disable CPU mitigation settings for Spectre, Meltdown and related vulnerabilities.",
     "GroupZh": "漏洞防护",
     "GroupEn": "Exploit protection",
     "Ops": [
@@ -5482,8 +5297,8 @@
     "Id": "process-mitigations",
     "Zh": "程序漏洞防护",
     "En": "Exploit Protection",
-    "PurposeZh": "关闭全局及 Windows 程序可配置的漏洞防护启动设置。",
-    "PurposeEn": "Turn off configurable global and Windows application exploit protection startup settings.",
+    "PurposeZh": "关闭系统与 Windows 程序的漏洞防护启动配置。",
+    "PurposeEn": "Disable exploit-protection startup settings for Windows and its programs.",
     "GroupZh": "漏洞防护",
     "GroupEn": "Exploit protection",
     "Ops": [
@@ -5499,10 +5314,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "已运行的进程保留原保护；Windows 强制或程序自行启用的保护可能保留。",
-    "ImpactEn": "Running processes retain their protections; Windows-mandated or application-enabled protections may remain.",
-    "ResultZh": "启动配置已关闭",
-    "ResultEn": "Startup settings off",
     "RestoreOps": [
       {
         "Kind": "Mitigations",
@@ -5515,8 +5326,8 @@
     "Id": "dep",
     "Zh": "DEP 数据执行保护",
     "En": "Data execution prevention",
-    "PurposeZh": "关闭可配置的数据执行保护（DEP）启动策略。",
-    "PurposeEn": "Turn off the configurable Data Execution Prevention (DEP) boot policy.",
+    "PurposeZh": "关闭数据执行保护（DEP）的启动策略。",
+    "PurposeEn": "Disable the Data Execution Prevention (DEP) boot policy.",
     "GroupZh": "漏洞防护",
     "GroupEn": "Exploit protection",
     "Ops": [
@@ -5533,10 +5344,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "Windows 强制为 64 位程序启用 DEP。",
-    "ImpactEn": "Windows mandates DEP for 64-bit applications.",
-    "ResultZh": "启动策略已关闭",
-    "ResultEn": "Boot policy off",
     "RestoreOps": [
       {
         "Name": "nx",
@@ -5595,8 +5402,8 @@
     "Id": "driver-signing",
     "Zh": "驱动签名检查",
     "En": "Driver signature checks",
-    "PurposeZh": "设置启动参数，关闭可调整的驱动完整性检查。",
-    "PurposeEn": "Set the boot option to turn off configurable driver integrity checks.",
+    "PurposeZh": "关闭驱动完整性检查的启动配置。",
+    "PurposeEn": "Disable driver-integrity check boot settings.",
     "GroupZh": "漏洞防护",
     "GroupEn": "Exploit protection",
     "Ops": [
@@ -5613,10 +5420,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "实际检查受 Windows 启动验证和安全启动约束。",
-    "ImpactEn": "Actual enforcement depends on Windows boot verification and Secure Boot.",
-    "ResultZh": "检查配置已关闭",
-    "ResultEn": "Check settings off",
     "RestoreOps": [
       {
         "Name": "nointegritychecks",
@@ -5652,8 +5455,6 @@
     "Page": "System",
     "Intent": "Enable",
     "Refresh": "",
-    "ResultZh": "自动启动已开启",
-    "ResultEn": "Auto-start on",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -5677,9 +5478,6 @@
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
-      {
-        "Kind": "UpdatePause"
-      },
       {
         "Kind": "ProcessBlock",
         "Name": "MoUsoCoreWorker.exe",
@@ -5718,15 +5516,13 @@
         "Value": false
       }
     ],
-    "Probe": "updates",
+    "Probe": "",
     "Safe": false,
     "Manual": false,
     "Restart": false,
     "Page": "System",
     "Intent": "Pause",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -5794,7 +5590,12 @@
       {
         "Kind": "TaskGroup",
         "Pattern": "\\Microsoft\\Windows\\UpdateOrchestrator\\*",
-        "Value": true
+        "Value": true,
+        "TaskStates": {
+          "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Maintenance Work": false,
+          "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Wake To Work": false,
+          "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Work": false
+        }
       },
       {
         "Kind": "TaskGroup",
@@ -5804,12 +5605,13 @@
       {
         "Kind": "TaskGroup",
         "Pattern": "\\Microsoft\\Windows\\WaaSMedic\\*",
-        "Value": true
+        "Value": true,
+        "TaskStates": {
+          "\\Microsoft\\Windows\\WaaSMedic\\PerformRemediation": false
+        }
       }
     ],
-    "RestoreSafe": false,
-    "ResultZh": "系统更新已禁用",
-    "ResultEn": "Updates disabled"
+    "RestoreSafe": false
   },
   {
     "Id": "driver-updates",
@@ -5856,8 +5658,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "仍可手动安装驱动。",
-    "ImpactEn": "Drivers can still be installed manually.",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -5932,10 +5732,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "按 R 恢复系统还原配置及未来监测；本版本不删除已有还原点。",
-    "ImpactEn": "R restores System Restore configuration and future monitoring; this version retains existing restore points.",
-    "ResultZh": "系统保护已关闭",
-    "ResultEn": "Protection off",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -5956,12 +5752,6 @@
         "Kind": "RegistryDelete",
         "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceInstall\\Settings",
         "Name": "DisableSystemRestore"
-      },
-      {
-        "Kind": "SystemRestore",
-        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SPP\\Clients",
-        "Name": "{09F7EDC5-294E-4180-AF6A-FB0E6A0E9513}",
-        "Value": true
       },
       {
         "Kind": "TaskGroup",
@@ -5995,10 +5785,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "不会解密已加密的磁盘。",
-    "ImpactEn": "Already encrypted drives are not decrypted.",
-    "ResultZh": "自动加密已阻止",
-    "ResultEn": "Auto-encryption off",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -6010,10 +5796,10 @@
   },
   {
     "Id": "telemetry",
-    "Zh": "可选诊断数据",
-    "En": "Optional diagnostic data",
-    "PurposeZh": "关闭可选诊断数据，保留诊断与反馈设置的手动控制。",
-    "PurposeEn": "Turn off optional diagnostic data while keeping manual control in Diagnostics & feedback.",
+    "Zh": "诊断与体验数据",
+    "En": "Diagnostics and experience data",
+    "PurposeZh": "禁用诊断采集、错误报告与体验质量追踪。",
+    "PurposeEn": "Disable diagnostic collection, error reporting and experience tracking.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -6023,16 +5809,6 @@
         "Name": "AllowTelemetry",
         "Type": "DWord",
         "Value": 0
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
-        "Name": "DoNotShowFeedbackNotifications"
-      },
-      {
-        "Kind": "RegistryDelete",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
-        "Name": "DisableOneSettingsDownloads"
       },
       {
         "Kind": "Registry",
@@ -6081,6 +5857,13 @@
         "Kind": "TaskGroup",
         "Pattern": "\\Microsoft\\Windows\\Autochk\\Proxy",
         "Value": false
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+        "Name": "DisableOneSettingsDownloads",
+        "Type": "DWord",
+        "Value": 1
       }
     ],
     "Probe": "",
@@ -6090,8 +5873,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -6109,14 +5890,18 @@
         "Name": "DisableOneSettingsDownloads"
       },
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection",
-        "Name": "AllowTelemetry"
+        "Name": "AllowTelemetry",
+        "Value": 1,
+        "Type": "DWord"
       },
       {
-        "Kind": "RegistryDelete",
+        "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection",
-        "Name": "MaxTelemetryAllowed"
+        "Name": "MaxTelemetryAllowed",
+        "Value": 1,
+        "Type": "DWord"
       },
       {
         "Kind": "Registry",
@@ -6222,14 +6007,14 @@
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
         "Name": "Enabled",
         "Type": "DWord",
-        "Value": 1
+        "Value": 0
       },
       {
         "Kind": "Registry",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Privacy",
         "Name": "TailoredExperiencesWithDiagnosticDataEnabled",
         "Type": "DWord",
-        "Value": 1
+        "Value": 2
       }
     ],
     "RestoreSafe": false
@@ -6337,11 +6122,9 @@
     "Refresh": "",
     "RestoreOps": [
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-        "Name": "SubscribedContent-338388Enabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "SubscribedContent-338388Enabled"
       },
       {
         "Kind": "Registry",
@@ -6351,25 +6134,19 @@
         "Value": 1
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-        "Name": "SubscribedContent-353694Enabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "SubscribedContent-353694Enabled"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-        "Name": "SubscribedContent-353696Enabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "SubscribedContent-353696Enabled"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-        "Name": "SubscribedContent-353698Enabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "SubscribedContent-353698Enabled"
       },
       {
         "Kind": "Registry",
@@ -6386,39 +6163,29 @@
         "Value": 1
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "Start_IrisRecommendations",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "Start_IrisRecommendations"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "Start_AccountNotifications",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "Start_AccountNotifications"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "ShowSyncProviderNotifications",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "ShowSyncProviderNotifications"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
-        "Name": "ScoobeSystemSettingEnabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "ScoobeSystemSettingEnabled"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SystemSettings\\AccountNotifications",
-        "Name": "EnableAccountNotifications",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "EnableAccountNotifications"
       }
     ],
     "RestoreSafe": false
@@ -6449,11 +6216,9 @@
     "Refresh": "",
     "RestoreOps": [
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "Start_TrackProgs",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "Start_TrackProgs"
       }
     ],
     "RestoreSafe": false
@@ -6574,36 +6339,30 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "Registry",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location",
         "Name": "Value",
         "Type": "String",
-        "Value": "Allow"
+        "Value": "Deny"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location",
-        "Name": "Value",
-        "Type": "String",
-        "Value": "Allow"
+        "Name": "Value"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location",
-        "Name": "ShowGlobalPrompts",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "ShowGlobalPrompts"
       },
       {
         "Kind": "Registry",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\lfsvc\\Service\\Configuration",
         "Name": "Status",
         "Type": "DWord",
-        "Value": 1
+        "Value": 0
       },
       {
         "Kind": "RegistryDelete",
@@ -6645,13 +6404,11 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
         "Name": "whesvc",
-        "Value": 3,
+        "Value": 2,
         "Source": "Restore"
       }
     ],
@@ -6678,8 +6435,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -6711,8 +6466,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -6773,11 +6526,9 @@
         "Name": "DisableWebSearch"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SearchSettings",
-        "Name": "IsDynamicSearchBoxEnabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "IsDynamicSearchBoxEnabled"
       }
     ],
     "RestoreSafe": false
@@ -6820,8 +6571,6 @@
     "Page": "System",
     "Intent": "Hide",
     "Refresh": "",
-    "ImpactZh": "仅隐藏入口；卸载运行库是独立项目。",
-    "ImpactEn": "Only hides the button; uninstalling the runtime is a separate item.",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -6834,11 +6583,9 @@
         "Name": "AllowWidgets"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        "Name": "TaskbarDa",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "TaskbarDa"
       }
     ],
     "RestoreSafe": false
@@ -6864,8 +6611,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -6897,8 +6642,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -6930,13 +6673,11 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
         "Name": "IKEEXT",
-        "Value": 2,
+        "Value": 3,
         "Source": "Restore"
       }
     ],
@@ -6963,8 +6704,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -6996,8 +6735,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -7058,8 +6795,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "默认执行此项。单独调整预读、内存压缩或页面合并时会启用 SysMain。",
-    "ImpactEn": "Included by default. Adjusting an individual preloading or memory setting enables SysMain.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -7075,11 +6810,9 @@
         "Value": 3
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
-        "Name": "EnableSuperfetch",
-        "Type": "DWord",
-        "Value": 3
+        "Name": "EnableSuperfetch"
       },
       {
         "Kind": "MemoryAgent",
@@ -7111,7 +6844,8 @@
       {
         "Kind": "ServiceStart",
         "Name": "SysMain",
-        "Value": 2
+        "Value": 2,
+        "Source": "Prerequisite"
       },
       {
         "Kind": "Registry",
@@ -7140,8 +6874,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "需单独执行；会启用 SysMain 总服务，只关闭应用预读，保留当前内存功能配置。",
-    "ImpactEn": "Run separately. This enables the SysMain service and disables only application preloading, retaining current memory settings.",
     "DefaultOff": true,
     "RestoreOps": [
       {
@@ -7158,11 +6890,9 @@
         "Value": 3
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
-        "Name": "EnableSuperfetch",
-        "Type": "DWord",
-        "Value": 3
+        "Name": "EnableSuperfetch"
       },
       {
         "Kind": "MemoryAgent",
@@ -7184,7 +6914,8 @@
       {
         "Kind": "ServiceStart",
         "Name": "SysMain",
-        "Value": 2
+        "Value": 2,
+        "Source": "Prerequisite"
       },
       {
         "Kind": "MemoryAgent",
@@ -7199,8 +6930,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "需单独执行；执行全部默认只禁用总服务。内存功能关闭后可能增加物理内存占用。",
-    "ImpactEn": "Run separately; Run all disables only the main service. Disabling memory features can increase physical memory usage.",
     "DefaultOff": true,
     "RestoreOps": [
       {
@@ -7229,7 +6958,8 @@
       {
         "Kind": "ServiceStart",
         "Name": "SysMain",
-        "Value": 2
+        "Value": 2,
+        "Source": "Prerequisite"
       },
       {
         "Kind": "MemoryAgent",
@@ -7244,8 +6974,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "需单独执行；会启用 SysMain 总服务。按 R 重新启用页面合并能力；Windows 不同版本的初始状态可能不同。",
-    "ImpactEn": "Run separately. This enables the SysMain service. R re-enables page combining; its initial state can differ across Windows versions.",
     "DefaultOff": true,
     "RestoreOps": [
       {
@@ -7283,8 +7011,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -7316,8 +7042,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -7349,8 +7073,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -7382,8 +7104,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -7415,8 +7135,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -7462,13 +7180,11 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
         "Name": "InventorySvc",
-        "Value": 3,
+        "Value": 2,
         "Source": "Restore"
       },
       {
@@ -7512,8 +7228,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -7570,8 +7284,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "Registry",
@@ -7639,8 +7351,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "可在系统属性中重新开启。",
-    "ImpactEn": "It can be enabled again in System Properties.",
     "RestoreOps": [
       {
         "Kind": "Registry",
@@ -7806,11 +7516,9 @@
         "Value": 1
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Speech_OneCore\\Settings\\OnlineSpeechPrivacy",
-        "Name": "HasAccepted",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "HasAccepted"
       },
       {
         "Kind": "Registry",
@@ -7854,11 +7562,9 @@
         "Name": "DisableSettingSyncUserOverride"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\appDiagnostics",
-        "Name": "Value",
-        "Type": "String",
-        "Value": "Allow"
+        "Name": "Value"
       }
     ],
     "RestoreSafe": false
@@ -7888,8 +7594,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -7910,8 +7614,8 @@
     "Id": "connected-devices",
     "Zh": "跨设备与附近共享",
     "En": "Cross-device and nearby sharing",
-    "PurposeZh": "关闭跨设备共享和附近共享，保留系统设置的手动控制。",
-    "PurposeEn": "Turn off cross-device sharing and Nearby Sharing while keeping manual control in Windows Settings.",
+    "PurposeZh": "禁用跨设备共享、附近共享及其后台服务。",
+    "PurposeEn": "Disable cross-device sharing, Nearby Sharing and their background services.",
     "GroupZh": "隐私",
     "GroupEn": "Privacy",
     "Ops": [
@@ -7941,6 +7645,13 @@
       {
         "Kind": "Service",
         "Name": "PhoneSvc"
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+        "Name": "EnableCdp",
+        "Type": "DWord",
+        "Value": 0
       }
     ],
     "Probe": "",
@@ -7950,8 +7661,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "Registry",
@@ -7984,6 +7693,11 @@
         "Name": "PhoneSvc",
         "Value": 3,
         "Source": "Restore"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+        "Name": "EnableCdp"
       }
     ],
     "RestoreSafe": false
@@ -8142,8 +7856,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -8158,15 +7870,13 @@
       {
         "Kind": "UserServicesStart",
         "Name": "cbdhsvc",
-        "Value": 3,
+        "Value": 2,
         "Source": "Restore"
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Clipboard",
-        "Name": "EnableClipboardHistory",
-        "Type": "DWord",
-        "Value": 0
+        "Name": "EnableClipboardHistory"
       }
     ],
     "RestoreSafe": false
@@ -8213,8 +7923,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -8229,11 +7937,9 @@
         "Value": 1
       },
       {
-        "Kind": "Registry",
+        "Kind": "RegistryDelete",
         "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameDVR",
-        "Name": "AppCaptureEnabled",
-        "Type": "DWord",
-        "Value": 1
+        "Name": "AppCaptureEnabled"
       },
       {
         "Kind": "UserServicesStart",
@@ -8269,7 +7975,7 @@
     "RestoreOps": [
       {
         "Name": "Recall",
-        "Value": true,
+        "Value": false,
         "Kind": "OptionalFeature"
       }
     ],
@@ -8345,8 +8051,8 @@
     "Id": "edge-background",
     "Zh": "Edge 预启动与后台运行",
     "En": "Edge prelaunch and background",
-    "PurposeZh": "将 Edge 启动增强和关闭后后台运行的默认值设为关闭。",
-    "PurposeEn": "Set Edge startup boost and background mode defaults to off.",
+    "PurposeZh": "禁止 Edge 预启动与关闭后的后台运行。",
+    "PurposeEn": "Disable Edge startup boost and background operation after closing.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -8377,20 +8083,6 @@
         "Name": "AllowTabPreloading",
         "Type": "DWord",
         "Value": 0
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge\\Recommended",
-        "Name": "StartupBoostEnabled",
-        "Type": "DWord",
-        "Value": 0
-      },
-      {
-        "Kind": "Registry",
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge\\Recommended",
-        "Name": "BackgroundModeEnabled",
-        "Type": "DWord",
-        "Value": 0
       }
     ],
     "Probe": "",
@@ -8400,10 +8092,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "可在 Edge 设置中更改。",
-    "ImpactEn": "These options can be changed in Edge Settings.",
-    "ResultZh": "默认关闭",
-    "ResultEn": "Default off",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -8462,8 +8150,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "保留本地搜索；商店结果可能随 Windows 版本一并关闭。",
-    "ImpactEn": "Local search remains available; Store results may also be hidden, depending on Windows version.",
     "RestoreOps": [
       {
         "Kind": "RegistryDelete",
@@ -8505,8 +8191,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "UserServicesStart",
@@ -8555,8 +8239,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -8577,8 +8259,8 @@
     "Id": "device-discovery",
     "Zh": "网络设备发现",
     "En": "Network device discovery",
-    "PurposeZh": "关闭网络发现，保留高级共享设置的手动控制。",
-    "PurposeEn": "Turn off network discovery while keeping manual control in Advanced sharing settings.",
+    "PurposeZh": "禁用网络设备发现服务和相关防火墙规则。",
+    "PurposeEn": "Disable network device discovery services and their firewall rules.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -8615,8 +8297,6 @@
     "Page": "System",
     "Intent": "Disable",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
@@ -8651,7 +8331,8 @@
       {
         "Kind": "FirewallGroup",
         "Name": "@FirewallAPI.dll,-32752",
-        "Value": true
+        "Value": true,
+        "Source": "WindowsDefault"
       }
     ],
     "RestoreSafe": false
@@ -8677,8 +8358,6 @@
     "Page": "System",
     "Intent": "Configure",
     "Refresh": "",
-    "ImpactZh": "相关服务与功能被禁用；按 R 恢复 Windows 默认可用配置。",
-    "ImpactEn": "Related services and features are disabled; R restores usable Windows defaults.",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
