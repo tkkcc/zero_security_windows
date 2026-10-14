@@ -175,11 +175,11 @@ def main():
         previous=args.results/(name+'-check.json')
         if previous.exists() and not args.only:
             observed='defaults' if stage=='restore' else 'check'
-            prior=json.loads(previous.read_text(encoding='utf-8'))
+            # A disconnected installer may finish after the SSH command exits.
+            prior=target.check(target.selection(ids))
+            save(previous,prior)
             retry=[row['id'] for row in prior['items'] if row['id'] in ids and
                    (row[observed]['state'] not in ('Done','Absent') or row['check']['state']=='Failed')]
-            if not retry:
-                retry=ids
             print(f'  retrying {len(retry)} items',flush=True)
         phases=[retry]
         if name=='normal-restore':
