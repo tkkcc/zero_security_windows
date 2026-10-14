@@ -847,7 +847,7 @@ fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
     if wetype {
         clean_wetype()?;
     }
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(90);
     let installed = loop {
         let installed = match registered_tool(op)? {
             Some(installed) => installed,
