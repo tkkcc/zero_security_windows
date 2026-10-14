@@ -1287,53 +1287,16 @@ impl MemoryAgent {
         self.application_launch_prefetching || self.application_pre_launch || self.operation_api
     }
 }
-pub fn memory_agent(disable_app: bool) -> Result<MemoryAgent> {
+pub fn memory_agent() -> Result<MemoryAgent> {
     #[derive(serde::Deserialize)]
     #[serde(rename = "PS_MMAgent")]
     struct Agent;
-    #[derive(serde::Serialize)]
-    #[serde(rename_all = "PascalCase")]
-    struct DisableInput {
-        application_pre_launch: bool,
-    }
     #[derive(serde::Deserialize)]
     struct GetOutput {
         #[serde(rename = "cmdletOutput")]
         state: MemoryAgent,
     }
-    if disable_app {
-        use windows::Win32::System::Services::{SC_HANDLE, StartServiceW};
-        let _guard = system()?;
-        service_call("SysMain", 0x14, |h| unsafe {
-            let mut status: ServiceStatus = std::mem::zeroed();
-            ok(QueryServiceStatus(h, &mut status))?;
-            if status.current != 4 && status.current != 2 {
-                StartServiceW(SC_HANDLE(h), None)?;
-            }
-            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-            while status.current != 4 && std::time::Instant::now() < deadline {
-                std::thread::sleep(std::time::Duration::from_millis(40));
-                ok(QueryServiceStatus(h, &mut status))?;
-            }
-            ensure!(
-                status.current == 4,
-                "SysMain did not start (state {})",
-                status.current
-            );
-            Ok(())
-        })?;
-    }
     let c = wmi::WMIConnection::with_namespace_path(r"root\Microsoft\Windows\PS_MMAgent")?;
-    if disable_app {
-        // EnablePrefetcher controls launch prefetching/OperationAPI; their WMI setters are unsupported.
-        // Omit memory switches: Windows retains compression and page combining settings.
-        c.exec_class_method::<Agent, ()>(
-            "Disable",
-            DisableInput {
-                application_pre_launch: true,
-            },
-        )?;
-    }
     let result: GetOutput = c.exec_class_method::<Agent, _>("Get", ())?;
     Ok(result.state)
 }
@@ -1390,7 +1353,7 @@ pub fn memory_setting(name: &str, value: Option<bool>) -> Result<bool> {
     }
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
     loop {
-        let state = memory_agent(false)?;
+        let state = memory_agent()?;
         let current = match name {
             "ApplicationPreLaunch" => state.application_pre_launch,
             "MemoryCompression" => state.memory_compression,
@@ -1419,10 +1382,6 @@ pub fn time_sync_config(automatic: bool) -> Result<()> {
     }
     Ok(())
 }
-#[cfg(test)]
-pub fn disable_system_restore() -> Result<()> {
-    system_restore(false)
-}
 pub fn system_restore(enabled: bool) -> Result<()> {
     #[derive(serde::Deserialize)]
     struct SystemRestore;
@@ -1446,34 +1405,6 @@ pub fn system_restore(enabled: bool) -> Result<()> {
     )?;
     ensure!(result.code == 0, "SystemRestore: {:08X}", result.code);
     Ok(())
-}
-pub fn delivery_mode(value: Option<u32>) -> Result<u32> {
-    let c =
-        wmi::WMIConnection::with_namespace_path(r"root\Microsoft\Windows\DeliveryOptimization")?;
-    if let Some(value) = value {
-        let input = c
-            .get_object("MSFT_DeliveryOptimizationConfig")?
-            .get_method("SetDownloadMode")?
-            .unwrap()
-            .spawn_instance()?;
-        input.put_property("downloadMode", value)?;
-        c.exec_method(
-            "MSFT_DeliveryOptimizationConfig",
-            "SetDownloadMode",
-            Some(&input),
-        )?;
-    }
-    #[derive(serde::Deserialize)]
-    struct Config {
-        #[serde(rename = "DownloadMode")]
-        mode: u32,
-    }
-    let rows: Vec<Config> =
-        c.raw_query("SELECT DownloadMode FROM MSFT_DeliveryOptimizationConfig")?;
-    Ok(rows
-        .first()
-        .ok_or_else(|| anyhow::anyhow!("No Delivery Optimization configuration"))?
-        .mode)
 }
 pub fn expand(text: &str) -> String {
     use windows::Win32::System::Environment::ExpandEnvironmentStringsW;

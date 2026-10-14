@@ -190,9 +190,9 @@ impl Engine {
     fn probe(&self, f: &Feature) -> Result<Option<Check>> {
         let active = match f.probe.as_str() {
             "app-preloading" => {
-                let state = native::memory_agent(false)?;
+                let state = native::memory_agent()?;
                 let mut active = state.app_preloading() || !native::service_running("SysMain")?;
-                for op in f.ops.iter().filter(|op| op.kind != "AppPreloading") {
+                for op in &f.ops {
                     active |= !satisfied(op, &self.read(op)?);
                 }
                 return Ok(Some(Check {

@@ -48,6 +48,8 @@ pub fn page_visible(page: &str) -> Result<bool> {
     settings_page(page, false)
 }
 pub fn set_page_visible(page: &str, visible: bool) -> Result<()> {
+    static SETTINGS_PAGES: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _writing = SETTINGS_PAGES.lock().unwrap();
     if visible {
         settings_page(page, true)?;
         return Ok(());

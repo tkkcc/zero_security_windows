@@ -61,7 +61,7 @@ fn windows_image(image: &str) -> bool {
         native::expand("%SystemRoot%").to_lowercase()
     ))
 }
-fn targets() -> Result<Vec<String>> {
+fn targets(include_running: bool) -> Result<Vec<String>> {
     let mut targets = vec![
         String::new(),
         "dism.exe".into(),
@@ -69,18 +69,20 @@ fn targets() -> Result<Vec<String>> {
         "bcdedit.exe".into(),
         "powercfg.exe".into(),
     ];
-    targets.extend(
-        native::process_images()?
-            .into_iter()
-            .filter(|(_, image)| windows_image(image))
-            .map(|(_, image)| {
-                std::path::Path::new(&image)
-                    .file_name()
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_lowercase()
-            }),
-    );
+    if include_running {
+        targets.extend(
+            native::process_images()?
+                .into_iter()
+                .filter(|(_, image)| windows_image(image))
+                .map(|(_, image)| {
+                    std::path::Path::new(&image)
+                        .file_name()
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_lowercase()
+                }),
+        );
+    }
     for name in reg::children(IFEO)? {
         let path = format!(r"{IFEO}\{name}");
         if !reg::read(&path, "MitigationOptions")?.is_null()
@@ -123,7 +125,7 @@ fn read(image: &str, id: u32, flags: u32, len: usize) -> Result<Option<Vec<u64>>
     Ok(Some(data))
 }
 pub fn active() -> Result<bool> {
-    for image in targets()? {
+    for image in targets(false)? {
         for &(id, len) in POLICIES {
             if image.is_empty() && !system_policy(id) {
                 continue;
@@ -144,7 +146,7 @@ pub fn active() -> Result<bool> {
 }
 pub fn disable() -> Result<()> {
     let _system = native::system()?;
-    for image in targets()? {
+    for image in targets(true)? {
         let wide = native::wide(&image);
         let p = if image.is_empty() {
             std::ptr::null()

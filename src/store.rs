@@ -100,11 +100,36 @@ pub fn copy_to(folder: PathBuf) -> Result<PathBuf> {
     fs::create_dir_all(&folder)?;
     let target = folder.join("zero_security_windows.exe");
     let current = std::env::current_exe()?;
-    if !current
-        .to_string_lossy()
-        .eq_ignore_ascii_case(&target.to_string_lossy())
+    if !target.try_exists()?
+        || !current
+            .canonicalize()?
+            .to_string_lossy()
+            .eq_ignore_ascii_case(&target.canonicalize()?.to_string_lossy())
     {
         fs::copy(current, &target)?;
     }
     Ok(target)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_executable_link_is_not_copied_over_its_running_target() -> Result<()> {
+        let folder = std::env::temp_dir().join(format!("zsw-copy-link-{}", std::process::id()));
+        fs::create_dir(&folder)?;
+        let link = folder.join("zero_security_windows.exe");
+        let result = (|| -> Result<()> {
+            std::os::windows::fs::symlink_file(std::env::current_exe()?, &link)?;
+            assert_eq!(copy_to(folder.clone())?, link);
+            assert!(fs::symlink_metadata(&link)?.is_symlink());
+            Ok(())
+        })();
+        if fs::symlink_metadata(&link).is_ok() {
+            fs::remove_file(link)?;
+        }
+        fs::remove_dir(folder)?;
+        result
+    }
 }

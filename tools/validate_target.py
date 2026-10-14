@@ -34,6 +34,7 @@ class Target:
                 break
             time.sleep(.1)
         if not endpoint:
+            self.close()
             raise RuntimeError('The persistent tailcat tunnel did not start')
         self.flags = [
             '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new',
@@ -221,7 +222,7 @@ $json=@{Service=(Get-Service WinDefend).Status.ToString(); AMServiceEnabled=[boo
         save(checkpoint,progress)
         print('  all item targets verified',flush=True)
     if args.only: return
-    print('All 151 item capabilities verified',flush=True)
+    print(f'All {len(catalog)} item capabilities verified',flush=True)
     if args.finish_all:
         report=target.report(['--apply-all'],'C:/ProgramData/ZeroSecurityWindowsValidation/final-apply.json',timeout=7200)
         save(args.results/'apply-all.json',report)
@@ -231,7 +232,7 @@ $json=@{Service=(Get-Service WinDefend).Status.ToString(); AMServiceEnabled=[boo
             needs_boot=target.reboot()
         final=target.check(target.selection([f['Id'] for f in catalog]))
         save(args.results/'final-check.json',final)
-        failures=[row for row in final['items'] if row['check']['state'] not in ('Done','Absent')]
+        failures=[row for row in final['items'] if row['check'] != {'state':'Done','detail':''}]
         if failures: raise RuntimeError('Final state failed: '+json.dumps(failures,ensure_ascii=False))
         print('All final states verified',flush=True)
 

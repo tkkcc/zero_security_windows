@@ -600,6 +600,7 @@ fn restore_batch(
         _ => unreachable!(),
     };
     if !auto && engine.store.pending.lock().unwrap().is_some() {
+        engine.store.initialize()?;
         workflow::cleanup(engine)?;
     }
     let _ = tx.send(Message::Queued(indices.clone()));
@@ -746,7 +747,10 @@ mod tests {
     fn applying_after_restore_replaces_the_old_wait_state() -> Result<()> {
         use winreg::{RegKey, enums::HKEY_CURRENT_USER};
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let name = format!(r"Software\ZeroSecurityWindowsDirectionTest{}", std::process::id());
+        let name = format!(
+            r"Software\ZeroSecurityWindowsDirectionTest{}",
+            std::process::id()
+        );
         let (key, _) = root.create_subkey(&name)?;
         key.set_value("Enabled", &1u32)?;
         let mut engine = Engine::new()?;
@@ -757,12 +761,15 @@ mod tests {
         }];
         *engine.store.pending.lock().unwrap() = None;
         engine.store.results.lock().unwrap().clear();
-        engine.store.results.lock().unwrap().insert(engine.catalog[0].id.clone(), ResultRecord {
-            boot: engine.boot,
-            restoring: true,
-            restart: true,
-            ..Default::default()
-        });
+        engine.store.results.lock().unwrap().insert(
+            engine.catalog[0].id.clone(),
+            ResultRecord {
+                boot: engine.boot,
+                restoring: true,
+                restart: true,
+                ..Default::default()
+            },
+        );
         assert_eq!(engine.check(&engine.catalog[0]).state, Status::Restart);
         let (tx, _) = std::sync::mpsc::channel();
         let result = batch(&engine, &tx, 0, &Command::One(0), false);

@@ -321,7 +321,6 @@ impl Engine {
             }),
             "TimeSync" => json!(native::time_sync(false)?),
             "DesktopOrder" => json!(prefs::desktop_order(false, op.name == "WindowsDefault")?),
-            "AppPreloading" => json!(native::memory_agent(false)?.app_preloading()),
             "MemoryAgent" => json!(native::memory_setting(&op.name, None)?),
             "Bcd" => {
                 let bcd = self.fact("bcd", || Ok(json!(native::command("bcdedit.exe", &["/enum", &self.boot_entry.lock().unwrap()])?)))?;
@@ -362,7 +361,6 @@ impl Engine {
                 "file": PathBuf::from(native::expand(r"%SystemDrive%\hiberfil.sys")).try_exists()?,
             }),
             "SystemRestore" => json!(reg::read(&op.path, &op.name)?.as_array().is_some_and(|volumes| volumes.iter().any(|v| v.as_str().is_some_and(|s| !s.is_empty())))),
-            "DeliveryMode" => json!(native::delivery_mode(None)?),
             "TaskbarPins" => json!(if bool_value(&op.value) { prefs::taskbar_pins(false)? } else { !crate::recovery::taskbar_restored()? }),
             "OptionalFeature" => {
                 let (code, text) = native::run("dism.exe", &["/Online", "/English", "/Get-FeatureInfo", &format!("/FeatureName:{}", op.name)])?;
@@ -440,9 +438,6 @@ impl Engine {
             }
             "DesktopOrder" => {
                 prefs::desktop_order(true, op.name == "WindowsDefault")?;
-            }
-            "AppPreloading" => {
-                native::memory_setting("ApplicationPreLaunch", Some(bool_value(&op.value)))?;
             }
             "MemoryAgent" => {
                 native::memory_setting(&op.name, Some(bool_value(&op.value)))?;
@@ -581,9 +576,6 @@ impl Engine {
             "SystemRestore" => {
                 native::system_restore(bool_value(&op.value))?;
                 return Ok(bool_value(&op.value));
-            }
-            "DeliveryMode" => {
-                native::delivery_mode(Some(op.value.as_u64().unwrap() as u32))?;
             }
             "TaskbarPins" => {
                 crate::recovery::taskbar_pins(bool_value(&op.value))?;

@@ -324,7 +324,11 @@ fn remove_payload(path: &Path) -> Result<()> {
         "Unexpected system package location"
     );
     if original.starts_with(&system) {
-        let report = store::root().join(format!("payload-removal-{}.txt", std::process::id()));
+        let report = store::root().join(format!(
+            "payload-removal-{}-{}.txt",
+            std::process::id(),
+            original.file_name().unwrap().to_string_lossy()
+        ));
         let command = format!(
             "try {{Remove-Item -LiteralPath '{}' -Recurse -Force -ErrorAction Stop}} catch {{[IO.File]::WriteAllText('{}',($_.ToString()+'; '+$_.TargetObject)); exit 1}}",
             path.to_string_lossy().replace('\'', "''"),
@@ -367,7 +371,10 @@ pub fn finish_removal(op: &Operation) -> Result<()> {
             remove_payload(&original)?;
         }
     }
-    ensure!(!state(&inventory()?, op)?, "App payload cleanup did not finish");
+    ensure!(
+        !state(&inventory()?, op)?,
+        "App payload cleanup did not finish"
+    );
     Ok(())
 }
 pub fn remove(op: &Operation) -> Result<bool> {
@@ -492,7 +499,11 @@ pub fn remove(op: &Operation) -> Result<bool> {
     for a in matching(&after_deprovision, op) {
         let system_location = PathBuf::from(std::env::var("SystemRoot")?).join("SystemApps");
         if op.non_removable || Path::new(&a.path).starts_with(&system_location) {
-            let report = store::root().join(format!("package-removal-{}.json", std::process::id()));
+            let report = store::root().join(format!(
+                "package-removal-{}-{}.json",
+                std::process::id(),
+                a.full
+            ));
             let script_path = report.with_extension("ps1");
             if report.try_exists()? {
                 fs::remove_file(&report)?;
@@ -576,13 +587,11 @@ pub fn remove(op: &Operation) -> Result<bool> {
             if !target.path.is_empty()
                 && Path::new(&target.path).try_exists()?
                 && (manager.IsPackageRemovalPending(&HSTRING::from(&target.full))?
-                    || !target.provisioned
-                        && target.users.iter().all(|sid| sid == "S-1-5-18"))
+                    || !target.provisioned && target.users.iter().all(|sid| sid == "S-1-5-18"))
             {
                 if let Err(error) = remove_payload(Path::new(&target.path)) {
                     if manager.IsPackageRemovalPending(&HSTRING::from(&target.full))?
-                        || !target.provisioned
-                            && target.users.iter().all(|sid| sid == "S-1-5-18")
+                        || !target.provisioned && target.users.iter().all(|sid| sid == "S-1-5-18")
                     {
                         deferred = true;
                     } else {
@@ -1070,12 +1079,18 @@ mod tests {
             }],
             registrations: vec![],
         };
-        fs::write(root.join("packages.json"), serde_json::to_vec(&vec![saved])?)?;
+        fs::write(
+            root.join("packages.json"),
+            serde_json::to_vec(&vec![saved])?,
+        )?;
         assert!(state(&[], &op)?);
         ensure!(payload.canonicalize()?.starts_with(root.canonicalize()?));
         fs::remove_dir_all(payload)?;
         assert!(!state(&[], &op)?);
-        ensure!(root.canonicalize()?.starts_with(store::root().canonicalize()?));
+        ensure!(
+            root.canonicalize()?
+                .starts_with(store::root().canonicalize()?)
+        );
         fs::remove_dir_all(root)?;
         Ok(())
     }
