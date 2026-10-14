@@ -99,6 +99,14 @@ struct ServiceStatus {
 #[link(name = "advapi32")]
 unsafe extern "system" {
     fn OpenProcessToken(process: Handle, access: u32, token: *mut Handle) -> i32;
+    fn DuplicateTokenEx(
+        token: Handle,
+        access: u32,
+        attributes: Handle,
+        level: u32,
+        kind: u32,
+        duplicate: *mut Handle,
+    ) -> i32;
     fn LookupPrivilegeValueW(system: *const u16, name: *const u16, id: *mut Luid) -> i32;
     fn AdjustTokenPrivileges(
         token: Handle,
@@ -243,31 +251,34 @@ pub fn privilege(name: &str) -> Result<()> {
     unsafe {
         let mut token = std::ptr::null_mut();
         ok(OpenProcessToken(GetCurrentProcess(), 0x28, &mut token))?;
-        let result = (|| {
-            let mut id = Luid { low: 0, high: 0 };
-            ok(LookupPrivilegeValueW(
-                std::ptr::null(),
-                wide(name).as_ptr(),
-                &mut id,
-            ))?;
-            ok(AdjustTokenPrivileges(
-                token,
-                0,
-                &Priv {
-                    count: 1,
-                    id,
-                    attributes: 2,
-                },
-                0,
-                std::ptr::null_mut(),
-                std::ptr::null_mut(),
-            ))?;
-            let e = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
-            ensure!(e == 0, "{name}: {e}");
-            Ok(())
-        })();
+        let result = token_privilege(token, name);
         CloseHandle(token);
         result
+    }
+}
+fn token_privilege(token: Handle, name: &str) -> Result<()> {
+    unsafe {
+        let mut id = Luid { low: 0, high: 0 };
+        ok(LookupPrivilegeValueW(
+            std::ptr::null(),
+            wide(name).as_ptr(),
+            &mut id,
+        ))?;
+        ok(AdjustTokenPrivileges(
+            token,
+            0,
+            &Priv {
+                count: 1,
+                id,
+                attributes: 2,
+            },
+            0,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        ))?;
+        let e = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
+        ensure!(e == 0, "{name}: {e}");
+        Ok(())
     }
 }
 pub struct SystemGuard;
@@ -319,8 +330,23 @@ fn impersonate_process(name: &str) -> Result<SystemGuard> {
         let opened = ok(OpenProcessToken(p, 0x0e, &mut t));
         CloseHandle(p);
         opened?;
-        let result = ok(ImpersonateLoggedOnUser(t));
+        let mut duplicate = std::ptr::null_mut();
+        let copied = ok(DuplicateTokenEx(
+            t,
+            0x2e,
+            std::ptr::null_mut(),
+            2,
+            2,
+            &mut duplicate,
+        ));
         CloseHandle(t);
+        copied?;
+        let result = (|| {
+            token_privilege(duplicate, "SeBackupPrivilege")?;
+            token_privilege(duplicate, "SeRestorePrivilege")?;
+            ok(ImpersonateLoggedOnUser(duplicate))
+        })();
+        CloseHandle(duplicate);
         result?;
     }
     Ok(SystemGuard)

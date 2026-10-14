@@ -687,6 +687,12 @@ pub fn has_tool(id: &str) -> Result<bool> {
     }
 }
 pub fn registered_tool(op: &Operation) -> Result<Option<bool>> {
+    if op.name.eq_ignore_ascii_case("Tencent.WeType")
+        && (wetype_root().try_exists()?
+            || reg::exists(r"HKLM:\SYSTEM\CurrentControlSet\Services\WeType Management Service")?)
+    {
+        return Ok(Some(true));
+    }
     if !op.package_family.is_empty() {
         native::com()?;
         let manager = PackageManager::new()?;
@@ -715,6 +721,44 @@ const UNINSTALL_BRANCHES: [&str; 3] = [
     r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
     r"HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
 ];
+fn wetype_root() -> PathBuf {
+    PathBuf::from(native::expand(r"%ProgramFiles%\Tencent\WeType"))
+}
+fn clean_wetype() -> Result<()> {
+    let root = wetype_root();
+    let present = root.try_exists()?;
+    if present {
+        let resolved = root.canonicalize()?;
+        ensure!(
+            resolved.parent() == Some(root.parent().unwrap().canonicalize()?.as_path())
+                && resolved
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.eq_ignore_ascii_case("WeType")),
+            "Unexpected WeType location"
+        );
+    }
+    let service = "WeType Management Service";
+    if reg::exists(&format!(
+        r"HKLM:\SYSTEM\CurrentControlSet\Services\{service}"
+    ))? {
+        native::disable_service(service)?;
+        native::command("sc.exe", &["delete", service])?;
+    }
+    let _guard = native::system()?;
+    for (_, image) in native::process_images()? {
+        if image
+            .to_lowercase()
+            .starts_with(&format!("{}\\", root.to_string_lossy().to_lowercase()))
+        {
+            native::stop_process(Path::new(&image).file_name().unwrap().to_str().unwrap())?;
+        }
+    }
+    if present {
+        fs::remove_dir_all(root).context("Remove WeType program files")?;
+    }
+    Ok(())
+}
 pub fn install(op: &Operation, uninstall: bool) -> Result<bool> {
     if uninstall || !(op.source == "msstore" || op.requires_delivery) {
         return install_run(op, uninstall);
@@ -794,14 +838,25 @@ fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
     let (c, t) = native::run(&winget()?, &args)?;
     crate::store::append("install.log", &format!("[{}]\n{t}", op.name))?;
     let already_installed = !uninstall && matches!(c as u32, 0x8a15002b | 0x8a15010d);
+    let wetype = uninstall && op.name.eq_ignore_ascii_case("Tencent.WeType");
     ensure!(
-        matches!(c, 0 | 3010 | 1641) || already_installed,
+        matches!(c, 0 | 3010 | 1641) || already_installed || wetype && c as u32 == 0x8a150014,
         "winget ({c}); {}",
         crate::store::root().join("install.log").display()
     );
-    let installed = match registered_tool(op)? {
-        Some(installed) => installed,
-        None => has_tool(&op.name)?,
+    if wetype {
+        clean_wetype()?;
+    }
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    let installed = loop {
+        let installed = match registered_tool(op)? {
+            Some(installed) => installed,
+            None => has_tool(&op.name)?,
+        };
+        if installed != uninstall || std::time::Instant::now() >= deadline {
+            break installed;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(200));
     };
     ensure!(
         installed != uninstall,

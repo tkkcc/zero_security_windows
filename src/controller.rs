@@ -578,16 +578,15 @@ fn restore_batch(
             publish(engine, tx, i, version);
             continue;
         }
-        if auto
-            && matches!(
-                engine.default_check(f)?.state,
-                Status::Done | Status::Absent
-            )
-        {
+        let defaults_done = matches!(
+            engine.default_check(f)?.state,
+            Status::Done | Status::Absent
+        );
+        if auto && defaults_done {
             publish(engine, tx, i, version);
             continue;
         }
-        if f.id == "smart-app-control" && !engine.safe {
+        if f.id == "smart-app-control" && !engine.safe && !defaults_done {
             if auto && engine.attempted_safe.lock().unwrap().contains(&f.id) {
                 failure(
                     engine,
@@ -627,7 +626,11 @@ fn restore_batch(
             let _ = tx.send(Message::State(i, Check::new(Status::Deferred), version));
             continue;
         }
-        let needs_safe = match needs_safe(engine, &target, auto) {
+        let needs_safe = match if defaults_done {
+            Ok(false)
+        } else {
+            needs_safe(engine, &target, auto)
+        } {
             Ok(needed) => needed,
             Err(error) => {
                 failure(engine, tx, i, version, error)?;
@@ -704,6 +707,43 @@ pub fn failure_message(engine: &Engine, error: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn unchanged_protected_restore_does_not_schedule_safe_mode() -> Result<()> {
+        use winreg::{RegKey, enums::HKEY_CURRENT_USER};
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let name = format!(
+            r"Software\ZeroSecurityWindowsNoopRestoreTest{}",
+            std::process::id()
+        );
+        let (key, _) = root.create_subkey(&name)?;
+        key.set_value("Enabled", &1u32)?;
+        let result = (|| -> Result<()> {
+            let mut engine = Engine::new()?;
+            engine.safe = false;
+            let mut f = engine.feature("svc-sysmain")?.clone();
+            f.id = "test-noop-protected-restore".into();
+            f.ops = vec![Operation::reg(format!(r"HKCU:\{name}"), "Enabled", 0)];
+            f.restore_ops = vec![Operation::reg(format!(r"HKCU:\{name}"), "Enabled", 1)];
+            f.restore_safe = true;
+            f.refresh.clear();
+            f.restart = false;
+            f.probe.clear();
+            engine.catalog = vec![f];
+            *engine.store.pending.lock().unwrap() = None;
+            engine.store.results.lock().unwrap().clear();
+            let (tx, rx) = std::sync::mpsc::channel();
+            restore_batch(&engine, &tx, 1, &Command::Restore(0), false)?;
+            assert!(engine.store.pending.lock().unwrap().is_none());
+            assert!(
+                rx.try_iter()
+                    .any(|message| matches!(message, Message::Finished { restart: false, .. }))
+            );
+            assert_eq!(key.get_value::<u32, _>("Enabled")?, 1);
+            Ok(())
+        })();
+        root.delete_subkey_all(&name)?;
+        result
+    }
     #[test]
     fn normal_continuation_keeps_a_failed_item_for_manual_retry_without_executing_it() -> Result<()>
     {

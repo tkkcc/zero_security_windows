@@ -9,9 +9,16 @@ use serde_json::json;
 use std::{collections::HashMap, fs, path::PathBuf, sync::Mutex};
 
 pub fn root() -> PathBuf {
+    if cfg!(test) {
+        return std::env::temp_dir()
+            .join(format!("ZeroSecurityWindowsTests-{}", std::process::id()));
+    }
     PathBuf::from(std::env::var_os("ProgramData").unwrap()).join("ZeroSecurityWindows")
 }
 pub fn user_root() -> PathBuf {
+    if cfg!(test) {
+        return root().join("user");
+    }
     PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap()).join("ZeroSecurityWindows")
 }
 pub fn append(name: &str, text: &str) -> Result<()> {
