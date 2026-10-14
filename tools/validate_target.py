@@ -169,7 +169,17 @@ def main():
             if control['Control']!='Running' or control['ControlInstances']!=1:
                 raise RuntimeError('The independent controller must be running alone before testing UU removal')
         print(f'[{name}] {stage} {len(ids)} items',flush=True)
-        selection=target.selection(ids)
+        retry=ids
+        previous=args.results/(name+'-check.json')
+        if previous.exists() and not args.only:
+            observed='defaults' if stage=='restore' else 'check'
+            prior=json.loads(previous.read_text(encoding='utf-8'))
+            retry=[row['id'] for row in prior['items'] if row['id'] in ids and
+                   (row[observed]['state'] not in ('Done','Absent') or row['check']['state']=='Failed')]
+            if not retry:
+                retry=ids
+            print(f'  retrying {len(retry)} items',flush=True)
+        selection=target.selection(retry)
         report=target.report(['--'+stage+'-items',selection],'C:/ProgramData/ZeroSecurityWindowsValidation/current-report.json',timeout=7200)
         save(args.results/(name+'-execute.json'),report)
         needs_boot=report['restart'] or any(row['check']['state'] in ('SafeQueued','Restart','SignIn') for row in report['items'])
@@ -178,7 +188,7 @@ def main():
             needs_boot=target.reboot()
         if needs_boot:
             raise RuntimeError('Batch exceeded its boot stages')
-        checked=target.check(selection)
+        checked=target.check(target.selection(ids))
         save(args.results/(name+'-check.json'),checked)
         failures=[]
         for row in checked['items']:

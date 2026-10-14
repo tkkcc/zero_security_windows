@@ -98,7 +98,7 @@ Smart App Control 从关闭状态恢复使用微软的[离线配置方法](https
 
 `--snapshot 文件` 记录读回目标；`--apply 项目 文件`、`--restore 项目 文件` 和 `--apply-all 文件` 使用界面相同的执行流程。`--apply-items 选择文件 报告文件`、`--restore-items 选择文件 报告文件` 批量处理 JSON 项目 ID 数组。`--check 报告文件 [选择文件]` 核对当前状态与默认配置，`--continue 报告文件` 后台接续正常模式任务，均不自动重启。
 
-`tools/validate_target.py` 按系统设置、应用精简、安装项和桌面设置批量验证，合并重启，再分别核对每项结果。恢复按普通配置、Defender 和离线配置处理；Defender 另核对服务、实时保护和防篡改的运行状态。UU 卸载与重装放到这些重启验证之后，先确认独立控制任务正常且只有一个实例。调试连接使用独立的 tailcat 0.6.0；配置中的 `client_binary` 指定该客户端路径，每次验证复用一个后台转发进程；工具安装项仍由 winget 安装最新版。重启由测试脚本控制，不依赖正常模式的界面计时器。失败只复测对应批次。固定 tailcat 身份只运行一个远程会话，连接密钥、快照、结果和检查点均放在忽略目录。示例：
+`tools/validate_target.py` 按系统设置、应用精简、安装项和桌面设置批量验证，合并重启，再分别核对每项结果。恢复按普通配置、Defender 和离线配置处理；Defender 另核对服务、实时保护和防篡改的运行状态。UU 卸载与重装放到这些重启验证之后，先确认独立控制任务正常且只有一个实例。调试连接使用独立的 tailcat 0.6.0；配置中的 `client_binary` 指定该客户端路径，每次验证复用一个后台转发进程；工具安装项仍由 winget 安装最新版。重启由测试脚本控制，不依赖正常模式的界面计时器。失败只重试对应项目，再核对整个批次。固定 tailcat 身份只运行一个远程会话，连接密钥、快照、结果和检查点均放在忽略目录。示例：
 
 ```text
 python tools/validate_target.py --connection artifacts/target_connection.json --hostname DESKTOP-BPDS8UM --results artifacts/target-validation --finish-all
