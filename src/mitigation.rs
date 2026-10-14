@@ -243,7 +243,7 @@ pub fn defaults() -> Result<bool> {
     Ok(true)
 }
 pub fn restore() -> Result<()> {
-    let _system = native::system()?;
+    let _system = native::trusted_installer()?;
     let images = default_images()?;
     for path in configured_paths(&images)? {
         for name in ["MitigationOptions", "MitigationAuditOptions"] {

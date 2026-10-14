@@ -879,7 +879,10 @@ struct CursorColor {
     g: u8,
     b: u8,
 }
-pub fn cursors() -> Result<()> {
+pub fn cursors(custom: bool) -> Result<()> {
+    if !custom {
+        return spi(0x57, 0, std::ptr::null_mut(), 2);
+    }
     native::com()?;
     let size = reg::number(r"HKCU:\Control Panel\Cursors", "CursorBaseSize", 64)? as u32;
     let class = HSTRING::from("Windows.Internal.Accessibility.Experience.CustomCursor");

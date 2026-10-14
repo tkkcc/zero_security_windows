@@ -694,7 +694,7 @@ impl Engine {
             "Mouse" => prefs::apply_mouse()?,
             "Keyboard" => prefs::apply_keyboard()?,
             "Visuals" => prefs::visuals()?,
-            "Cursors" => prefs::cursors()?,
+            "Cursors" => prefs::cursors(f.intent != "Restore")?,
             "Appearance" => prefs::broadcast("ImmersiveColorSet"),
             "Power" => prefs::activate_power()?,
             "Explorer" | "Shell" => prefs::explorer(),

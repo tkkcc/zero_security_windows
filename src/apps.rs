@@ -309,7 +309,10 @@ pub fn remove(op: &Operation) -> Result<bool> {
     let mut saved = records(op)?;
     // Finish all required recovery copies before removing registrations or provisioning.
     for a in latest(&targets) {
-        let source = source_for(op, &a.name).to_string();
+        let mut source = source_for(op, &a.name).to_string();
+        if !source.is_empty() && !source_available(&source)? {
+            source.clear();
+        }
         let protected = op.non_removable
             || non_removable(&a.family)?
             || saved
@@ -611,6 +614,26 @@ pub fn winget() -> Result<String> {
         "Install or update Windows App Installer first."
     );
     Ok(path.to_string_lossy().into())
+}
+fn source_available(id: &str) -> Result<bool> {
+    let (code, text) = native::run(
+        &winget()?,
+        &[
+            "show",
+            "--id",
+            id,
+            "--exact",
+            "--source",
+            "msstore",
+            "--disable-interactivity",
+            "--accept-source-agreements",
+        ],
+    )?;
+    match code as u32 {
+        0 => Ok(true),
+        0x8a150014 => Ok(false),
+        _ => anyhow::bail!("Could not verify recovery source {id}: {text}"),
+    }
 }
 pub fn tools() -> Result<serde_json::Value> {
     static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);

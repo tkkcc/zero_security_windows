@@ -151,7 +151,9 @@ def main():
     final=[f['Id'] for f in catalog if f['Id'] in final_ids]
     settings=[f['Id'] for f in catalog if f['Page'] not in ('Install','Remove') and f['Id'] not in final_ids and not f.get('DefaultOff')]
     defender=[f['Id'] for f in catalog if f['GroupZh']=='Defender']
-    normal_restore=[i for i in settings if i not in defender and i!='smart-app-control']+final+removals+installers
+    restore_settings=[i for i in settings if i not in defender and i!='smart-app-control']+final
+    restore_apps=removals+installers
+    normal_restore=restore_settings+restore_apps
     batches=[
         ('prepare-installers','restore',installers),
         ('memory-apply','apply',standalone),('memory-restore','restore',standalone),
@@ -179,15 +181,22 @@ def main():
             if not retry:
                 retry=ids
             print(f'  retrying {len(retry)} items',flush=True)
-        selection=target.selection(retry)
-        report=target.report(['--'+stage+'-items',selection],'C:/ProgramData/ZeroSecurityWindowsValidation/current-report.json',timeout=7200)
-        save(args.results/(name+'-execute.json'),report)
-        needs_boot=report['restart'] or any(row['check']['state'] in ('SafeQueued','Restart','SignIn') for row in report['items'])
-        for _ in range(3):
-            if not needs_boot: break
-            needs_boot=target.reboot()
-        if needs_boot:
-            raise RuntimeError('Batch exceeded its boot stages')
+        phases=[retry]
+        if name=='normal-restore':
+            # Load security and service defaults before invoking Store installations.
+            phases=[[i for i in retry if i in group] for group in [restore_settings,restore_apps]]
+        for phase,selected in enumerate(phases):
+            if not selected:continue
+            selection=target.selection(selected)
+            report=target.report(['--'+stage+'-items',selection],'C:/ProgramData/ZeroSecurityWindowsValidation/current-report.json',timeout=7200)
+            suffix=f'-phase-{phase}' if len(phases)>1 else ''
+            save(args.results/(name+suffix+'-execute.json'),report)
+            needs_boot=report['restart'] or any(row['check']['state'] in ('SafeQueued','Restart','SignIn') for row in report['items'])
+            for _ in range(3):
+                if not needs_boot: break
+                needs_boot=target.reboot()
+            if needs_boot:
+                raise RuntimeError('Batch exceeded its boot stages')
         checked=target.check(target.selection(ids))
         save(args.results/(name+'-check.json'),checked)
         failures=[]

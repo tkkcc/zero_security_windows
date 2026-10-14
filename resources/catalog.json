@@ -2198,12 +2198,7 @@
         "Name": "games",
         "Value": false,
         "Kind": "Apps",
-        "PackageSources": {
-          "Microsoft.MicrosoftSolitaireCollection": "9WZDNCRFHWD2",
-          "Microsoft.MicrosoftMinesweeper": "9WZDNCRFHWCN",
-          "Microsoft.MicrosoftMahjong": "9WZDNCRFHWCP",
-          "Microsoft.MicrosoftSudoku": "9WZDNCRFHV60"
-        }
+        "PackageSources": {}
       }
     ],
     "Probe": "",
@@ -2225,12 +2220,7 @@
         "Name": "games",
         "Value": true,
         "Kind": "Apps",
-        "PackageSources": {
-          "Microsoft.MicrosoftSolitaireCollection": "9WZDNCRFHWD2",
-          "Microsoft.MicrosoftMinesweeper": "9WZDNCRFHWCN",
-          "Microsoft.MicrosoftMahjong": "9WZDNCRFHWCP",
-          "Microsoft.MicrosoftSudoku": "9WZDNCRFHV60"
-        }
+        "PackageSources": {}
       }
     ],
     "RestoreSafe": false
@@ -2572,12 +2562,6 @@
         "PackageSources": {
           "Microsoft.MicrosoftPCManager": "9PM860492SZD"
         }
-      },
-      {
-        "Name": "Microsoft.PCManager",
-        "Value": true,
-        "Kind": "Winget",
-        "Source": "winget"
       }
     ],
     "RestoreSafe": false
@@ -2892,12 +2876,6 @@
           "Microsoft.Copilot": "9NHT9RB2F4HD",
           "Microsoft.MicrosoftOfficeHub": "9WZDNCRD29V9"
         }
-      },
-      {
-        "Name": "9NHT9RB2F4HD",
-        "Value": true,
-        "Kind": "CopilotDesktop",
-        "Source": "msstore"
       }
     ],
     "RestoreSafe": false
@@ -6709,7 +6687,7 @@
         "Kind": "ServiceStart",
         "Name": "IKEEXT",
         "Value": 3,
-        "Source": "Restore"
+        "Source": ""
       }
     ],
     "RestoreSafe": false
