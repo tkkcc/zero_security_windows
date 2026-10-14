@@ -98,6 +98,12 @@ python tools/check_console.py target/release/zero_security_windows.exe
 python tools/validate_target.py --connection artifacts/target_connection.json --hostname DESKTOP-BPDS8UM --results artifacts/target-validation --finish-all
 ```
 
+已预装的安装项先卸载，再验证实际安装与卸载。测试控制程序独立于 winget 安装目录，卸载 tailcat 安装项不会中断验证。
+
+目标机 Defender 曾删除 tailcat 0.7.0；控制程序使用校验过官方 SHA256 的 [0.6.0](https://github.com/tailscale/tailcat/releases/tag/v0.6.0)，保留固定密钥和自启任务。启动脚本持续重试，并在验证期间阻止自动休眠。
+
+UU 远程自带命令行入口 `bin/uuyc-cli.exe`，可用 `term 设备名 --shell powershell --new-session` 直接连接已登录账号的目标设备。修复远程控制时优先使用该入口，避免依赖桌面窗口。
+
 ## 提交与发布
 
 发布 `target/release/zero_security_windows.exe`，GitHub Release 的 `--target` 指向完整提交 SHA。下载完成后核验附件与本地文件的 SHA256，再分发同一附件。

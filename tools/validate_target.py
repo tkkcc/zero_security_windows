@@ -98,6 +98,18 @@ def main():
             print(f'[{index}/{len(catalog)}] {item} {stage}', flush=True)
             report_path = 'C:/ProgramData/ZeroSecurityWindowsValidation/current-report.json'
             report = target.report(['--' + stage, item], report_path)
+            if stage == 'apply' and feature['Intent'] == 'Install' and report['processed'] == 0:
+                # 已预装的软件先卸载，再实际安装，避免只验证一次空操作。
+                preparation = target.report(['--restore', item], report_path)
+                save(args.results / f'{item}-prepare.json', preparation)
+                prepared = preparation['items'][0]['check']
+                if preparation['restart'] or prepared['state'] in ('Restart', 'SignIn'):
+                    target.reboot()
+                    checked = target.report(['--check'], report_path)
+                    prepared = next(value for value in checked['items'] if value['id'] == item)
+                if prepared['state'] != 'Restored':
+                    raise RuntimeError(f'{item} preparation: {prepared}')
+                report = target.report(['--apply', item], report_path)
             save(args.results / f'{item}-{stage}.json', report)
             check = report['items'][0]['check']
             if check['state'] in ('Failed', 'Restricted', 'Unknown'):
