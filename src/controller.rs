@@ -518,7 +518,7 @@ pub(crate) fn batch(
             Ok(true)
         })?;
     }
-    // Finish normal-mode installs and their dependent settings before scheduling any restart.
+    // Protected changes finish before normal-mode installs and dependent settings.
     if engine.safe {
         if engine
             .store

@@ -7187,10 +7187,10 @@
   },
   {
     "Id": "delivery-optimization",
-    "Zh": "更新点对点共享",
-    "En": "Peer-to-peer update sharing",
-    "PurposeZh": "关闭从其他设备下载 Windows 和商店更新的点对点共享。",
-    "PurposeEn": "Turn off peer-to-peer sharing for Windows and Store update downloads.",
+    "Zh": "传递优化",
+    "En": "Delivery Optimization",
+    "PurposeZh": "禁用 Windows 更新和商店下载使用的传递优化服务。",
+    "PurposeEn": "Disable the Delivery Optimization service used for Windows updates and Store downloads.",
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
