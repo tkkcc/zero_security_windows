@@ -72,7 +72,8 @@ $json=@{Host=$env:COMPUTERNAME; Boot=$os.LastBootUpTime.ToUniversalTime().ToStri
         quoted = ','.join("'" + value.replace("'", "''") + "'" for value in [*arguments, path])
         return json.loads(base64.b64decode(self.run(f"""
 $report='{path}'; if(Test-Path -LiteralPath $report){{Remove-Item -LiteralPath $report}}
-$process=Start-Process -FilePath 'C:/ProgramData/ZeroSecurityWindowsValidation/zero_security_windows.exe' -ArgumentList @({quoted}) -WindowStyle Hidden -PassThru -Wait;
+$process=Start-Process -FilePath 'C:/ProgramData/ZeroSecurityWindowsValidation/zero_security_windows.exe' -ArgumentList @({quoted}) -WindowStyle Hidden -PassThru;
+$process.WaitForExit();
 if(-not (Test-Path -LiteralPath $report)){{throw ('No report, exit='+$process.ExitCode)}}
 [Convert]::ToBase64String([IO.File]::ReadAllBytes($report))
 """, timeout)))
@@ -86,7 +87,8 @@ if(-not (Test-Path -LiteralPath $report)){{throw ('No report, exit='+$process.Ex
     def check(self, selection):
         path='C:/ProgramData/ZeroSecurityWindowsValidation/current-check.json'
         return json.loads(base64.b64decode(self.run(f"""
-$p=Start-Process 'C:/ProgramData/ZeroSecurityWindowsValidation/zero_security_windows.exe' -ArgumentList @('--check','{path}','{selection}') -WindowStyle Hidden -PassThru -Wait;
+$p=Start-Process 'C:/ProgramData/ZeroSecurityWindowsValidation/zero_security_windows.exe' -ArgumentList @('--check','{path}','{selection}') -WindowStyle Hidden -PassThru;
+$p.WaitForExit();
 if($p.ExitCode -ne 0){{throw ('Check failed: '+$p.ExitCode)}}
 [Convert]::ToBase64String([IO.File]::ReadAllBytes('{path}'))
 """, timeout=900)))

@@ -87,7 +87,7 @@ python tools/measure_ui.py target/release/zero_security_windows.exe
 python tools/check_console.py target/release/zero_security_windows.exe
 ```
 
-测试默认使用隔离数据或只读检测。修改设备的测试默认忽略，仅在授权对应操作时运行。已优化设备不执行实际系统恢复，使用定义、隔离数据和只读检测验证。
+测试默认使用隔离数据或只读检测。修改设备的测试默认忽略，仅在授权对应操作时运行。本地开发机不执行实际系统恢复，独立验证机按批次执行与恢复。
 
 ## 目标机验证
 
@@ -105,9 +105,9 @@ python tools/validate_target.py --connection artifacts/target_connection.json --
 
 已预装的安装项先卸载，再验证实际安装与卸载。测试控制程序独立于 winget 安装目录，卸载 tailcat 安装项不会中断验证。
 
-目标机 Defender 曾删除 tailcat 0.7.0；控制程序使用校验过官方 SHA256 的 [0.6.0](https://github.com/tailscale/tailcat/releases/tag/v0.6.0)，保留固定密钥和自启任务。启动脚本持续重试，并在验证期间阻止自动休眠。
+目标机 Defender 曾删除 tailcat 0.7.0；控制程序使用校验过官方 SHA256 的 [0.6.0](https://github.com/tailscale/tailcat/releases/tag/v0.6.0)，保留固定密钥和自启任务。启动时清理同一目录中的旧实例，保持一个服务端；只等待服务端进程退出，再重试，并在验证期间阻止自动休眠。PowerShell 的 `Start-Process -Wait` 会等待整个子进程树，测试与控制脚本均使用主进程的 `WaitForExit()`，避免常驻托盘进程阻塞。
 
-UU 远程自带命令行入口 `bin/uuyc-cli.exe`，可用 `term 设备名 --shell powershell --new-session` 直接连接已登录账号的目标设备。修复远程控制时优先使用该入口，避免依赖桌面窗口。
+UU 远程自带命令行入口 `bin/uuyc-cli.exe`，可用 `term 设备名 --shell powershell --new-session` 直接连接已登录账号的目标设备。终端报“主控端版本过低”时需要升级主控端；修复连接期间才使用远程桌面，完成后回到命令行验证。
 
 ## 提交与发布
 

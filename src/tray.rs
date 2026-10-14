@@ -90,6 +90,9 @@ pub fn enable() -> Result<()> {
     std::process::Command::new(exe)
         .arg("--tray")
         .creation_flags(0x08000000)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
         .spawn()?;
     let deadline = Instant::now() + Duration::from_secs(5);
     while !running()? {
