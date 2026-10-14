@@ -398,7 +398,10 @@ pub(crate) fn batch(
     );
     // MMAgent updates share one configuration and overwrite concurrent changes.
     let (memory, local): (Vec<_>, Vec<_>) = local.into_iter().partition(|i| {
-        engine.catalog[*i].ops.iter().any(|op| op.kind == "MemoryAgent")
+        engine.catalog[*i]
+            .ops
+            .iter()
+            .any(|op| op.kind == "MemoryAgent")
     });
     // Start fast settings before slow removals; jobs from different categories overlap.
     let run_local = |i: usize| {
@@ -412,6 +415,31 @@ pub(crate) fn batch(
             return Ok(false);
         }
         let check = engine.check(f);
+        if auto && !engine.safe && check.state == Status::Failed {
+            publish(engine, tx, i, version);
+            return Ok(false);
+        }
+        if auto
+            && !engine.safe
+            && check.actionable()
+            && f.ops.iter().any(|op| op.kind == "Apps")
+            && engine
+                .store
+                .results
+                .lock()
+                .unwrap()
+                .get(&f.id)
+                .is_some_and(|r| r.changed && r.restart && r.boot != engine.boot)
+        {
+            failure(
+                engine,
+                tx,
+                i,
+                version,
+                anyhow::anyhow!("App removal did not finish after restart; retry manually"),
+            )?;
+            return Ok(false);
+        }
         if !check.actionable()
             && check.state != Status::SafeQueued
             && !(matches!(command, Command::One(_)) && f.toggle())
@@ -447,7 +475,8 @@ pub(crate) fn batch(
     let safe = safe.into_inner().unwrap();
     if !engine.safe && !matches!(command, Command::One(_)) {
         processed += parallel_jobs(&installers, |i| {
-            if !engine.check(&engine.catalog[i]).actionable() {
+            let check = engine.check(&engine.catalog[i]);
+            if !check.actionable() || auto && check.state == Status::Failed {
                 publish(engine, tx, i, version);
                 return Ok(false);
             }
@@ -456,7 +485,8 @@ pub(crate) fn batch(
         })?;
         processed += parallel_jobs(&finalizers, |i| {
             let f = &engine.catalog[i];
-            if !engine.check(f).actionable() {
+            let check = engine.check(f);
+            if !check.actionable() || auto && check.state == Status::Failed {
                 publish(engine, tx, i, version);
                 return Ok(false);
             }
@@ -525,6 +555,10 @@ fn restore_batch(
     for &i in &indices {
         let f = &engine.catalog[i];
         let target = f.restore_target();
+        if auto && !engine.safe && engine.check(f).state == Status::Failed {
+            publish(engine, tx, i, version);
+            continue;
+        }
         if auto
             && matches!(
                 engine.default_check(f)?.state,
@@ -651,6 +685,54 @@ pub fn failure_message(engine: &Engine, error: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn normal_continuation_keeps_a_failed_item_for_manual_retry_without_executing_it() -> Result<()>
+    {
+        use winreg::{RegKey, enums::HKEY_CURRENT_USER};
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let name = format!(
+            r"Software\ZeroSecurityWindowsResumeTest{}",
+            std::process::id()
+        );
+        let (key, _) = root.create_subkey(&name)?;
+        key.set_value("Enabled", &0u32)?;
+        let result = (|| -> Result<()> {
+            let mut engine = Engine::new()?;
+            engine.safe = false;
+            let mut f = engine.feature("svc-sysmain")?.clone();
+            f.id = "test-normal-continuation".into();
+            f.ops = vec![Operation::reg(format!(r"HKCU:\{name}"), "Enabled", 1)];
+            f.refresh.clear();
+            f.restart = false;
+            f.probe.clear();
+            engine.catalog = vec![f];
+            *engine.store.pending.lock().unwrap() = None;
+            engine.store.results.lock().unwrap().clear();
+            engine.store.results.lock().unwrap().insert(
+                engine.catalog[0].id.clone(),
+                ResultRecord {
+                    errors: vec!["previous execution failed".into()],
+                    ..Default::default()
+                },
+            );
+            let (tx, rx) = std::sync::mpsc::channel();
+            batch(&engine, &tx, 1, &Command::Items(vec![0]), true)?;
+            assert!(rx.try_iter().any(|message| matches!(
+                message,
+                Message::Finished {
+                    processed: 0,
+                    restart: false,
+                    ..
+                }
+            )));
+            assert_eq!(key.get_value::<u32, _>("Enabled")?, 0);
+            assert_eq!(engine.check(&engine.catalog[0]).state, Status::Failed);
+            assert!(engine.check(&engine.catalog[0]).actionable());
+            Ok(())
+        })();
+        root.delete_subkey_all(&name)?;
+        result
+    }
     #[test]
     fn failed_safe_restore_stops_automatic_boots_but_allows_an_explicit_retry() -> Result<()> {
         let mut engine = Engine::new()?;

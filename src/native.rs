@@ -279,17 +279,40 @@ impl Drop for SystemGuard {
     }
 }
 pub fn system() -> Result<SystemGuard> {
+    impersonate_process("winlogon.exe")
+}
+pub fn trusted_installer() -> Result<SystemGuard> {
+    if !service_running("TrustedInstaller")? {
+        command("sc.exe", &["start", "TrustedInstaller"])?;
+    }
+    for _ in 0..50 {
+        if processes()?
+            .iter()
+            .any(|(_, name)| name.eq_ignore_ascii_case("TrustedInstaller.exe"))
+        {
+            let system = system()?;
+            let installer = impersonate_process("TrustedInstaller.exe");
+            if installer.is_ok() {
+                std::mem::forget(system);
+            }
+            return installer;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    anyhow::bail!("TrustedInstaller did not start")
+}
+fn impersonate_process(name: &str) -> Result<SystemGuard> {
     privilege("SeDebugPrivilege")?;
     let id = processes()?
         .into_iter()
-        .find(|(_, n)| n.eq_ignore_ascii_case("winlogon.exe"))
-        .ok_or_else(|| anyhow::anyhow!("winlogon not running"))?
+        .find(|(_, n)| n.eq_ignore_ascii_case(name))
+        .ok_or_else(|| anyhow::anyhow!("{name} not running"))?
         .0;
     unsafe {
         let p = OpenProcess(0x1000, 0, id);
         ensure!(
             !p.is_null(),
-            "Open winlogon: {}",
+            "Open {name}: {}",
             std::io::Error::last_os_error()
         );
         let mut t = std::ptr::null_mut();

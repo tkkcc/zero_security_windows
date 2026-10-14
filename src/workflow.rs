@@ -188,9 +188,11 @@ fn register_return(engine: &Engine) -> Result<()> {
 }
 pub fn prepare_safe(engine: &Engine, ids: &[String], all: bool, restoring: bool) -> Result<()> {
     engine.store.initialize()?;
-    if reg::exists(r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending")?
-        || reg::exists(r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired")?
-    {
+    if reg::exists(
+        r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending",
+    )? || reg::exists(
+        r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired",
+    )? {
         prepare_normal(engine, all, ids)?;
         let mut results = engine.store.results.lock().unwrap();
         for id in ids {
@@ -200,7 +202,14 @@ pub fn prepare_safe(engine: &Engine, ids: &[String], all: bool, restoring: bool)
             result.restart = true;
         }
         drop(results);
-        engine.store.pending.lock().unwrap().as_mut().unwrap().restoring = restoring;
+        engine
+            .store
+            .pending
+            .lock()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .restoring = restoring;
         return engine.store.save();
     }
     let prior = engine.store.pending.lock().unwrap().clone();

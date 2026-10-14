@@ -2,7 +2,7 @@ use crate::{
     model::{Operation, bool_value},
     native, registry as reg, store,
 };
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -24,6 +24,8 @@ pub struct AppEntry {
     pub current_user: bool,
     pub provisioned: bool,
     pub disabled: bool,
+    pub bundle: bool,
+    pub resource: bool,
     pub users: Vec<String>,
 }
 pub fn inventory() -> Result<Vec<AppEntry>> {
@@ -33,7 +35,7 @@ pub fn inventory() -> Result<Vec<AppEntry>> {
     let provisioned_packages: Vec<_> = manager.FindProvisionedPackages()?.into_iter().collect();
     let provisioned: BTreeSet<String> = provisioned_packages
         .iter()
-        .map(|p| p.Id().and_then(|id| id.FullName()).map(|s| s.to_string()))
+        .map(|p| p.Id().and_then(|id| id.FamilyName()).map(|s| s.to_string()))
         .collect::<windows::core::Result<_>>()?;
     let mut out = BTreeMap::new();
     for package in manager
@@ -42,6 +44,9 @@ pub fn inventory() -> Result<Vec<AppEntry>> {
         .chain(provisioned_packages)
     {
         let id = package.Id()?;
+        if package.IsBundle()? || package.IsResourcePackage()? {
+            continue;
+        }
         let full = id.FullName()?.to_string();
         if out.contains_key(&full) {
             continue;
@@ -57,8 +62,14 @@ pub fn inventory() -> Result<Vec<AppEntry>> {
                 Err(e) => Some(Err(e)),
             })
             .collect::<windows::core::Result<_>>()?;
-        let is_provisioned = provisioned.contains(&full);
+        let is_provisioned = provisioned.contains(&id.FamilyName()?.to_string());
         if users.is_empty() && !is_provisioned {
+            continue;
+        }
+        let installed_path = package.InstalledPath()?.to_string();
+        if !is_provisioned
+            && (installed_path.is_empty() || !Path::new(&installed_path).try_exists()?)
+        {
             continue;
         }
         let version = id.Version()?;
@@ -68,7 +79,7 @@ pub fn inventory() -> Result<Vec<AppEntry>> {
                 name: id.Name()?.to_string(),
                 full,
                 family: id.FamilyName()?.to_string(),
-                path: package.InstalledPath()?.to_string(),
+                path: installed_path,
                 version: [
                     version.Major,
                     version.Minor,
@@ -79,6 +90,8 @@ pub fn inventory() -> Result<Vec<AppEntry>> {
                 current_user: users.iter().any(|user| user == &sid),
                 provisioned: is_provisioned,
                 disabled: package.Status()?.Disabled()?,
+                bundle: package.IsBundle()?,
+                resource: package.IsResourcePackage()?,
                 users,
             },
         );
@@ -130,7 +143,7 @@ fn records(op: &Operation) -> Result<Vec<Removal>> {
 // Keep a single latest layout for each package identity, even if different users had older versions.
 fn latest<'a>(entries: &[&'a AppEntry]) -> Vec<&'a AppEntry> {
     let mut out: BTreeMap<&str, &AppEntry> = BTreeMap::new();
-    for &a in entries {
+    for &a in entries.iter().filter(|a| !a.bundle && !a.resource) {
         if out
             .get(a.name.as_str())
             .is_none_or(|old| a.version > old.version)
@@ -238,8 +251,18 @@ fn save_layout(
         save_layout(&dependency, root, out, seen)?;
     }
     let original = PathBuf::from(package.InstalledPath()?.to_string());
-    copy_layout(&original, &root.join(&full))?;
+    copy_layout(&original, &root.join(&full)).with_context(|| format!("Copy package {full}"))?;
     out.push(Material { full, original });
+    if !package.IsResourcePackage()? && !package.IsFramework()? {
+        let manager = PackageManager::new()?;
+        for resource in manager.FindPackagesByPackageFamilyName(&package.Id()?.FamilyName()?)? {
+            if resource.IsResourcePackage()?
+                && resource.Id()?.Version()? == package.Id()?.Version()?
+            {
+                save_layout(&resource, root, out, seen)?;
+            }
+        }
+    }
     Ok(())
 }
 #[link(name = "appxalluserstore", kind = "raw-dylib")]
@@ -282,7 +305,7 @@ pub fn remove(op: &Operation) -> Result<bool> {
     }
     let manager = PackageManager::new()?;
     let root = recovery_root(op);
-    fs::create_dir_all(&root)?;
+    fs::create_dir_all(&root).context("Create package recovery folder")?;
     let mut saved = records(op)?;
     // Finish all required recovery copies before removing registrations or provisioning.
     for a in latest(&targets) {
@@ -336,14 +359,15 @@ pub fn remove(op: &Operation) -> Result<bool> {
     fs::write(
         root.join("packages.json"),
         serde_json::to_vec_pretty(&saved)?,
-    )?;
+    )
+    .context("Save package recovery record")?;
     for a in &saved {
         if a.non_removable {
-            set_non_removable(&a.family, false)?;
-            let _guard = native::system()?;
-            for (sid, full) in &a.registrations {
-                reg::key(&eol(sid, full), true)?;
-            }
+            set_non_removable(&a.family, false).context("Allow package removal")?;
+        }
+        let _guard = native::system()?;
+        for (sid, full) in &a.registrations {
+            reg::key(&eol(sid, full), true).context("Allow user package removal")?;
         }
     }
     let images = native::process_images()?;
@@ -369,20 +393,72 @@ pub fn remove(op: &Operation) -> Result<bool> {
     }
     let mut restart = false;
     let after_deprovision = inventory()?;
+    let mut removed_families = BTreeSet::new();
     for a in matching(&after_deprovision, op) {
-        deployment(
-            manager
-                .RemovePackageWithOptionsAsync(
-                    &HSTRING::from(&a.full),
-                    RemovalOptions::RemoveForAllUsers,
-                )?
-                .join()?,
-        )?;
+        let system_location = PathBuf::from(std::env::var("SystemRoot")?).join("SystemApps");
+        if op.non_removable || Path::new(&a.path).starts_with(&system_location) {
+            let original = PathBuf::from(&a.path).canonicalize()?;
+            let system = PathBuf::from(std::env::var("SystemRoot")?)
+                .join("SystemApps")
+                .canonicalize()?;
+            let applications = PathBuf::from(std::env::var("ProgramFiles")?)
+                .join("WindowsApps")
+                .canonicalize()?;
+            ensure!(
+                original.parent() == Some(system.as_path())
+                    || original.parent() == Some(applications.as_path()),
+                "Unexpected system package location"
+            );
+            let _guard = if original.starts_with(&system) {
+                native::trusted_installer().context("Use TrustedInstaller for the system app")?
+            } else {
+                native::system()?
+            };
+            if !original.starts_with(&system) {
+                manager.SetPackageStatus(&HSTRING::from(&a.full), PackageStatus::Disabled)?;
+            }
+            fs::remove_dir_all(&original).context("Remove system app payload")?;
+            continue;
+        }
+        if !removed_families.insert(&a.family) {
+            continue;
+        }
+        let family: Vec<_> = manager
+            .FindPackagesByPackageFamilyName(&HSTRING::from(&a.family))?
+            .into_iter()
+            .collect();
+        let mut bundles = vec![];
+        let mut main = vec![];
+        for package in &family {
+            if package.IsBundle()? {
+                bundles.push(package);
+            } else if !package.IsResourcePackage()? {
+                main.push(package);
+            }
+        }
+        let roots = if bundles.is_empty() { main } else { bundles };
+        for package in roots {
+            let full = package.Id()?.FullName()?;
+            if manager.IsPackageRemovalPending(&full)? {
+                continue;
+            }
+            deployment(
+                manager
+                    .RemovePackageWithOptionsAsync(&full, RemovalOptions::RemoveForAllUsers)?
+                    .join()?,
+            )
+            .with_context(|| format!("Remove package {full}"))?;
+        }
     }
-    for a in targets {
-        restart |= manager.IsPackageRemovalPending(&HSTRING::from(&a.full))?;
-    }
-    let remaining = inventory()?;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(90);
+    let remaining = loop {
+        let remaining = inventory()?;
+        let targets = matching(&remaining, op);
+        if targets.is_empty() || std::time::Instant::now() >= deadline {
+            break remaining;
+        }
+        std::thread::sleep(std::time::Duration::from_secs(2));
+    };
     restart |= !matching(&remaining, op).is_empty();
     let needed: BTreeSet<_> = saved
         .iter()
@@ -427,11 +503,9 @@ pub fn restore(op: &Operation) -> Result<bool> {
         );
     }
     for a in &saved {
-        if a.non_removable {
-            let _guard = native::system()?;
-            for (sid, full) in &a.registrations {
-                reg::key(&eol(sid, full), false)?;
-            }
+        let _guard = native::system()?;
+        for (sid, full) in &a.registrations {
+            reg::key(&eol(sid, full), false)?;
         }
     }
     let ids: BTreeSet<&str> = if saved.is_empty() {
@@ -473,6 +547,12 @@ pub fn restore(op: &Operation) -> Result<bool> {
             .iter()
             .find(|m| m.full == a.full)
             .ok_or_else(|| anyhow::anyhow!("Missing main recovery layout for {}", a.name))?;
+        if inventory()?
+            .iter()
+            .any(|p| p.full == a.full && p.current_user)
+        {
+            continue;
+        }
         let manifest = uri(&main.original.join("AppxManifest.xml"))?;
         let dependencies: windows_collections::IIterable<Uri> = a
             .materials
@@ -494,7 +574,7 @@ pub fn restore(op: &Operation) -> Result<bool> {
     let restored = inventory()?;
     let mut families = BTreeSet::new();
     for a in matching(&restored, op) {
-        {
+        if a.disabled {
             let _guard = native::system()?;
             manager.ClearPackageStatus(&HSTRING::from(&a.full), PackageStatus::Disabled)?;
         }
@@ -791,6 +871,17 @@ mod tests {
         assert_eq!(selected.len(), 2);
         assert_eq!(selected[0].full, "Test.Private_10");
         assert_eq!(selected[1].full, "Test.Public_1");
+    }
+    #[test]
+    fn recovery_selects_the_main_payload_instead_of_bundle_or_resource_metadata() {
+        let main = entry("Test.App", 1, true, false);
+        let mut bundle = entry("Test.App", 2022, true, true);
+        bundle.bundle = true;
+        let mut resource = entry("Test.App", 1, true, false);
+        resource.resource = true;
+        let selected = latest(&[&bundle, &resource, &main]);
+        assert_eq!(selected.len(), 1);
+        assert!(std::ptr::eq(selected[0], &main));
     }
     #[test]
     fn recovery_status_requires_removed_packages_and_previous_provisioning() {

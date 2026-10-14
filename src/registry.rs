@@ -229,8 +229,8 @@ pub fn delete(path: &str, name: &str) -> Result<()> {
 pub fn key(path: &str, enabled: bool) -> Result<()> {
     let (h, p) = parse(path);
     if enabled {
-        set(path, "__zsw_init", 0, "DWord")?;
-        delete(path, "__zsw_init")
+        h.create_subkey(p)?;
+        Ok(())
     } else {
         match h.delete_subkey_all(p) {
             Ok(()) => Ok(()),
