@@ -1139,7 +1139,8 @@
         "Kind": "Winget",
         "Name": "ClashVergeRev.ClashVergeRev",
         "Source": "winget",
-        "Value": true
+        "Value": true,
+        "UninstallKey": "Clash Verge"
       }
     ],
     "Probe": "",
@@ -1154,7 +1155,9 @@
         "Kind": "Winget",
         "Name": "ClashVergeRev.ClashVergeRev",
         "Source": "winget",
-        "Value": false
+        "Value": false,
+        "UninstallKey": "Clash Verge",
+        "UninstallArgs": "/S"
       }
     ],
     "RestoreSafe": false
@@ -1172,7 +1175,8 @@
         "Name": "Tencent.WeType",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "UninstallKey": "WeType"
       }
     ],
     "Probe": "",
@@ -1187,7 +1191,9 @@
         "Name": "Tencent.WeType",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "UninstallKey": "WeType",
+        "UninstallArgs": "/S"
       }
     ],
     "RestoreSafe": false
@@ -1372,7 +1378,8 @@
         "Name": "Rustlang.Rustup",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "UninstallKey": "Rustup"
       }
     ],
     "Probe": "",
@@ -1387,7 +1394,9 @@
         "Name": "Rustlang.Rustup",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "UninstallKey": "Rustup",
+        "UninstallArgs": "-y"
       }
     ],
     "RestoreSafe": false
@@ -5472,47 +5481,65 @@
     "Id": "windows-update",
     "Zh": "系统更新",
     "En": "Windows Update",
-    "PurposeZh": "禁用更新服务、更新任务及更新执行程序。",
-    "PurposeEn": "Disable update services, scheduled tasks and update executables.",
+    "PurposeZh": "关闭系统自动更新，将更新服务设为按需启动。",
+    "PurposeEn": "Turn off automatic Windows updates and start update services on demand.",
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
       {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
+        "Name": "NoAutoUpdate",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "wuauserv",
+        "Value": 3
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "UsoSvc",
+        "Value": 3
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "WaaSMedicSvc",
+        "Value": 3
+      },
+      {
         "Kind": "ProcessBlock",
         "Name": "MoUsoCoreWorker.exe",
-        "Value": true
+        "Value": false
       },
       {
         "Kind": "ProcessBlock",
         "Name": "UsoClient.exe",
-        "Value": true
-      },
-      {
-        "Kind": "Service",
-        "Name": "wuauserv"
-      },
-      {
-        "Kind": "Service",
-        "Name": "UsoSvc"
-      },
-      {
-        "Kind": "Service",
-        "Name": "WaaSMedicSvc"
+        "Value": false
       },
       {
         "Kind": "TaskGroup",
         "Pattern": "\\Microsoft\\Windows\\UpdateOrchestrator\\*",
-        "Value": false
+        "Value": true,
+        "TaskStates": {
+          "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Maintenance Work": false,
+          "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Wake To Work": false,
+          "\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Work": false
+        }
       },
       {
         "Kind": "TaskGroup",
         "Pattern": "\\Microsoft\\Windows\\WindowsUpdate\\*",
-        "Value": false
+        "Value": true
       },
       {
         "Kind": "TaskGroup",
         "Pattern": "\\Microsoft\\Windows\\WaaSMedic\\*",
-        "Value": false
+        "Value": true,
+        "TaskStates": {
+          "\\Microsoft\\Windows\\WaaSMedic\\PerformRemediation": false
+        }
       }
     ],
     "Probe": "",
@@ -5520,9 +5547,14 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Pause",
+    "Intent": "Disable",
     "Refresh": "",
     "RestoreOps": [
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
+        "Name": "NoAutoUpdate"
+      },
       {
         "Kind": "RegistryDelete",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings",
@@ -7010,14 +7042,15 @@
     "Id": "svc-dps",
     "Zh": "诊断策略",
     "En": "Diagnostic Policy Service",
-    "PurposeZh": "将系统故障排查的诊断策略服务禁用。",
-    "PurposeEn": "Disable the Diagnostic Policy service.",
+    "PurposeZh": "将诊断策略服务设为按需启动。",
+    "PurposeEn": "Start diagnostic policy service on demand.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "DPS"
+        "Kind": "ServiceStart",
+        "Name": "DPS",
+        "Value": 3
       }
     ],
     "Probe": "",
@@ -7025,7 +7058,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Configure",
+    "Intent": "Apply",
     "Refresh": "",
     "RestoreOps": [
       {
@@ -7041,14 +7074,15 @@
     "Id": "svc-wdiservicehost",
     "Zh": "诊断服务主机",
     "En": "Diagnostic Service Host",
-    "PurposeZh": "将故障排查的诊断服务主机禁用。",
-    "PurposeEn": "Disable Diagnostic Service Host.",
+    "PurposeZh": "将诊断服务主机服务设为按需启动。",
+    "PurposeEn": "Start diagnostic service host on demand.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "WdiServiceHost"
+        "Kind": "ServiceStart",
+        "Name": "WdiServiceHost",
+        "Value": 3
       }
     ],
     "Probe": "",
@@ -7056,7 +7090,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Configure",
+    "Intent": "Apply",
     "Refresh": "",
     "RestoreOps": [
       {
@@ -7072,14 +7106,15 @@
     "Id": "svc-wdisystemhost",
     "Zh": "诊断系统主机",
     "En": "Diagnostic System Host",
-    "PurposeZh": "将故障排查的诊断系统主机禁用。",
-    "PurposeEn": "Disable Diagnostic System Host.",
+    "PurposeZh": "将诊断系统主机服务设为按需启动。",
+    "PurposeEn": "Start diagnostic system host on demand.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "WdiSystemHost"
+        "Kind": "ServiceStart",
+        "Name": "WdiSystemHost",
+        "Value": 3
       }
     ],
     "Probe": "",
@@ -7087,7 +7122,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Configure",
+    "Intent": "Apply",
     "Refresh": "",
     "RestoreOps": [
       {
@@ -7103,14 +7138,15 @@
     "Id": "svc-diagsvc",
     "Zh": "诊断执行服务",
     "En": "Diagnostic Execution Service",
-    "PurposeZh": "将故障排查的诊断执行服务禁用。",
-    "PurposeEn": "Disable Diagnostic Execution Service.",
+    "PurposeZh": "将诊断执行服务服务设为按需启动。",
+    "PurposeEn": "Start diagnostic execution service on demand.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "diagsvc"
+        "Kind": "ServiceStart",
+        "Name": "diagsvc",
+        "Value": 3
       }
     ],
     "Probe": "",
@@ -7118,7 +7154,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Configure",
+    "Intent": "Apply",
     "Refresh": "",
     "RestoreOps": [
       {
@@ -7187,10 +7223,10 @@
   },
   {
     "Id": "delivery-optimization",
-    "Zh": "传递优化",
-    "En": "Delivery Optimization",
-    "PurposeZh": "禁用 Windows 更新和商店下载使用的传递优化服务。",
-    "PurposeEn": "Disable the Delivery Optimization service used for Windows updates and Store downloads.",
+    "Zh": "更新点对点共享",
+    "En": "Peer-to-peer update sharing",
+    "PurposeZh": "关闭更新下载的点对点共享，将传递优化服务设为按需启动。",
+    "PurposeEn": "Turn off peer-to-peer update sharing and start Delivery Optimization on demand.",
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
@@ -7202,8 +7238,9 @@
         "Value": 0
       },
       {
-        "Kind": "Service",
-        "Name": "DoSvc"
+        "Kind": "ServiceStart",
+        "Name": "DoSvc",
+        "Value": 3
       }
     ],
     "Probe": "",
@@ -8326,14 +8363,15 @@
     "Id": "data-usage",
     "Zh": "流量统计后台",
     "En": "Data usage reporting",
-    "PurposeZh": "将网络流量统计服务禁用。",
-    "PurposeEn": "Disable network data usage reporting.",
+    "PurposeZh": "将网络流量统计服务设为按需启动。",
+    "PurposeEn": "Start network data usage reporting on demand.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "Service",
-        "Name": "DusmSvc"
+        "Kind": "ServiceStart",
+        "Name": "DusmSvc",
+        "Value": 3
       }
     ],
     "Probe": "",
@@ -8341,7 +8379,7 @@
     "Manual": false,
     "Restart": false,
     "Page": "System",
-    "Intent": "Configure",
+    "Intent": "Apply",
     "Refresh": "",
     "RestoreOps": [
       {

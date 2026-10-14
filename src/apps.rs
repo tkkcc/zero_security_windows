@@ -678,11 +678,8 @@ pub fn registered_tool(op: &Operation) -> Result<Option<bool>> {
         return Ok(Some(false));
     }
     if !op.uninstall_key.is_empty() {
-        for hive in ["HKCU:", "HKLM:"] {
-            if reg::exists(&format!(
-                r"{hive}\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{}",
-                op.uninstall_key
-            ))? {
+        for branch in UNINSTALL_BRANCHES {
+            if reg::exists(&format!(r"{branch}\{}", op.uninstall_key))? {
                 return Ok(Some(true));
             }
         }
@@ -690,6 +687,11 @@ pub fn registered_tool(op: &Operation) -> Result<Option<bool>> {
     }
     Ok(None)
 }
+const UNINSTALL_BRANCHES: [&str; 3] = [
+    r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+    r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+    r"HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
+];
 pub fn install(op: &Operation, uninstall: bool) -> Result<bool> {
     if uninstall || !(op.source == "msstore" || op.requires_delivery) {
         return install_run(op, uninstall);
@@ -729,11 +731,8 @@ pub fn install(op: &Operation, uninstall: bool) -> Result<bool> {
 }
 fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
     if uninstall && !op.uninstall_args.is_empty() {
-        for hive in ["HKCU:", "HKLM:"] {
-            let path = format!(
-                r"{hive}\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{}",
-                op.uninstall_key
-            );
+        for branch in UNINSTALL_BRANCHES {
+            let path = format!(r"{branch}\{}", op.uninstall_key);
             if let Some(command) = reg::read(&path, "UninstallString")?.as_str() {
                 reg::set(
                     &path,
@@ -746,8 +745,16 @@ fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
     }
     let mut args = vec![
         if uninstall { "uninstall" } else { "install" },
-        "--id",
-        &op.name,
+        if uninstall && !op.uninstall_key.is_empty() {
+            "--product-code"
+        } else {
+            "--id"
+        },
+        if uninstall && !op.uninstall_key.is_empty() {
+            &op.uninstall_key
+        } else {
+            &op.name
+        },
         "--exact",
         "--silent",
         "--disable-interactivity",
@@ -843,6 +850,25 @@ mod tests {
             materials: vec![],
             registrations: vec![],
         }
+    }
+    #[test]
+    fn machine_32_bit_registration_is_visible_after_winget_tracking_is_removed() -> Result<()> {
+        let name = format!("ZeroSecurityWindowsRegistrationTest{}", std::process::id());
+        let path = format!(r"{}\{name}", UNINSTALL_BRANCHES[2]);
+        ensure!(!reg::exists(&path)?, "Test registration already exists");
+        let op = Operation {
+            uninstall_key: name,
+            ..Default::default()
+        };
+        reg::key(&path, true)?;
+        let result = (|| -> Result<()> {
+            assert_eq!(registered_tool(&op)?, Some(true));
+            reg::key(&path, false)?;
+            assert_eq!(registered_tool(&op)?, Some(false));
+            Ok(())
+        })();
+        reg::key(&path, false)?;
+        result
     }
     #[test]
     fn removal_includes_disabled_and_provisioned_only_packages() {

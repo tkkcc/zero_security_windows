@@ -1,5 +1,5 @@
 use crate::{model::choose, native, registry as reg};
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use std::ffi::c_void;
 #[link(name = "kernel32")]
 unsafe extern "system" {
@@ -246,8 +246,11 @@ pub fn restore() -> Result<()> {
     let _system = native::system()?;
     let images = default_images()?;
     for path in configured_paths(&images)? {
-        reg::delete(&path, "MitigationOptions")?;
-        reg::delete(&path, "MitigationAuditOptions")?;
+        for name in ["MitigationOptions", "MitigationAuditOptions"] {
+            if !reg::read(&path, name)?.is_null() {
+                reg::delete(&path, name).with_context(|| format!("Clear {path}/{name}"))?;
+            }
+        }
     }
     for image in images {
         reg::set(

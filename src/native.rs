@@ -1306,13 +1306,20 @@ pub fn memory_setting(name: &str, value: Option<bool>) -> Result<bool> {
         }
         result?;
     }
-    let state = memory_agent(false)?;
-    Ok(match name {
-        "ApplicationPreLaunch" => state.application_pre_launch,
-        "MemoryCompression" => state.memory_compression,
-        "PageCombining" => state.page_combining,
-        _ => anyhow::bail!("Unsupported memory setting: {name}"),
-    })
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    loop {
+        let state = memory_agent(false)?;
+        let current = match name {
+            "ApplicationPreLaunch" => state.application_pre_launch,
+            "MemoryCompression" => state.memory_compression,
+            "PageCombining" => state.page_combining,
+            _ => anyhow::bail!("Unsupported memory setting: {name}"),
+        };
+        if value.is_none_or(|desired| current == desired) || std::time::Instant::now() >= deadline {
+            return Ok(current);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(200));
+    }
 }
 pub fn time_sync_config(automatic: bool) -> Result<()> {
     if automatic {

@@ -64,9 +64,9 @@ class Target:
         return json.loads(base64.b64decode(self.run("""
 $os=Get-CimInstance Win32_OperatingSystem;
 $pending=if(Test-Path 'C:/ProgramData/ZeroSecurityWindows/rust-workflow.json'){[IO.File]::ReadAllText('C:/ProgramData/ZeroSecurityWindows/rust-workflow.json') | ConvertFrom-Json}else{$null};
-$processes=@(Get-CimInstance Win32_Process -Filter "Name='zero_security_windows.exe' OR Name='tailcat.exe'");
+$processes=@(Get-CimInstance Win32_Process -Filter "Name='zero_security_windows.exe' OR Name='zsw-validation-control.exe'");
 $resume=@($processes | Where-Object {$_.Name -eq 'zero_security_windows.exe' -and $_.CommandLine -match '--(safe-resume|resume)'});
-$agents=@($processes | Where-Object {$_.ExecutablePath -eq 'C:\\ProgramData\\ZeroSecurityWindowsValidation\\tailcat.exe'});
+$agents=@($processes | Where-Object {$_.ExecutablePath -eq 'C:\\ProgramData\\ZeroSecurityWindowsValidation\\zsw-validation-control.exe'});
 $json=@{Host=$env:COMPUTERNAME; Boot=$os.LastBootUpTime.ToUniversalTime().ToString('o'); Phase=[string]$pending.phase; Resume=$resume.Count; Control=(Get-ScheduledTask -TaskName 'ZeroSecurityWindowsValidationControl').State.ToString(); ControlInstances=$agents.Count} | ConvertTo-Json -Compress;
 [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
 """, timeout=60)))
