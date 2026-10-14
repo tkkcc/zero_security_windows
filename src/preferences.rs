@@ -5,7 +5,8 @@ use crate::{
 use anyhow::{Result, ensure};
 use std::path::PathBuf;
 use windows::Win32::{
-    System::Com::*,
+    Foundation::POINT,
+    System::{Com::*, Variant::VARIANT},
     UI::{Shell::*, TextServices::*},
 };
 use windows::core::{GUID, HRESULT, HSTRING, IUnknown_Vtbl, Interface};
@@ -178,6 +179,47 @@ fn clear_taskbar_pins_at(path: &str, folder: &std::path::Path) -> Result<()> {
 #[cfg(test)]
 mod settings_tests {
     use super::reveal_page;
+    #[test]
+    fn desktop_order_exchanges_only_the_two_system_icons_when_needed() {
+        use super::*;
+        for (pc, bin, restoring, expected) in [
+            ((0, 100), (0, 0), false, Some([(0, 0), (0, 100)])),
+            ((200, 0), (0, 100), false, Some([(0, 100), (200, 0)])),
+            ((0, 0), (0, 100), false, None),
+            ((-200, 100), (0, 0), false, None),
+            ((0, 0), (0, 100), true, Some([(0, 100), (0, 0)])),
+            ((0, 100), (0, 0), true, None),
+        ] {
+            let points = desktop_positions(
+                POINT { x: pc.0, y: pc.1 },
+                POINT { x: bin.0, y: bin.1 },
+                restoring,
+            );
+            assert_eq!(points.map(|points| points.map(|p| (p.x, p.y))), expected);
+        }
+    }
+    #[test]
+    fn desktop_order_detection_does_not_write_visibility_settings() -> anyhow::Result<()> {
+        use super::*;
+        let paths = ["NewStartPanel", "ClassicStartMenu"].map(|panel| {
+            format!(
+                r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\{panel}"
+            )
+        });
+        let before = paths
+            .each_ref()
+            .map(|path| reg::read(path, THIS_PC))
+            .into_iter()
+            .collect::<Result<Vec<_>>>()?;
+        desktop_order(false, false)?;
+        let after = paths
+            .each_ref()
+            .map(|path| reg::read(path, THIS_PC))
+            .into_iter()
+            .collect::<Result<Vec<_>>>()?;
+        assert_eq!(before, after);
+        Ok(())
+    }
     #[test]
     fn taskbar_snapshot_works_from_mta_without_rewriting_saved_pins() -> anyhow::Result<()> {
         use super::*;
@@ -476,6 +518,85 @@ pub fn explorer() {
     broadcast("ShellState");
     unsafe {
         SHChangeNotify(0x08000000, 0, std::ptr::null_mut(), std::ptr::null_mut());
+    }
+}
+pub const THIS_PC: &str = "{20D04FE0-3AEA-1069-A2D8-08002B30309D}";
+
+struct DesktopItemId(*mut Common::ITEMIDLIST);
+impl Drop for DesktopItemId {
+    fn drop(&mut self) {
+        unsafe { CoTaskMemFree(Some(self.0.cast())) }
+    }
+}
+fn desktop_positions(pc: POINT, bin: POINT, restoring: bool) -> Option<[POINT; 2]> {
+    let pc_first = (pc.x, pc.y) < (bin.x, bin.y);
+    (pc_first == restoring).then_some([bin, pc])
+}
+pub fn desktop_order(position: bool, restoring: bool) -> Result<bool> {
+    native::com()?;
+    unsafe {
+        let windows: IShellWindows = CoCreateInstance(&ShellWindows, None, CLSCTX_LOCAL_SERVER)?;
+        let dispatch = windows.FindWindowSW(
+            &VARIANT::from(CSIDL_DESKTOP as i32),
+            &VARIANT::default(),
+            SWC_DESKTOP,
+            &mut 0,
+            SWFO_NEEDDISPATCH,
+        )?;
+        let browser: IShellBrowser = dispatch
+            .cast::<IServiceProvider>()?
+            .QueryService(&SID_STopLevelBrowser)?;
+        let shell = browser.QueryActiveShellView()?;
+        let view: IFolderView = shell.cast()?;
+        let ids = [
+            DesktopItemId(SHGetKnownFolderIDList(&FOLDERID_ComputerFolder, 0, None)?),
+            DesktopItemId(SHGetKnownFolderIDList(&FOLDERID_RecycleBinFolder, 0, None)?),
+        ];
+        if position && !restoring {
+            explorer();
+            shell.Refresh()?;
+        }
+        let mut points = [None, None];
+        for attempt in 0..40 {
+            points = [None, None];
+            for index in 0..view.ItemCount(SVGIO_ALLVIEW)? {
+                let item = DesktopItemId(view.Item(index)?);
+                for (i, id) in ids.iter().enumerate() {
+                    if ILIsEqual(item.0, id.0).as_bool() {
+                        points[i] = Some(view.GetItemPosition(item.0)?);
+                    }
+                }
+            }
+            if points[0].is_some() || !position || restoring || attempt == 39 {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+        let Some(pc) = points[0] else {
+            ensure!(
+                !position || restoring,
+                "This PC did not appear on the desktop after refresh"
+            );
+            return Ok(restoring);
+        };
+        let Some(bin) = points[1] else {
+            return Ok(true);
+        };
+        let Some(points) = desktop_positions(pc, bin, restoring) else {
+            return Ok(true);
+        };
+        if position {
+            // 只交换此电脑与回收站的现有位置，其他图标不动。
+            view.SelectAndPositionItems(
+                ids.len() as u32,
+                ids.each_ref()
+                    .map(|id| id.0 as *const Common::ITEMIDLIST)
+                    .as_ptr(),
+                Some(points.as_ptr()),
+                SVSI_POSITIONITEM.0 as u32,
+            )?;
+        }
+        Ok(position)
     }
 }
 pub fn wallpaper() -> Result<()> {

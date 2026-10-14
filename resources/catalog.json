@@ -4275,10 +4275,10 @@
   },
   {
     "Id": "desktop-icons",
-    "Zh": "桌面图标与文件",
-    "En": "Desktop icons and files",
-    "PurposeZh": "桌面仅保留此电脑与回收站，将其他文件和快捷方式移入回收站。",
-    "PurposeEn": "Keep only This PC and Recycle Bin on the desktop; move other files and shortcuts to Recycle Bin.",
+    "Zh": "桌面此电脑",
+    "En": "This PC on desktop",
+    "PurposeZh": "在桌面显示此电脑，并放在回收站前；保留其他图标、文件和快捷方式。",
+    "PurposeEn": "Show This PC before Recycle Bin on the desktop; keep other icons, files and shortcuts.",
     "GroupZh": "桌面",
     "GroupEn": "Desktop",
     "Ops": [
@@ -4286,9 +4286,8 @@
         "Kind": "DesktopIcons"
       },
       {
-        "Name": "desktop",
         "Value": true,
-        "Kind": "DesktopFiles"
+        "Kind": "DesktopOrder"
       }
     ],
     "Probe": "",
@@ -4296,9 +4295,14 @@
     "Manual": false,
     "Restart": false,
     "Page": "Desktop",
-    "Intent": "Clean",
+    "Intent": "Show",
     "Refresh": "Explorer",
     "RestoreOps": [
+      {
+        "Kind": "DesktopOrder",
+        "Name": "WindowsDefault",
+        "Value": true
+      },
       {
         "Kind": "DesktopIcons",
         "Value": "WindowsDefault"

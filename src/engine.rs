@@ -316,6 +316,7 @@ impl Engine {
                 "registry": reg::read(&format!(r"HKLM:\SYSTEM\CurrentControlSet\Services\{}", op.name), "Start")?,
             }),
             "TimeSync" => json!(native::time_sync(false)?),
+            "DesktopOrder" => json!(prefs::desktop_order(false, op.name == "WindowsDefault")?),
             "AppPreloading" => json!(native::memory_agent(false)?.app_preloading()),
             "MemoryAgent" => json!(native::memory_setting(&op.name, None)?),
             "Bcd" => {
@@ -428,6 +429,9 @@ impl Engine {
             "Task" => native::set_task_enabled(&op.path, bool_value(&op.value))?,
             "TimeSync" => {
                 native::time_sync_config(bool_value(&op.value))?;
+            }
+            "DesktopOrder" => {
+                prefs::desktop_order(true, op.name == "WindowsDefault")?;
             }
             "AppPreloading" => {
                 native::memory_setting("ApplicationPreLaunch", Some(bool_value(&op.value)))?;
@@ -899,57 +903,20 @@ pub fn update_pause() -> Vec<Operation> {
     out
 }
 fn desktop_icons(restoring: bool) -> Result<Vec<Operation>> {
-    if restoring {
-        let mut out = vec![];
-        for panel in ["NewStartPanel", "ClassicStartMenu"] {
-            let path = format!(
-                r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\{panel}"
-            );
-            for name in reg::names(&path)? {
-                if prefs::guid(&name).is_ok() {
-                    out.push(Operation {
-                        kind: "RegistryDelete".into(),
-                        path: path.clone(),
-                        name,
-                        ..Default::default()
-                    });
-                }
-            }
-        }
-        return Ok(out);
-    }
-    let show = [
-        "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
-        "{645FF040-5081-101B-9F08-00AA002F954E}",
-    ];
-    let mut hide = vec![
-        "{59031a47-3f72-44a7-89c5-5595fe6b30ee}".into(),
-        "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}".into(),
-        "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}".into(),
-        "{2cc5ca98-6485-489a-920e-b3e88a6ccce3}".into(),
-    ];
-    for hive in ["HKLM:", "HKCU:"] {
-        for name in reg::children(&format!(
-            r"{hive}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace"
-        ))? {
-            if !show.iter().any(|v| v.eq_ignore_ascii_case(&name)) && prefs::guid(&name).is_ok() {
-                hide.push(name)
-            }
-        }
-    }
-    hide.sort();
-    hide.dedup();
     let mut out = vec![];
     for panel in ["NewStartPanel", "ClassicStartMenu"] {
         let path = format!(
             r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\{panel}"
         );
-        for name in show {
-            out.push(Operation::reg(&path, name, 0))
-        }
-        for name in &hide {
-            out.push(Operation::reg(&path, name, 1))
-        }
+        out.push(Operation {
+            kind: if restoring {
+                "RegistryDelete"
+            } else {
+                "Registry"
+            }
+            .into(),
+            ..Operation::reg(path, prefs::THIS_PC, 0)
+        });
     }
     Ok(out)
 }
@@ -989,6 +956,32 @@ fn block_command() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn desktop_targets_leave_unrelated_icons_and_files_untouched() -> Result<()> {
+        let engine = Engine::new()?;
+        let f = engine.feature("desktop-icons")?;
+        let ops = engine.expand(f)?;
+        assert_eq!(ops.len(), 3);
+        for op in &ops[..2] {
+            assert_eq!(op.kind, "Registry");
+            assert_eq!(op.name, prefs::THIS_PC);
+            assert_eq!(op.value, json!(0));
+        }
+        assert_eq!(ops[2].kind, "DesktopOrder");
+        assert_eq!(ops[2].value, json!(true));
+        let restore = engine.expand(&f.restore_target())?;
+        assert_eq!(restore.len(), 4);
+        assert_eq!(restore[0].kind, "DesktopOrder");
+        assert_eq!(restore[0].name, "WindowsDefault");
+        for op in &restore[1..3] {
+            assert_eq!(op.kind, "RegistryDelete");
+            assert_eq!(op.name, prefs::THIS_PC);
+        }
+        // 已保存的桌面内容仍能恢复，执行入口不再清理桌面文件。
+        assert_eq!(restore[3].kind, "DesktopFiles");
+        assert_eq!(restore[3].value, json!(false));
+        Ok(())
+    }
     #[test]
     fn disabled_packages_still_require_uninstallation() -> Result<()> {
         let engine = Engine::new()?;
