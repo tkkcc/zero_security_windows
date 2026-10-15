@@ -410,6 +410,37 @@ impl Engine {
 mod tests {
     use super::*;
     #[test]
+    fn driver_boot_policy_tracks_its_setting_and_pending_boot() -> Result<()> {
+        for (output, state, defaults) in [
+            ("identifier {current}\n", Status::Ready, Status::Done),
+            ("nointegritychecks No\n", Status::Ready, Status::Ready),
+            ("nointegritychecks Yes\n", Status::Done, Status::Ready),
+        ] {
+            let engine = Engine::new()?;
+            let mut feature = engine.feature("driver-signing")?.clone();
+            feature.id = "test-driver-boot-policy".into();
+            engine.fact("bcd", || Ok(json!(output)))?;
+            let check = engine.check(&feature);
+            assert_eq!(check.state, state);
+            assert!(check.detail.is_empty());
+            assert_eq!(engine.default_check(&feature)?.state, defaults);
+            if state == Status::Done {
+                engine.store.results.lock().unwrap().insert(
+                    feature.id.clone(),
+                    ResultRecord {
+                        boot: engine.boot,
+                        restart: true,
+                        ..Default::default()
+                    },
+                );
+                assert_eq!(engine.check(&feature).state, Status::Restart);
+                engine.store.results.lock().unwrap().get_mut(&feature.id).unwrap().boot = 0;
+                assert_eq!(engine.check(&feature).state, Status::Done);
+            }
+        }
+        Ok(())
+    }
+    #[test]
     fn dep_completion_tracks_the_system_policy() -> Result<()> {
         let engine = Engine::new()?;
         let mut feature = engine.feature("dep")?.clone();

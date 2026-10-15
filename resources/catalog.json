@@ -5610,6 +5610,37 @@
     "RestoreSafe": false
   },
   {
+    "Id": "driver-signing",
+    "Zh": "驱动完整性启动策略",
+    "En": "Driver integrity boot policy",
+    "PurposeZh": "关闭驱动完整性检查的启动开关。",
+    "PurposeEn": "Turn off the boot option for driver integrity checks.",
+    "GroupZh": "漏洞防护",
+    "GroupEn": "Exploit protection",
+    "Ops": [
+      {
+        "Kind": "Bcd",
+        "Name": "nointegritychecks",
+        "Value": "On"
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": true,
+    "Page": "System",
+    "Intent": "Disable",
+    "Refresh": "",
+    "RestoreOps": [
+      {
+        "Kind": "Bcd",
+        "Name": "nointegritychecks",
+        "Value": null
+      }
+    ],
+    "RestoreSafe": false
+  },
+  {
     "Id": "time-sync",
     "Zh": "时间同步自动启动",
     "En": "Automatic time synchronization",
