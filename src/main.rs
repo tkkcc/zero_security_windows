@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 mod apps;
 mod checks;
+mod components;
 mod controller;
 mod diagnostics;
 mod engine;

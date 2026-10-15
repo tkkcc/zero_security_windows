@@ -337,6 +337,9 @@ impl Engine {
                 let entries: Vec<apps::AppEntry> = serde_json::from_value(self.fact("apps", || Ok(serde_json::to_value(apps::inventory()?)?))?)?;
                 json!(apps::state(&entries, op)?)
             }
+            "Edge" => json!(crate::components::edge_state(bool_value(&op.value))?),
+            "AppEntry" => json!(crate::components::app_entry(op)?),
+            "RemoteDesktopClient" => json!(crate::recovery::remote_desktop_state(bool_value(&op.value))?),
             "Winget" => {
                 if let Some(installed) = apps::registered_tool(op)? {
                     return Ok(json!(installed));
@@ -469,6 +472,11 @@ impl Engine {
                 } else {
                     apps::remove(op)
                 };
+            }
+            "Edge" => return crate::components::edge(bool_value(&op.value)),
+            "AppEntry" => return crate::components::set_app_entry(op),
+            "RemoteDesktopClient" => {
+                return crate::recovery::remote_desktop_client(bool_value(&op.value));
             }
             "Winget" => {
                 let installed = bool_value(&op.value);

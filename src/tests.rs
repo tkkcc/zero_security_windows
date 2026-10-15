@@ -498,7 +498,12 @@ fn start_menu_disables_frequent_apps_and_tracking_together() -> anyhow::Result<(
     );
     let mut feature = engine.feature("start-menu")?.clone();
     feature.id = "test-start-preferences".into();
-    feature.ops.retain(|op| op.kind != "StartPins");
+    feature.ops.retain(|op| {
+        matches!(
+            op.kind.as_str(),
+            "Registry" | "RegistryDelete" | "RegistryKey"
+        )
+    });
     for op in &mut feature.ops {
         op.path = format!(r"{root}\{}", op.path.split_once('\\').unwrap().1);
     }

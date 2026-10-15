@@ -409,7 +409,7 @@ pub fn remove(op: &Operation) -> Result<bool> {
             continue;
         }
         let mut source = source_for(op, &a.name).to_string();
-        if !source.is_empty() && !source_available(&source)? {
+        if !source.is_empty() && !source_available(&source, install_source(op))? {
             source.clear();
         }
         let protected = op.non_removable
@@ -677,7 +677,7 @@ pub fn restore(op: &Operation) -> Result<bool> {
         restart |= install(
             &Operation {
                 name: id.into(),
-                source: "msstore".into(),
+                source: install_source(op).into(),
                 ..Default::default()
             },
             false,
@@ -766,7 +766,14 @@ pub fn winget() -> Result<String> {
     );
     Ok(path.to_string_lossy().into())
 }
-fn source_available(id: &str) -> Result<bool> {
+fn install_source(op: &Operation) -> &str {
+    if op.source.is_empty() {
+        "msstore"
+    } else {
+        &op.source
+    }
+}
+fn source_available(id: &str, source: &str) -> Result<bool> {
     let (code, text) = native::run(
         &winget()?,
         &[
@@ -775,7 +782,7 @@ fn source_available(id: &str) -> Result<bool> {
             id,
             "--exact",
             "--source",
-            "msstore",
+            source,
             "--disable-interactivity",
             "--accept-source-agreements",
         ],

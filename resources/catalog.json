@@ -2236,6 +2236,115 @@
     "RestoreSafe": false
   },
   {
+    "Id": "remove-edge",
+    "Zh": "Microsoft Edge 浏览器",
+    "En": "Microsoft Edge browser",
+    "PurposeZh": "卸载 Edge 浏览器、调试组件及其入口，保留 WebView2 运行库。",
+    "PurposeEn": "Uninstall the Edge browser, developer tools and entries while keeping the WebView2 runtime.",
+    "GroupZh": "卸载",
+    "GroupEn": "Remove",
+    "Page": "Remove",
+    "Intent": "Remove",
+    "Ops": [
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+        "Name": "Install{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}",
+        "Type": "DWord",
+        "Value": 0
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+        "Name": "Update{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}",
+        "Type": "DWord",
+        "Value": 0
+      },
+      {
+        "Kind": "Apps",
+        "Name": "edge-browser",
+        "Patterns": [
+          "Microsoft.MicrosoftEdge.Stable"
+        ],
+        "PackageSources": {
+          "Microsoft.MicrosoftEdge.Stable": "Microsoft.Edge"
+        },
+        "Source": "winget",
+        "Value": false
+      },
+      {
+        "Kind": "Apps",
+        "Name": "edge-devtools",
+        "Patterns": [
+          "Microsoft.MicrosoftEdgeDevToolsClient"
+        ],
+        "PackageSources": {},
+        "Value": false
+      },
+      {
+        "Kind": "Edge",
+        "Value": false
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "edgeupdate",
+        "Value": 3
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "edgeupdatem",
+        "Value": 3
+      }
+    ],
+    "RestoreOps": [
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+        "Name": "Install{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+        "Name": "Update{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}"
+      },
+      {
+        "Kind": "Edge",
+        "Value": true
+      },
+      {
+        "Kind": "Apps",
+        "Name": "edge-browser",
+        "Patterns": [
+          "Microsoft.MicrosoftEdge.Stable"
+        ],
+        "PackageSources": {
+          "Microsoft.MicrosoftEdge.Stable": "Microsoft.Edge"
+        },
+        "Source": "winget",
+        "Value": true
+      },
+      {
+        "Kind": "Apps",
+        "Name": "edge-devtools",
+        "Patterns": [
+          "Microsoft.MicrosoftEdgeDevToolsClient"
+        ],
+        "PackageSources": {},
+        "Value": true
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "edgeupdate",
+        "Value": 2
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "edgeupdatem",
+        "Value": 3
+      }
+    ]
+  },
+  {
     "Id": "remove-edge-game-assist",
     "Zh": "Edge Game Assist",
     "En": "Edge Game Assist",
@@ -2278,8 +2387,8 @@
     "Id": "remove-compatibility",
     "Zh": "额外兼容性组件",
     "En": "Extra compatibility components",
-    "PurposeZh": "卸载应用及其配套包，移除所有用户注册并清除预配。",
-    "PurposeEn": "Uninstall the app and related packages, removing all user registrations and provisioning.",
+    "PurposeZh": "卸载额外兼容性应用与动态修复数据库。",
+    "PurposeEn": "Uninstall extra compatibility applications and the dynamic fix database.",
     "GroupZh": "卸载",
     "GroupEn": "Remove",
     "Ops": [
@@ -2291,6 +2400,11 @@
         "Value": false,
         "Kind": "Apps",
         "PackageSources": {}
+      },
+      {
+        "Kind": "CompatibilityDatabase",
+        "Name": "{22221111-1111-1111-1111-111111111111}",
+        "Value": false
       }
     ],
     "Probe": "",
@@ -2309,6 +2423,11 @@
         "Value": true,
         "Kind": "Apps",
         "PackageSources": {}
+      },
+      {
+        "Kind": "CompatibilityDatabase",
+        "Name": "{22221111-1111-1111-1111-111111111111}",
+        "Value": true
       }
     ],
     "RestoreSafe": false
@@ -4067,8 +4186,8 @@
     "Id": "start-menu",
     "Zh": "开始菜单布局",
     "En": "Start menu layout",
-    "PurposeZh": "关闭最近添加、常用应用和推荐内容，将全部应用设为列表并清空固定区。",
-    "PurposeEn": "Hide recently added and most-used apps and recommendations, use an app list and clear pinned applications.",
+    "PurposeZh": "清空开始菜单固定应用并移除入门引导入口。",
+    "PurposeEn": "Clear pinned Start apps and remove the Get Started entry.",
     "GroupZh": "桌面",
     "GroupEn": "Desktop",
     "Ops": [
@@ -4130,6 +4249,18 @@
         "Name": "Empty",
         "Value": true,
         "Kind": "StartPins"
+      },
+      {
+        "Kind": "AppEntry",
+        "Path": "%SystemRoot%\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\AppxManifest.xml",
+        "PackageFamily": "MicrosoftWindows.Client.CBS_cw5n1h2txyewy",
+        "Name": "WebExperienceHost",
+        "Value": false
+      },
+      {
+        "Kind": "ProcessBlock",
+        "Name": "WebExperienceHostApp.exe",
+        "Value": true
       }
     ],
     "Probe": "",
@@ -4186,6 +4317,18 @@
         "Name": "Empty",
         "Value": false,
         "Kind": "StartPins"
+      },
+      {
+        "Kind": "AppEntry",
+        "Path": "%SystemRoot%\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\AppxManifest.xml",
+        "PackageFamily": "MicrosoftWindows.Client.CBS_cw5n1h2txyewy",
+        "Name": "WebExperienceHost",
+        "Value": true
+      },
+      {
+        "Kind": "ProcessBlock",
+        "Name": "WebExperienceHostApp.exe",
+        "Value": false
       }
     ],
     "RestoreSafe": false
@@ -5831,8 +5974,8 @@
     "Id": "windows-backup",
     "Zh": "Windows 备份与同步",
     "En": "Windows backup and sync",
-    "PurposeZh": "关闭 Windows 备份、文件历史与云端同步，并隐藏相关设置入口。",
-    "PurposeEn": "Disable Windows backup, File History and cloud sync, block the backup app, and hide backup entries in Settings and Control Panel.",
+    "PurposeZh": "关闭 Windows 备份、文件历史与云端同步，隐藏备份应用及设置入口。",
+    "PurposeEn": "Turn off Windows Backup, File History and cloud sync, and hide backup app and settings entries.",
     "GroupZh": "更新与还原",
     "GroupEn": "Updates & restore",
     "Ops": [
@@ -5906,6 +6049,13 @@
         "Name": "{F6B6E965-E9B2-444B-9286-10C9152EDBC5}",
         "Type": "DWord",
         "Value": 1
+      },
+      {
+        "Kind": "AppEntry",
+        "Path": "%SystemRoot%\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\AppxManifest.xml",
+        "PackageFamily": "MicrosoftWindows.Client.CBS_cw5n1h2txyewy",
+        "Name": "WindowsBackup",
+        "Value": false
       }
     ],
     "Probe": "",
@@ -5978,6 +6128,14 @@
         "Kind": "RegistryDelete",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
         "Name": "{F6B6E965-E9B2-444B-9286-10C9152EDBC5}"
+      },
+      {
+        "Kind": "AppEntry",
+        "Path": "%SystemRoot%\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\AppxManifest.xml",
+        "PackageFamily": "MicrosoftWindows.Client.CBS_cw5n1h2txyewy",
+        "Name": "WindowsBackup",
+        "Value": true,
+        "Source": "Shortcut"
       }
     ],
     "RestoreSafe": false
@@ -6908,8 +7066,8 @@
     "Id": "svc-lanmanserver",
     "Zh": "网络文件与打印共享",
     "En": "Network file and printer sharing",
-    "PurposeZh": "禁用 SMB 客户端、文件打印共享、脱机文件和工作文件夹，隐藏同步入口。",
-    "PurposeEn": "Disable the SMB client, file and printer sharing, Offline Files and Work Folders, and hide sync entries.",
+    "PurposeZh": "禁用 SMB、WebDAV、文件打印共享、脱机文件和工作文件夹，隐藏同步入口。",
+    "PurposeEn": "Disable SMB, WebDAV, file and printer sharing, Offline Files and Work Folders, and hide sync entries.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -6942,6 +7100,14 @@
         "Name": "{ECDB0924-4208-451E-8EE0-373C0956DE16}",
         "Type": "DWord",
         "Value": 1
+      },
+      {
+        "Kind": "Service",
+        "Name": "lmhosts"
+      },
+      {
+        "Kind": "Service",
+        "Name": "WebClient"
       }
     ],
     "Probe": "",
@@ -6985,6 +7151,16 @@
         "Kind": "RegistryDelete",
         "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
         "Name": "{ECDB0924-4208-451E-8EE0-373C0956DE16}"
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "lmhosts",
+        "Value": 3
+      },
+      {
+        "Kind": "ServiceStart",
+        "Name": "WebClient",
+        "Value": 3
       }
     ],
     "RestoreSafe": false
@@ -7286,15 +7462,26 @@
     "Id": "svc-dps",
     "Zh": "诊断策略",
     "En": "Diagnostic Policy Service",
-    "PurposeZh": "将诊断策略服务设为按需启动。",
-    "PurposeEn": "Start diagnostic policy service on demand.",
+    "PurposeZh": "禁用 Windows 故障诊断后台并隐藏诊断入口。",
+    "PurposeEn": "Disable Windows troubleshooting and hide its entries.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "ServiceStart",
-        "Name": "DPS",
-        "Value": 3
+        "Kind": "Service",
+        "Name": "DPS"
+      },
+      {
+        "Kind": "Registry",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{C58C4893-3BE0-4B45-ABB5-A63E4B8C8651}",
+        "Type": "DWord",
+        "Value": 1
+      },
+      {
+        "Kind": "SettingsPage",
+        "Name": "troubleshoot",
+        "Value": false
       }
     ],
     "Probe": "",
@@ -7303,13 +7490,23 @@
     "Restart": false,
     "Page": "System",
     "Intent": "Apply",
-    "Refresh": "",
+    "Refresh": "Shell",
     "RestoreOps": [
       {
         "Kind": "ServiceStart",
         "Name": "DPS",
         "Value": 2,
         "Source": "Restore"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum",
+        "Name": "{C58C4893-3BE0-4B45-ABB5-A63E4B8C8651}"
+      },
+      {
+        "Kind": "SettingsPage",
+        "Name": "troubleshoot",
+        "Value": true
       }
     ],
     "RestoreSafe": false
@@ -7318,15 +7515,14 @@
     "Id": "svc-wdiservicehost",
     "Zh": "诊断服务主机",
     "En": "Diagnostic Service Host",
-    "PurposeZh": "将诊断服务主机服务设为按需启动。",
-    "PurposeEn": "Start diagnostic service host on demand.",
+    "PurposeZh": "禁用以本地服务身份运行的故障诊断主机。",
+    "PurposeEn": "Disable the Windows troubleshooting background service.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "ServiceStart",
-        "Name": "WdiServiceHost",
-        "Value": 3
+        "Kind": "Service",
+        "Name": "WdiServiceHost"
       }
     ],
     "Probe": "",
@@ -7350,15 +7546,14 @@
     "Id": "svc-wdisystemhost",
     "Zh": "诊断系统主机",
     "En": "Diagnostic System Host",
-    "PurposeZh": "将诊断系统主机服务设为按需启动。",
-    "PurposeEn": "Start diagnostic system host on demand.",
+    "PurposeZh": "禁用以系统身份运行的故障诊断主机。",
+    "PurposeEn": "Disable the Windows troubleshooting background service.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "ServiceStart",
-        "Name": "WdiSystemHost",
-        "Value": 3
+        "Kind": "Service",
+        "Name": "WdiSystemHost"
       }
     ],
     "Probe": "",
@@ -7382,15 +7577,14 @@
     "Id": "svc-diagsvc",
     "Zh": "诊断执行服务",
     "En": "Diagnostic Execution Service",
-    "PurposeZh": "将诊断执行服务服务设为按需启动。",
-    "PurposeEn": "Start diagnostic execution service on demand.",
+    "PurposeZh": "禁用 Windows 故障诊断执行后台。",
+    "PurposeEn": "Disable the Windows troubleshooting background service.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
       {
-        "Kind": "ServiceStart",
-        "Name": "diagsvc",
-        "Value": 3
+        "Kind": "Service",
+        "Name": "diagsvc"
       }
     ],
     "Probe": "",
@@ -7518,8 +7712,8 @@
     "Id": "remote-desktop",
     "Zh": "远程桌面",
     "En": "Remote Desktop",
-    "PurposeZh": "禁用远程桌面服务和客户端，隐藏设置与控制面板连接入口。",
-    "PurposeEn": "Disable Remote Desktop services and the client, and hide connection entries in Settings and Control Panel.",
+    "PurposeZh": "移除远程桌面客户端与入口，禁用远程桌面后台服务。",
+    "PurposeEn": "Remove the Remote Desktop client and entries and disable Remote Desktop services.",
     "GroupZh": "系统",
     "GroupEn": "System",
     "Ops": [
@@ -7565,6 +7759,10 @@
         "Kind": "ProcessBlock",
         "Name": "mstsc.exe",
         "Value": true
+      },
+      {
+        "Kind": "RemoteDesktopClient",
+        "Value": false
       }
     ],
     "Probe": "",
@@ -7575,6 +7773,10 @@
     "Intent": "Disable",
     "Refresh": "",
     "RestoreOps": [
+      {
+        "Kind": "RemoteDesktopClient",
+        "Value": true
+      },
       {
         "Kind": "Registry",
         "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server",

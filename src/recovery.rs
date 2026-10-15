@@ -17,7 +17,12 @@ fn folder(name: &str) -> PathBuf {
         .join(native::sid().unwrap())
         .join(name)
 }
-fn move_path(source: &Path, target: &Path) -> Result<()> {
+fn move_path(source: &Path, target: &Path, system: bool) -> Result<()> {
+    if system {
+        let _guard = native::trusted_installer()?;
+        fs::rename(source, target)?;
+        return Ok(());
+    }
     let directory = source.is_dir();
     let (from, to, filter) = if directory {
         (source, target, "*")
@@ -51,7 +56,7 @@ fn move_path(source: &Path, target: &Path) -> Result<()> {
     );
     Ok(())
 }
-fn move_files(name: &str, paths: &[PathBuf]) -> Result<()> {
+fn move_files(name: &str, paths: &[PathBuf], system: bool) -> Result<()> {
     let root = folder(name);
     fs::create_dir_all(&root)?;
     let manifest = root.join("files.json");
@@ -70,7 +75,7 @@ fn move_files(name: &str, paths: &[PathBuf]) -> Result<()> {
             saved: saved.clone(),
         });
         fs::write(&manifest, serde_json::to_vec_pretty(&files)?)?;
-        move_path(original, &saved)?;
+        move_path(original, &saved, system)?;
     }
     Ok(())
 }
@@ -99,7 +104,7 @@ fn start_pins_restored_at(root: &Path) -> bool {
         .iter()
         .all(|name| !root.join(name).exists())
 }
-fn restore_files(name: &str) -> Result<()> {
+fn restore_files(name: &str, system: bool) -> Result<()> {
     let manifest = folder(name).join("files.json");
     if !manifest.exists() {
         return Ok(());
@@ -115,17 +120,72 @@ fn restore_files(name: &str) -> Result<()> {
             file.original.display()
         );
         fs::create_dir_all(file.original.parent().unwrap())?;
-        move_path(&file.saved, &file.original)?;
+        move_path(&file.saved, &file.original, system)?;
     }
     fs::remove_file(manifest)?;
     Ok(())
 }
 pub fn desktop_files(clear: bool) -> Result<()> {
     if clear {
-        move_files("desktop", &engine::desktop_items()?)
+        move_files("desktop", &engine::desktop_items()?, false)
     } else {
-        restore_files("desktop")
+        restore_files("desktop", false)
     }
+}
+pub fn remote_desktop_client(installed: bool) -> Result<bool> {
+    if installed {
+        restore_files("remote-desktop-client", true)?;
+    } else {
+        native::stop_process("mstsc.exe")?;
+        move_files("remote-desktop-client", &remote_desktop_files()?, true)?;
+    }
+    preferences::explorer();
+    Ok(crate::components::listed("Microsoft.Windows.RemoteDesktop")? != installed)
+}
+pub fn remote_desktop_state(installed: bool) -> Result<bool> {
+    if installed {
+        return Ok(
+            PathBuf::from(native::expand(r"%SystemRoot%\System32\mstsc.exe")).try_exists()?
+                && PathBuf::from(native::expand(r"%SystemRoot%\System32\mstscax.dll"))
+                    .try_exists()?
+                && files_restored("remote-desktop-client")?
+                && crate::components::listed("Microsoft.Windows.RemoteDesktop")?,
+        );
+    }
+    Ok(!remote_desktop_files()?.is_empty()
+        || crate::components::listed("Microsoft.Windows.RemoteDesktop")?)
+}
+fn remote_desktop_files() -> Result<Vec<PathBuf>> {
+    use windows::Win32::UI::Shell::*;
+    let mut paths = vec![];
+    for base in [r"%SystemRoot%\System32", r"%SystemRoot%\SysWOW64"] {
+        let base = PathBuf::from(native::expand(base));
+        if !base.try_exists()? {
+            continue;
+        }
+        for name in ["mstsc.exe", "mstscax.dll"] {
+            paths.push(base.join(name));
+        }
+        for item in fs::read_dir(&base)? {
+            let item = item?;
+            if item.file_type()?.is_dir() && item.file_name().to_string_lossy().contains('-') {
+                for name in ["mstsc.exe.mui", "mstscax.dll.mui"] {
+                    paths.push(item.path().join(name));
+                }
+            }
+        }
+    }
+    for id in [FOLDERID_CommonPrograms, FOLDERID_Programs] {
+        paths.push(native::known_folder(&id)?.join(r"Accessories\Remote Desktop Connection.lnk"));
+    }
+    paths
+        .into_iter()
+        .filter_map(|path| match path.try_exists() {
+            Ok(true) => Some(Ok(path)),
+            Ok(false) => None,
+            Err(e) => Some(Err(e.into())),
+        })
+        .collect()
 }
 const TASKBAND: &str = r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband";
 pub fn taskbar_pins(clear: bool) -> Result<()> {
@@ -156,7 +216,7 @@ pub fn taskbar_pins(clear: bool) -> Result<()> {
                 }
             }
         }
-        move_files("taskbar", &paths)?;
+        move_files("taskbar", &paths, false)?;
         for name in ["Favorites", "FavoritesResolve"] {
             reg::delete(TASKBAND, name)?;
         }
@@ -171,7 +231,7 @@ pub fn taskbar_pins(clear: bool) -> Result<()> {
                 );
             }
         }
-        restore_files("taskbar")?;
+        restore_files("taskbar", false)?;
         if values.exists() {
             let data: Vec<serde_json::Value> = serde_json::from_slice(&fs::read(&values)?)?;
             for (name, value) in ["Favorites", "FavoritesResolve"].into_iter().zip(data) {

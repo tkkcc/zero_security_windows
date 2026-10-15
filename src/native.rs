@@ -1260,7 +1260,7 @@ pub fn known_folder(id: &GUID) -> Result<PathBuf> {
     unsafe {
         let s = windows::Win32::UI::Shell::SHGetKnownFolderPath(
             id,
-            windows::Win32::UI::Shell::KF_FLAG_DEFAULT,
+            windows::Win32::UI::Shell::KF_FLAG_DONT_VERIFY,
             None,
         )?;
         let p = PathBuf::from(s.to_string()?);
