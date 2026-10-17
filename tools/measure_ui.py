@@ -1,7 +1,7 @@
 # 只测试首屏、项目与类别导航、退出，不执行优化；通过隐藏 ConPTY 运行。
 import ctypes as C
 from ctypes import wintypes as W
-import json, time, threading, pathlib, sys, os, subprocess
+import argparse, json, time, threading, pathlib, os, subprocess
 
 k=C.WinDLL('kernel32', use_last_error=True)
 H=W.HANDLE
@@ -25,12 +25,12 @@ def ok(value):
 def write(handle,data):
     n=W.DWORD();ok(k.WriteFile(handle,data,len(data),C.byref(n),None))
 
-def probe(exe):
+def probe(exe, columns=120, rows=35):
     # 开发工具会注入 NO_COLOR；按用户正常打开终端的环境测量。
     os.environ.pop('NO_COLOR', None)
     ir,iw,orr,ow=H(),H(),H(),H()
     ok(k.CreatePipe(C.byref(ir),C.byref(iw),None,0));ok(k.CreatePipe(C.byref(orr),C.byref(ow),None,0))
-    pty=H();hr=k.CreatePseudoConsole(COORD(120,35),ir,ow,0,C.byref(pty))
+    pty=H();hr=k.CreatePseudoConsole(COORD(columns,rows),ir,ow,0,C.byref(pty))
     if hr: raise RuntimeError(hex(hr&0xffffffff))
     k.CloseHandle(ir);k.CloseHandle(ow)
     size=C.c_size_t();k.InitializeProcThreadAttributeList(None,1,0,C.byref(size));attributes=C.create_string_buffer(size.value)
@@ -73,5 +73,10 @@ def probe(exe):
         k.CloseHandle(pi.thread);k.CloseHandle(pi.process);k.CloseHandle(iw);k.ClosePseudoConsole(pty);k.CloseHandle(orr);k.DeleteProcThreadAttributeList(attributes)
 
 if __name__=='__main__':
-    exe=pathlib.Path(sys.argv[1]).resolve();result,data=probe(exe)
+    parser=argparse.ArgumentParser(description='在隐藏终端只读验证首屏、导航和退出。')
+    parser.add_argument('exe',type=pathlib.Path)
+    parser.add_argument('--cols',type=int,default=120)
+    parser.add_argument('--rows',type=int,default=35)
+    args=parser.parse_args()
+    result,data=probe(args.exe.resolve(),args.cols,args.rows)
     print(json.dumps(result))

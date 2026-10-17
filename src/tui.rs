@@ -104,6 +104,8 @@ pub struct App {
     pub engine: Option<Arc<Engine>>,
     pub countdown: Option<Instant>,
     pub restart: bool,
+    batch_remaining: Vec<usize>,
+    batch_total: usize,
     categories: Vec<usize>,
     category: usize,
     tables: Vec<TableState<RowSelection>>,
@@ -152,6 +154,8 @@ impl App {
             engine: None,
             countdown: None,
             restart: false,
+            batch_remaining: vec![],
+            batch_total: 0,
             tables: (0..categories.len())
                 .map(|_| {
                     let mut table = TableState::<RowSelection>::default();
@@ -301,6 +305,7 @@ impl App {
             return true;
         }
         self.busy = true;
+        self.batch_remaining.clear();
         for i in 0..self.catalog.len() {
             let chosen = match command {
                 Command::All => !self.catalog[i].default_off,
@@ -309,11 +314,18 @@ impl App {
                 Command::RestoreItems(indices) => indices.contains(&i),
                 _ => false,
             };
+            if chosen {
+                self.batch_remaining.push(i);
+            }
             if chosen && self.states[i].actionable() {
                 self.states[i] = Check::new(Status::Queued)
             }
         }
+        self.batch_total = self.batch_remaining.len();
         self.message.clear();
+        if matches!(command, Command::Restart) {
+            self.message = choose(self.zh, "正在重启", "Restarting").into();
+        }
         self.reorder();
         true
     }
@@ -373,31 +385,14 @@ impl App {
         self.selected()
             .map_or("", |i| self.catalog[i].purpose(self.zh))
     }
-    pub fn draw(&mut self, frame: &mut Frame) {
-        let p = self.palette;
-        let style = Style::default().fg(p.text).bg(p.base);
-        frame.render_widget(Block::default().style(style), frame.area());
-        let area = Rect {
-            x: frame.area().x + 1,
-            width: frame.area().width.saturating_sub(2),
-            ..frame.area()
-        };
+    fn footer_message(&self) -> String {
         let mut message = self.message.clone();
-        if self.busy {
-            let running = self
-                .states
-                .iter()
-                .filter(|s| s.state == Status::Running)
-                .count();
-            let queued = self
-                .states
-                .iter()
-                .filter(|s| s.state == Status::Queued)
-                .count();
+        if self.busy && self.batch_total != 0 {
+            let completed = self.batch_total - self.batch_remaining.len();
             message = format!(
-                "{} {running} · {} {queued}",
+                "{} {completed}/{}",
                 choose(self.zh, "执行中", "Running"),
-                choose(self.zh, "排队中", "Queued")
+                self.batch_total,
             );
         } else if self.checks_remaining() != 0 && (self.engine.is_some() || self.message.is_empty())
         {
@@ -407,6 +402,8 @@ impl App {
                 self.checks_remaining(),
                 choose(self.zh, "项待完成", "remaining")
             );
+        } else if !self.busy && self.restart && message.is_empty() {
+            message = choose(self.zh, "需要重启", "Restart required").into();
         }
         if let Some(deadline) = self.countdown {
             let seconds = deadline.saturating_duration_since(Instant::now()).as_secs() + 1;
@@ -419,6 +416,18 @@ impl App {
                 )
             );
         }
+        message
+    }
+    pub fn draw(&mut self, frame: &mut Frame) {
+        let p = self.palette;
+        let style = Style::default().fg(p.text).bg(p.base);
+        frame.render_widget(Block::default().style(style), frame.area());
+        let area = Rect {
+            x: frame.area().x + 1,
+            width: frame.area().width.saturating_sub(2),
+            ..frame.area()
+        };
+        let message = self.footer_message();
         let color = if self.actions_blocked() {
             p.blue
         } else if self.states.iter().any(|s| s.state == Status::Failed) {
@@ -535,11 +544,11 @@ impl App {
             .selected()
             .is_some_and(|i| self.states[i].recheckable())
         {
-            choose(self.zh, "重新检测", "Check again")
+            choose(self.zh, "检测", "Check")
         } else if self.selected().is_some_and(|i| self.catalog[i].toggle()) {
-            choose(self.zh, "切换菜单样式", "Switch menu")
+            choose(self.zh, "切换", "Switch")
         } else {
-            choose(self.zh, "执行当前项", "Run item")
+            choose(self.zh, "执行", "Run")
         };
         [
             (
@@ -551,19 +560,19 @@ impl App {
             (
                 1,
                 KeyCode::Char('c'),
-                choose(self.zh, "C 执行本类别", "C Run category").into(),
+                choose(self.zh, "C 本类", "C Category").into(),
                 self.key_command(KeyCode::Char('c')).is_some(),
             ),
             (
                 2,
                 KeyCode::Char('a'),
-                choose(self.zh, "A 执行全部类别", "A Run all categories").into(),
+                choose(self.zh, "A 全部", "A All").into(),
                 self.key_command(KeyCode::Char('a')).is_some(),
             ),
             (
                 3,
                 KeyCode::Char('r'),
-                choose(self.zh, "R 恢复当前项", "R Restore item").into(),
+                choose(self.zh, "R 恢复", "R Restore").into(),
                 self.key_command(KeyCode::Char('r')).is_some(),
             ),
             (
@@ -635,7 +644,9 @@ impl App {
                 .sum::<u16>()
                 + 2 * specs.len().saturating_sub(1) as u16
         };
-        if width(&specs) + 24 > area.width {
+        let message = Line::from(self.footer_message()).width() as u16;
+        let reserved = if message == 0 { 0 } else { message + 2 };
+        if width(&specs) + reserved > area.width {
             for (index, _, label, _) in &mut specs {
                 *label = ["Space", "C", "A", "R", "Q", "F10"][*index].into();
             }
@@ -670,6 +681,14 @@ impl App {
                 self.engine = Some(engine)
             }
             Message::State(i, state, version) if version == epoch => {
+                if self.busy
+                    && !matches!(
+                        state.state,
+                        Status::PendingCheck | Status::Checking | Status::Queued | Status::Running
+                    )
+                {
+                    self.batch_remaining.retain(|index| *index != i);
+                }
                 self.states[i] = state;
                 self.reorder();
             }
@@ -677,6 +696,8 @@ impl App {
             Message::Queued(indices) => {
                 self.busy = true;
                 self.countdown = None;
+                self.batch_total = indices.len();
+                self.batch_remaining = indices.clone();
                 for i in indices {
                     if self.states[i].actionable()
                         || matches!(
@@ -690,6 +711,8 @@ impl App {
             }
             Message::Finished { restart, .. } => {
                 self.busy = false;
+                self.batch_remaining.clear();
+                self.batch_total = 0;
                 self.countdown = None;
                 self.restart = restart;
                 if let Some(engine) = &self.engine
@@ -711,6 +734,8 @@ impl App {
             }
             Message::Error(error) => {
                 self.busy = false;
+                self.batch_remaining.clear();
+                self.batch_total = 0;
                 self.countdown = None;
                 self.message = if let Some(e) = &self.engine {
                     let _ = controller::failure_message(e, &error);
@@ -1170,7 +1195,7 @@ mod tests {
         for zh in [true, false] {
             for width in [55, 120] {
                 let mut app = App::new(catalog()?, zh)?;
-                app.busy = true;
+                app.receive(Message::Queued(vec![0, 1, 2]), 0);
                 app.states[0] = Check::new(Status::Running);
                 app.states[1] = Check::new(Status::Running);
                 app.states[2] = Check::new(Status::Queued);
@@ -1180,7 +1205,10 @@ mod tests {
                 assert_eq!(buffer[(1, 23)].symbol(), if zh { "执" } else { "R" });
                 assert_eq!(buffer[(1, 0)].symbol(), " ");
                 let specs = app.toolbar(Rect::new(1, 23, width - 2, 1));
-                assert!(specs.first().unwrap().2.x > 24);
+                assert!(
+                    specs.first().unwrap().2.x
+                        > Line::from(app.footer_message()).width() as u16 + 1
+                );
                 for (index, label, rect, _) in specs {
                     assert_eq!(app.buttons[index].area, rect);
                     assert_eq!(rect.y, 23);
@@ -1331,7 +1359,7 @@ mod tests {
         Ok(())
     }
     #[test]
-    fn finished_actions_leave_the_footer_for_buttons() -> Result<()> {
+    fn finished_actions_show_the_restart_requirement_beside_labeled_buttons() -> Result<()> {
         use ratatui::{Terminal, backend::TestBackend};
         for zh in [true, false] {
             for state in [
@@ -1358,9 +1386,67 @@ mod tests {
                 let end = buttons.first().unwrap().2.x;
                 let buffer = terminal.backend().buffer();
                 let message: String = (1..end).map(|x| buffer[(x, 23)].symbol()).collect();
-                assert!(message.trim().is_empty());
+                assert_eq!(
+                    message.chars().filter(|c| !c.is_whitespace()).collect::<String>(),
+                    choose(zh, "需要重启", "Restartrequired")
+                );
                 assert_eq!(app.states[0].state, state);
                 assert!(buttons.iter().any(|(i, _, _, enabled)| *i == 5 && *enabled));
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn execution_progress_counts_the_batch_across_categories() -> Result<()> {
+        let mut app = App::new(catalog()?, true)?;
+        app.states.fill(Check::new(Status::Done));
+        let last = app.catalog.len() - 1;
+        app.states[0] = Check::new(Status::Ready);
+        app.states[last] = Check::new(Status::Ready);
+        assert!(app.command(&Command::Items(vec![0, last])));
+        app.receive(Message::Queued(vec![0, last]), 2);
+        assert_eq!(app.footer_message(), "执行中 0/2");
+        app.receive(Message::State(last, Check::new(Status::Running), 2), 2);
+        app.receive(Message::State(1, Check::new(Status::Done), 2), 2);
+        app.receive(Message::State(0, Check::new(Status::Done), 1), 2);
+        assert_eq!(app.footer_message(), "执行中 0/2");
+        app.receive(Message::State(0, Check::new(Status::Done), 2), 2);
+        assert_eq!(app.footer_message(), "执行中 1/2");
+        app.receive(Message::State(0, Check::new(Status::Done), 2), 2);
+        assert_eq!(app.footer_message(), "执行中 1/2");
+        app.receive(Message::State(last, Check::new(Status::Failed), 2), 2);
+        assert_eq!(app.footer_message(), "执行中 2/2");
+        app.receive(
+            Message::Finished { processed: 2, restart: false, refresh: vec![] },
+            2,
+        );
+        assert!(app.footer_message().is_empty());
+        app.states[last] = Check::new(Status::Done);
+        assert!(app.command(&Command::Restore(last)));
+        app.receive(Message::State(last, Check::new(Status::Ready), 3), 3);
+        assert_eq!(app.footer_message(), "执行中 1/1");
+        Ok(())
+    }
+    #[test]
+    fn normal_window_keeps_action_labels_and_restart_hint_visible() -> Result<()> {
+        use ratatui::{Terminal, backend::TestBackend};
+        for zh in [true, false] {
+            let mut app = App::new(catalog()?, zh)?;
+            app.states.fill(Check::new(Status::Done));
+            app.restart = true;
+            for width in [92, 100, 120] {
+                let mut terminal = Terminal::new(TestBackend::new(width, 24))?;
+                terminal.draw(|frame| app.draw(frame))?;
+                let buttons = app.toolbar(Rect::new(1, 23, width - 2, 1));
+                assert!(buttons.iter().all(|(_, label, rect, _)| {
+                    label.contains(' ') && rect.right() < width
+                }));
+                let first = buttons[0].2.x;
+                let message: String = (1..first).map(|x| terminal.backend().buffer()[(x, 23)].symbol()).collect();
+                assert_eq!(
+                    message.chars().filter(|c| !c.is_whitespace()).collect::<String>(),
+                    choose(zh, "需要重启", "Restartrequired")
+                );
             }
         }
         Ok(())
