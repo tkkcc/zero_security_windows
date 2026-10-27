@@ -734,8 +734,6 @@ unsafe extern "system" {
         out: *mut LayoutProfile,
         count: u32,
     ) -> u32;
-    fn InstallLayoutOrTip(profile: *const u16, flags: u32) -> i32;
-    fn SetDefaultLayoutOrTip(profile: *const u16, flags: u32) -> i32;
 }
 fn layouts() -> Vec<LayoutProfile> {
     unsafe {
@@ -750,6 +748,13 @@ fn layouts() -> Vec<LayoutProfile> {
 const WETYPE_CLASS: GUID = GUID::from_u128(0x86598fb9_66a2_463e_b9c2_aeb906d477ad);
 const WETYPE_PROFILE: GUID = GUID::from_u128(0x607fdf85_fcc8_4dbd_a365_41296f980c9c);
 const WETYPE_LANGUAGE: u16 = 0x804;
+const WETYPE_TIP: &str =
+    "0804:{86598FB9-66A2-463E-B9C2-AEB906D477AD}{607FDF85-FCC8-4DBD-A365-41296F980C9C}";
+fn default_keyboard_layout() -> Result<Handle> {
+    let mut layout = std::ptr::null_mut();
+    spi(0x59, 0, (&mut layout as *mut Handle).cast(), 0)?;
+    Ok(layout)
+}
 fn keyboard_layouts() -> Result<Vec<Handle>> {
     unsafe {
         let count = GetKeyboardLayoutList(0, std::ptr::null_mut());
@@ -761,10 +766,18 @@ fn keyboard_layouts() -> Result<Vec<Handle>> {
         Ok(out)
     }
 }
-fn input_state_matches(active: &[LayoutProfile], loaded: &[Handle]) -> bool {
+fn input_state_matches(
+    active: &[LayoutProfile],
+    loaded: &[Handle],
+    default: Handle,
+    override_tip: Option<&str>,
+) -> bool {
     active.len() == 1
         && active[0].clsid == WETYPE_CLASS
         && active[0].profile == WETYPE_PROFILE
+        && default as usize & 0xffff == WETYPE_LANGUAGE as usize
+        && override_tip.is_some_and(|tip| tip.eq_ignore_ascii_case(WETYPE_TIP))
+        && !loaded.is_empty()
         && loaded
             .iter()
             .all(|h| (*h as usize & 0xffff) == WETYPE_LANGUAGE as usize)
@@ -773,7 +786,7 @@ fn input_state_matches(active: &[LayoutProfile], loaded: &[Handle]) -> bool {
 mod input_tests {
     use super::*;
     #[test]
-    fn a_session_only_us_keyboard_prevents_a_completed_status() {
+    fn input_completion_requires_wetype_and_its_session_default() {
         let profile = LayoutProfile {
             clsid: WETYPE_CLASS,
             profile: WETYPE_PROFILE,
@@ -783,9 +796,28 @@ mod input_tests {
         let us = 0x04090409usize as Handle;
         assert!(!input_state_matches(
             std::slice::from_ref(&profile),
-            &[chinese, us]
+            &[chinese, us],
+            chinese,
+            Some(WETYPE_TIP),
         ));
-        assert!(input_state_matches(&[profile], &[chinese]));
+        assert!(!input_state_matches(
+            std::slice::from_ref(&profile),
+            &[chinese],
+            us,
+            Some(WETYPE_TIP),
+        ));
+        assert!(!input_state_matches(
+            std::slice::from_ref(&profile),
+            &[chinese],
+            chinese,
+            None,
+        ));
+        assert!(input_state_matches(
+            &[profile],
+            &[chinese],
+            chinese,
+            Some(WETYPE_TIP),
+        ));
     }
     #[test]
     #[ignore = "修改当前用户输入法，仅在用户明确要求本机清理时执行"]
@@ -834,41 +866,44 @@ pub fn input_only() -> Result<bool> {
                 active.push(p)
             }
         }
-        Ok(input_state_matches(&active, &keyboard_layouts()?))
+        Ok(input_state_matches(
+            &active,
+            &keyboard_layouts()?,
+            default_keyboard_layout()?,
+            reg::read(
+                r"HKCU:\Control Panel\International\User Profile",
+                "InputMethodOverride",
+            )?
+            .as_str(),
+        ))
     }
 }
 pub fn apply_input() -> Result<()> {
     native::com()?;
-    let tip = "0804:{86598FB9-66A2-463E-B9C2-AEB906D477AD}{607FDF85-FCC8-4DBD-A365-41296F980C9C}";
     ensure!(
         reg::exists(r"HKLM:\SOFTWARE\Microsoft\CTF\TIP\{86598FB9-66A2-463E-B9C2-AEB906D477AD}")?,
         "WeType is not registered"
     );
-    unsafe {
-        let p: ITfInputProcessorProfiles =
-            CoCreateInstance(&CLSID_TF_InputProcessorProfiles, None, CLSCTX_INPROC_SERVER)?;
-        // Replace registered profiles, then also remove session-only keyboards
-        // that EnumEnabledLayoutOrTip does not report.
-        native::ok(InstallLayoutOrTip(wide(tip).as_ptr(), 0x42))?;
-        p.EnableLanguageProfile(&WETYPE_CLASS, 0x804, &WETYPE_PROFILE, true)?;
-        p.SetDefaultLanguageProfile(0x804, &WETYPE_CLASS, &WETYPE_PROFILE)?;
-        native::ok(SetDefaultLayoutOrTip(wide(tip).as_ptr(), 0))?;
-    }
-    reg::set(
-        r"HKCU:\Control Panel\International\User Profile",
-        "Languages",
-        serde_json::json!(["zh-CN"]),
-        "MultiString",
+    native::command(
+        "powershell.exe",
+        &[
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            &format!(
+                "$ErrorActionPreference='Stop'; $list=New-WinUserLanguageList zh-CN; $list[0].InputMethodTips.Clear(); $list[0].InputMethodTips.Add('{WETYPE_TIP}'); Set-WinUserLanguageList -LanguageList $list -Force; Set-WinDefaultInputMethodOverride -InputTip '{WETYPE_TIP}'"
+            ),
+        ],
     )?;
-    reg::set(
-        r"HKCU:\Software\Microsoft\CTF\SortOrder",
-        "Default",
-        tip,
-        "String",
-    )?;
+    // Set the language list and its default through Windows before removing
+    // session-only layouts that are absent from the configured input profiles.
     for layout in keyboard_layouts()? {
         if layout as usize & 0xffff != WETYPE_LANGUAGE as usize {
-            native::ok(unsafe { UnloadKeyboardLayout(layout) })?;
+            ensure!(
+                unsafe { UnloadKeyboardLayout(layout) } != 0,
+                "UnloadKeyboardLayout failed for {:08X}",
+                layout as usize
+            );
         }
     }
     broadcast("intl");
