@@ -406,21 +406,34 @@ impl App {
             .map_or("", |i| self.catalog[i].purpose(self.zh))
     }
     fn activity(&self) -> String {
-        self.states
+        let running: Vec<_> = self
+            .states
             .iter()
             .enumerate()
             .filter(|(_, state)| state.state == Status::Running)
-            .map(|(i, _)| {
-                let seconds =
-                    self.running_since[i].map_or(0, |started| started.elapsed().as_secs());
-                format!(
-                    "{} · {} · {seconds}s",
-                    self.catalog[i].name(self.zh),
-                    self.stages[i]
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(" | ")
+            .map(|(i, _)| i)
+            .collect();
+        let Some(i) = self
+            .selected()
+            .filter(|i| running.contains(i))
+            .or_else(|| running.first().copied())
+        else {
+            return String::new();
+        };
+        let seconds = self.running_since[i].map_or(0, |started| started.elapsed().as_secs());
+        let mut activity = format!(
+            "{} · {} · {seconds}s",
+            self.catalog[i].name(self.zh),
+            self.stages[i]
+        );
+        if running.len() > 1 {
+            activity.push_str(&format!(
+                " · +{} {}",
+                running.len() - 1,
+                choose(self.zh, "项", "more")
+            ));
+        }
+        activity
     }
     fn footer_message(&self) -> String {
         let mut message = self.message.clone();
@@ -431,6 +444,11 @@ impl App {
                 choose(self.zh, "执行中", "Running"),
                 self.batch_total,
             );
+            let activity = self.activity();
+            if !activity.is_empty() {
+                message.push_str(" · ");
+                message.push_str(&activity);
+            }
         } else if self.checks_remaining() != 0 && (self.engine.is_some() || self.message.is_empty())
         {
             message = format!(
@@ -520,14 +538,6 @@ impl App {
             );
         }
         self.draw_tabs(frame, layout[0], style);
-        let activity = self.activity();
-        let activity = if activity.is_empty() {
-            self.selected()
-                .map_or("", |i| self.states[i].detail.as_str())
-        } else {
-            activity.as_str()
-        };
-        frame.render_widget(Paragraph::new(activity).style(style.fg(p.blue)), layout[1]);
         let table_area = layout[2];
         let rows = self.visible.iter().map(|i| {
             let f = &self.catalog[*i];
@@ -1290,22 +1300,51 @@ mod tests {
     fn execution_info_and_actions_share_the_bottom_row() -> Result<()> {
         use ratatui::{Terminal, backend::TestBackend};
         for zh in [true, false] {
-            for width in [55, 120] {
+            for width in [55, 120, 160] {
                 let mut app = App::new(catalog()?, zh)?;
-                app.receive(Message::Queued(vec![0, 1, 2], 0), 0);
-                app.states[0] = Check::new(Status::Running);
-                app.states[1] = Check::new(Status::Running);
-                app.states[2] = Check::new(Status::Queued);
+                app.states.fill(Check::new(Status::Ready));
+                let node = app
+                    .catalog
+                    .iter()
+                    .position(|f| f.id == "install-openjs.nodejs")
+                    .unwrap();
+                let git = app
+                    .catalog
+                    .iter()
+                    .position(|f| f.id == "install-git.git")
+                    .unwrap();
+                app.focus(node);
+                app.receive(Message::Queued(vec![node, git, 0], 0), 0);
+                for i in [node, git] {
+                    app.receive(Message::State(i, Check::new(Status::Running), 0), 0);
+                    app.receive(
+                        Message::Progress {
+                            index: i,
+                            stage: choose(zh, "下载并安装软件", "Downloading and installing")
+                                .into(),
+                        },
+                        0,
+                    );
+                }
                 let mut terminal = Terminal::new(TestBackend::new(width, 24))?;
                 terminal.draw(|frame| app.draw(frame))?;
                 let buffer = terminal.backend().buffer();
                 assert_eq!(buffer[(1, 23)].symbol(), if zh { "执" } else { "R" });
                 assert_eq!(buffer[(1, 0)].symbol(), " ");
+                assert!((1..width - 1).all(|x| buffer[(x, 1)].symbol() == " "));
                 let specs = app.toolbar(Rect::new(1, 23, width - 2, 1));
-                assert!(
-                    specs.first().unwrap().2.x
-                        > Line::from(app.footer_message()).width() as u16 + 1
-                );
+                let footer: String = (1..specs.first().unwrap().2.x)
+                    .map(|x| buffer[(x, 23)].symbol())
+                    .collect();
+                assert!(footer.contains("Node.js"));
+                if width >= 120 {
+                    let compact = |text: &str| {
+                        text.chars()
+                            .filter(|c| !c.is_whitespace())
+                            .collect::<String>()
+                    };
+                    assert_eq!(compact(&footer), compact(&app.footer_message()));
+                }
                 for (index, label, rect, _) in specs {
                     assert_eq!(app.buttons[index].area, rect);
                     assert_eq!(rect.y, 23);
@@ -1316,6 +1355,12 @@ mod tests {
                 }
                 let last = app.buttons[4].area;
                 assert_eq!(last.right(), width - 1);
+                app.focus(git);
+                terminal.draw(|frame| app.draw(frame))?;
+                let footer: String = (1..app.buttons[0].area.x)
+                    .map(|x| terminal.backend().buffer()[(x, 23)].symbol())
+                    .collect();
+                assert!(footer.contains("Git"));
             }
         }
         Ok(())
@@ -1566,11 +1611,11 @@ mod tests {
         app.receive(Message::State(last, Check::new(Status::Running), 2), 2);
         app.receive(Message::State(1, Check::new(Status::Done), 2), 2);
         app.receive(Message::State(0, Check::new(Status::Done), 1), 2);
-        assert_eq!(app.footer_message(), "执行中 0/2");
+        assert!(app.footer_message().starts_with("执行中 0/2"));
         app.receive(Message::State(0, Check::new(Status::Done), 2), 2);
-        assert_eq!(app.footer_message(), "执行中 1/2");
+        assert!(app.footer_message().starts_with("执行中 1/2"));
         app.receive(Message::State(0, Check::new(Status::Done), 2), 2);
-        assert_eq!(app.footer_message(), "执行中 1/2");
+        assert!(app.footer_message().starts_with("执行中 1/2"));
         app.receive(Message::State(last, Check::new(Status::Failed), 2), 2);
         assert_eq!(app.footer_message(), "执行中 2/2");
         app.receive(
@@ -1650,6 +1695,7 @@ mod tests {
                 };
                 terminal.draw(|frame| app.draw(frame))?;
                 let buffer = terminal.backend().buffer();
+                assert!((1..79).all(|x| buffer[(x, 1)].symbol() == " "));
                 let description: String = (app.table.table_area.bottom() + 1..23)
                     .flat_map(|y| (1..79).map(move |x| buffer[(x, y)].symbol()))
                     .collect();
