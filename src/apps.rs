@@ -4,6 +4,7 @@ use crate::{
 };
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
@@ -118,7 +119,6 @@ pub struct Removal {
     pub name: String,
     pub full: String,
     pub family: String,
-    pub source: String,
     pub non_removable: bool,
     pub provisioned: bool,
     pub materials: Vec<Material>,
@@ -486,7 +486,6 @@ pub fn remove(op: &Operation, progress: impl Fn(&str)) -> Result<bool> {
             name: a.name.clone(),
             full: a.full.clone(),
             family: a.family.clone(),
-            source,
             non_removable: protected,
             provisioned,
             materials,
@@ -544,7 +543,11 @@ pub fn remove(op: &Operation, progress: impl Fn(&str)) -> Result<bool> {
     for a in matching(&after_deprovision, op) {
         progress(&format!("{}{}", choose(zh, "卸载：", "Removing: "), a.name));
         let system_location = PathBuf::from(std::env::var("SystemRoot")?).join("SystemApps");
-        if op.non_removable || Path::new(&a.path).starts_with(&system_location) {
+        if op.non_removable
+            || Path::new(&a.path).starts_with(&system_location)
+            || a.name
+                .eq_ignore_ascii_case("Microsoft.MicrosoftEdge.Stable")
+        {
             let report = store::root().join(format!(
                 "package-removal-{}-{}.json",
                 std::process::id(),
@@ -694,7 +697,7 @@ fn uri(path: &Path) -> Result<Uri> {
         path.to_string_lossy().replace('\\', "/")
     )))?)
 }
-pub fn restore(op: &Operation) -> Result<bool> {
+pub fn restore(op: &Operation, progress: impl Fn(&str)) -> Result<bool> {
     native::com()?;
     let manager = PackageManager::new()?;
     let saved = records(op)?;
@@ -717,8 +720,8 @@ pub fn restore(op: &Operation) -> Result<bool> {
     } else {
         saved
             .iter()
-            .filter(|a| !a.source.is_empty())
-            .map(|a| a.source.as_str())
+            .map(|a| source_for(op, &a.name))
+            .filter(|source| !source.is_empty())
             .collect()
     };
     // Each public installation source is used once; these packages have no saved payload.
@@ -737,10 +740,11 @@ pub fn restore(op: &Operation) -> Result<bool> {
                 ..Default::default()
             },
             false,
+            &progress,
         )?;
     }
     let mut moved = BTreeSet::new();
-    for a in saved.iter().filter(|a| a.source.is_empty()) {
+    for a in saved.iter().filter(|a| source_for(op, &a.name).is_empty()) {
         ensure!(
             !a.materials.is_empty(),
             "Missing recovery layout for {}",
@@ -826,6 +830,47 @@ pub fn winget() -> Result<String> {
     );
     Ok(path.to_string_lossy().into())
 }
+pub fn winget_downloader(value: Option<&Value>) -> Result<Value> {
+    let path = PathBuf::from(std::env::var("LOCALAPPDATA")?)
+        .join(r"Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\settings.json");
+    downloader_at(&path, value)
+}
+fn downloader_at(path: &Path, value: Option<&Value>) -> Result<Value> {
+    let mut settings: Value = if path.try_exists()? {
+        json5::from_str(&fs::read_to_string(path)?)?
+    } else {
+        serde_json::json!({"$schema":"https://aka.ms/winget-settings.schema.json"})
+    };
+    if let Some(value) = value {
+        let settings = settings
+            .as_object_mut()
+            .context("WinGet settings must be an object")?;
+        if value.is_null() {
+            if let Some(network) = settings.get_mut("network") {
+                let network = network
+                    .as_object_mut()
+                    .context("WinGet network settings must be an object")?;
+                network.remove("downloader");
+                if network.is_empty() {
+                    settings.remove("network");
+                }
+            }
+        } else {
+            settings
+                .entry("network")
+                .or_insert_with(|| serde_json::json!({}))
+                .as_object_mut()
+                .context("WinGet network settings must be an object")?
+                .insert("downloader".into(), value.clone());
+        }
+        fs::create_dir_all(path.parent().unwrap())?;
+        fs::write(path, serde_json::to_vec_pretty(&settings)?)?;
+    }
+    Ok(settings
+        .pointer("/network/downloader")
+        .cloned()
+        .unwrap_or(Value::Null))
+}
 fn install_source(op: &Operation) -> &str {
     if op.source.is_empty() {
         "msstore"
@@ -847,11 +892,12 @@ pub fn registered_tool(op: &Operation) -> Result<bool> {
             &HSTRING::new(),
             &HSTRING::from(&op.package_family),
         )? {
-            if std::path::PathBuf::from(package.InstalledPath()?.to_string()).try_exists()? {
+            if std::path::PathBuf::from(package.InstalledPath()?.to_string()).try_exists()?
+                && !package.Status()?.Disabled()?
+            {
                 return Ok(true);
             }
         }
-        return Ok(false);
     }
     if !op.pattern.is_empty() {
         native::com()?;
@@ -886,6 +932,7 @@ pub fn registered_tool(op: &Operation) -> Result<bool> {
                             .iter()
                             .any(|pattern| crate::engine::matches(name, pattern))
                     })
+                    && reg::number(&path, "SystemComponent", 0)? == 0
             {
                 return Ok(true);
             }
@@ -911,30 +958,6 @@ const UNINSTALL_BRANCHES: [&str; 3] = [
     r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
     r"HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
 ];
-pub fn remove_onedrive() -> Result<bool> {
-    let mut restart = false;
-    for branch in UNINSTALL_BRANCHES {
-        for key in reg::children(branch)? {
-            let path = format!(r"{branch}\{key}");
-            if reg::read(&path, "DisplayName")?.as_str() != Some("Microsoft OneDrive") {
-                continue;
-            }
-            let command = reg::read(&path, "UninstallString")?;
-            let mut args = native::uninstaller(
-                command
-                    .as_str()
-                    .ok_or_else(|| anyhow::anyhow!("OneDrive uninstaller is missing"))?,
-            )?;
-            let exe = args.remove(0);
-            args.push("/silent".into());
-            let (code, output) =
-                native::run(&exe, &args.iter().map(String::as_str).collect::<Vec<_>>())?;
-            ensure!(matches!(code, 0 | 3010), "OneDrive ({code}): {output}");
-            restart |= code == 3010;
-        }
-    }
-    Ok(restart)
-}
 fn wetype_root() -> PathBuf {
     PathBuf::from(native::expand(r"%ProgramFiles%\Tencent\WeType"))
 }
@@ -973,9 +996,9 @@ fn clean_wetype() -> Result<()> {
     }
     Ok(())
 }
-pub fn install(op: &Operation, uninstall: bool) -> Result<bool> {
+pub fn install(op: &Operation, uninstall: bool, progress: impl Fn(&str)) -> Result<bool> {
     if uninstall || !(op.source == "msstore" || op.requires_delivery) {
-        return install_run(op, uninstall);
+        return install_run(op, uninstall, &progress);
     }
     let dependencies: Vec<_> = ["DoSvc", "wuauserv"]
         .into_iter()
@@ -990,7 +1013,7 @@ pub fn install(op: &Operation, uninstall: bool) -> Result<bool> {
                 native::service_start(service, Some(if *desired == 4 { 3 } else { *desired }))?;
             }
         }
-        install_run(op, uninstall)
+        install_run(op, uninstall, &progress)
     })();
     let cleanup: Vec<Result<()>> = dependencies
         .into_iter()
@@ -1010,7 +1033,7 @@ pub fn install(op: &Operation, uninstall: bool) -> Result<bool> {
     }
     result
 }
-fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
+fn install_run(op: &Operation, uninstall: bool, progress: &impl Fn(&str)) -> Result<bool> {
     if uninstall && !op.uninstall_args.is_empty() {
         for branch in UNINSTALL_BRANCHES {
             let path = format!(r"{branch}\{}", op.uninstall_key);
@@ -1048,7 +1071,25 @@ fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
             "--accept-package-agreements",
             "--no-upgrade",
         ])
+    } else {
+        args.extend(["--source", "winget", "--all-versions"]);
     }
+    if !uninstall && !op.installer_type.is_empty() {
+        args.extend(["--installer-type", &op.installer_type]);
+    }
+    progress(choose(
+        native::chinese(),
+        if uninstall {
+            "运行卸载器"
+        } else {
+            "下载并安装软件"
+        },
+        if uninstall {
+            "Running uninstaller"
+        } else {
+            "Downloading and installing"
+        },
+    ));
     let (c, t) = native::run(&winget()?, &args)?;
     crate::store::append("install.log", &format!("[{}]\n{t}", op.name))?;
     let already_installed = !uninstall && matches!(c as u32, 0x8a15002b | 0x8a15010d);
@@ -1062,6 +1103,11 @@ fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
     if wetype {
         clean_wetype()?;
     }
+    progress(choose(
+        native::chinese(),
+        "核对本地安装登记",
+        "Checking local installation registration",
+    ));
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(90);
     let installed = loop {
         let installed = registered_tool(op)?;
@@ -1077,41 +1123,6 @@ fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
     );
     Ok(c != 0 && !already_installed)
 }
-pub fn copilot_commands() -> Result<Vec<String>> {
-    let mut out = vec![];
-    for hive in ["HKLM:", "HKCU:"] {
-        for branch in ["SOFTWARE", r"SOFTWARE\WOW6432Node"] {
-            if let Some(s) = reg::read(
-                &format!(
-                    r"{hive}\{branch}\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Copilot"
-                ),
-                "UninstallString",
-            )?
-            .as_str()
-            {
-                out.push(s.into())
-            }
-        }
-    }
-    Ok(out)
-}
-pub fn remove_copilot() -> Result<bool> {
-    let mut restart = false;
-    for cmd in copilot_commands()? {
-        let mut args = native::uninstaller(&cmd)?;
-        let exe = args.remove(0);
-        args.push("--force-uninstall".into());
-        let (c, t) = native::run(&exe, &args.iter().map(String::as_str).collect::<Vec<_>>())?;
-        ensure!(matches!(c, 0 | 19 | 29), "{t}");
-        restart |= c == 29;
-    }
-    ensure!(
-        copilot_commands()?.is_empty(),
-        "Copilot desktop is still installed"
-    );
-    Ok(restart)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1131,7 +1142,6 @@ mod tests {
             name: "Test.Payload".into(),
             full: "Test.Payload_1".into(),
             family: "Test.Payload_family".into(),
-            source: String::new(),
             non_removable: false,
             provisioned: false,
             materials: vec![Material {
@@ -1174,7 +1184,6 @@ mod tests {
             name: name.into(),
             full: format!("{name}_1"),
             family: format!("{name}_publisher"),
-            source: "Test.Store".into(),
             non_removable: false,
             provisioned,
             materials: vec![],
@@ -1229,6 +1238,7 @@ mod tests {
         ensure!(!reg::exists(&path)?, "Test registration already exists");
         let op = Operation {
             uninstall_key: name,
+            package_family: "ZeroSecurityWindows.Test_8wekyb3d8bbwe".into(),
             ..Default::default()
         };
         reg::key(&path, true)?;
@@ -1240,6 +1250,35 @@ mod tests {
         })();
         reg::key(&path, false)?;
         result
+    }
+    #[test]
+    fn downloader_setting_and_restore_preserve_other_winget_preferences() -> Result<()> {
+        let path = store::root().join("winget-settings-test.json");
+        fs::create_dir_all(path.parent().unwrap())?;
+        fs::write(
+            &path,
+            r#"{
+            // Existing user settings may contain comments.
+            "network": {"doProgressTimeoutInSeconds": 120},
+            "source": {"autoUpdateIntervalInMinutes": 30}
+        }"#,
+        )?;
+        assert_eq!(downloader_at(&path, None)?, Value::Null);
+        assert_eq!(
+            downloader_at(&path, Some(&json!("wininet")))?,
+            json!("wininet")
+        );
+        let configured: Value = serde_json::from_slice(&fs::read(&path)?)?;
+        assert_eq!(configured["network"]["doProgressTimeoutInSeconds"], 120);
+        assert_eq!(configured["source"]["autoUpdateIntervalInMinutes"], 30);
+        assert_eq!(downloader_at(&path, Some(&Value::Null))?, Value::Null);
+        let restored: Value = serde_json::from_slice(&fs::read(&path)?)?;
+        assert_eq!(
+            restored,
+            json!({"network":{"doProgressTimeoutInSeconds":120},"source":{"autoUpdateIntervalInMinutes":30}})
+        );
+        fs::remove_file(path)?;
+        Ok(())
     }
     #[test]
     fn removal_includes_disabled_and_provisioned_only_packages() {

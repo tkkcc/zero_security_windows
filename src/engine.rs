@@ -70,10 +70,7 @@ impl Engine {
     pub fn invalidate(&self, f: &Feature) {
         let mut facts = self.facts.lock().unwrap();
         for op in &f.ops {
-            if matches!(
-                op.kind.as_str(),
-                "Apps" | "Winget" | "OneDrive" | "CopilotDesktop"
-            ) {
+            if matches!(op.kind.as_str(), "Apps" | "Winget") {
                 facts.remove("apps");
             }
             facts.remove(match op.kind.as_str() {
@@ -332,10 +329,7 @@ impl Engine {
             "AppEntry" => json!(crate::components::app_entry(op)?),
             "RemoteDesktopClient" => json!(crate::recovery::remote_desktop_state(bool_value(&op.value))?),
             "Winget" => json!(apps::registered_tool(op)?),
-            "OneDrive" => json!(apps::registered_tool(&Operation { name: "Microsoft.OneDrive".into(), patterns: vec!["Microsoft OneDrive".into()], ..Default::default() })?
-                || !reg::read(r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "OneDrive")?.is_null()
-                || !reg::read(r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "OneDrive")?.is_null()),
-            "CopilotDesktop" => json!(if bool_value(&op.value) { apps::registered_tool(&Operation { package_family: "Microsoft.Copilot_8wekyb3d8bbwe".into(), ..Default::default() })? } else { !apps::copilot_commands()?.is_empty() }),
+            "WingetDownloader" => apps::winget_downloader(None)?,
             "CompatibilityDatabase" => json!(!reg::read(&format!(r"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\InstalledSDB\{}", op.name), "DatabasePath")?.is_null()),
             "InputMethods" => json!(if op.value == json!("WindowsDefault") && prefs::default_input_active()? { "WindowsDefault" } else if prefs::input_only()? { "WeTypeOnly" } else { "Other" }),
             "LanguageBar" => json!(if prefs::language_bar(None)? & 2063 == 8 && reg::number(r"HKCU:\Software\Microsoft\CTF\LangBar", "ShowStatus", 0)? == 3 { "Hidden" } else { "Visible" }),
@@ -450,55 +444,26 @@ impl Engine {
             }
             "Apps" => {
                 return if bool_value(&op.value) {
-                    apps::restore(op)
+                    apps::restore(op, |stage| self.progress(id, stage))
                 } else {
                     apps::remove(op, |stage| self.progress(id, stage))
                 };
             }
-            "Edge" => return crate::components::edge(bool_value(&op.value)),
+            "Edge" => {
+                return crate::components::edge(bool_value(&op.value), |stage| {
+                    self.progress(id, stage)
+                });
+            }
             "AppEntry" => return crate::components::set_app_entry(op),
             "RemoteDesktopClient" => {
                 return crate::recovery::remote_desktop_client(bool_value(&op.value));
             }
             "Winget" => {
                 let installed = bool_value(&op.value);
-                return apps::install(op, !installed);
+                return apps::install(op, !installed, |stage| self.progress(id, stage));
             }
-            "OneDrive" => {
-                if bool_value(&op.value) {
-                    return apps::install(
-                        &Operation {
-                            kind: "Winget".into(),
-                            name: "Microsoft.OneDrive".into(),
-                            patterns: vec!["Microsoft OneDrive".into()],
-                            source: "winget".into(),
-                            ..op.clone()
-                        },
-                        false,
-                    );
-                }
-                let restart = apps::remove_onedrive()?;
-                for path in [
-                    r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
-                    r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
-                ] {
-                    reg::delete(path, "OneDrive")?
-                }
-                return Ok(restart);
-            }
-            "CopilotDesktop" => {
-                return if bool_value(&op.value) {
-                    apps::install(
-                        &Operation {
-                            name: op.name.clone(),
-                            source: op.source.clone(),
-                            ..op.clone()
-                        },
-                        false,
-                    )
-                } else {
-                    apps::remove_copilot()
-                };
+            "WingetDownloader" => {
+                apps::winget_downloader(Some(&op.value))?;
             }
             "CompatibilityDatabase" => {
                 crate::recovery::compatibility(&op.name, bool_value(&op.value))?;
@@ -779,8 +744,10 @@ impl Engine {
                     return Ok(());
                 }
                 let stage = match op.kind.as_str() {
-                    "Winget" if restoring => choose(self.zh, "卸载软件", "Uninstalling software"),
-                    "Winget" => choose(self.zh, "下载并安装软件", "Downloading and installing"),
+                    "Winget" if bool_value(&op.value) => {
+                        choose(self.zh, "下载并安装软件", "Downloading and installing")
+                    }
+                    "Winget" => choose(self.zh, "卸载软件", "Uninstalling software"),
                     "Apps" if restoring => choose(self.zh, "恢复应用", "Restoring apps"),
                     "Apps" => choose(
                         self.zh,
@@ -794,9 +761,7 @@ impl Engine {
                     "OptionalFeature" | "ReservedStorage" => {
                         choose(self.zh, "处理系统组件", "Updating Windows components")
                     }
-                    "Edge" | "OneDrive" | "CopilotDesktop" => {
-                        choose(self.zh, "卸载应用并清理文件", "Removing apps and files")
-                    }
+                    "Edge" => choose(self.zh, "卸载应用并清理文件", "Removing apps and files"),
                     "TaskbarPins" | "StartPins" => choose(self.zh, "处理固定项", "Updating pins"),
                     _ => choose(self.zh, "应用设置", "Applying settings"),
                 };

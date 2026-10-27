@@ -117,7 +117,7 @@ pub fn edge_state(installed: bool) -> Result<bool> {
     }
     Ok(edge_payload_present()? || listed("MSEdge")?)
 }
-pub fn edge(installed: bool) -> Result<bool> {
+pub fn edge(installed: bool, progress: impl Fn(&str)) -> Result<bool> {
     if installed {
         return apps::install(
             &Operation {
@@ -127,6 +127,7 @@ pub fn edge(installed: bool) -> Result<bool> {
                 ..Default::default()
             },
             false,
+            progress,
         );
     }
     native::stop_process("msedge.exe")?;

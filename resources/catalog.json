@@ -1450,7 +1450,8 @@
         "Value": true,
         "Kind": "Winget",
         "Patterns": [
-          "Microsoft Visual Studio Code*"
+          "Microsoft Visual Studio Code",
+          "Microsoft Visual Studio Code (User)"
         ]
       }
     ],
@@ -1468,7 +1469,8 @@
         "Value": false,
         "Kind": "Winget",
         "Patterns": [
-          "Microsoft Visual Studio Code*"
+          "Microsoft Visual Studio Code",
+          "Microsoft Visual Studio Code (User)"
         ]
       }
     ],
@@ -1718,10 +1720,11 @@
         "Source": "winget",
         "Value": true,
         "Kind": "Winget",
-        "RequiresDelivery": true,
         "Patterns": [
           "PowerShell 7*"
-        ]
+        ],
+        "PackageFamily": "Microsoft.PowerShell_8wekyb3d8bbwe",
+        "InstallerType": "wix"
       }
     ],
     "Probe": "",
@@ -1739,7 +1742,8 @@
         "Kind": "Winget",
         "Patterns": [
           "PowerShell 7*"
-        ]
+        ],
+        "PackageFamily": "Microsoft.PowerShell_8wekyb3d8bbwe"
       }
     ],
     "RestoreSafe": false
@@ -1863,9 +1867,9 @@
   },
   {
     "Id": "install-google.androidcli",
-    "Zh": "Android SDK CLI",
+    "Zh": "Android CLI",
     "En": "Android SDK CLI",
-    "PurposeZh": "安装 Android SDK 命令行工具，用于管理开发环境。",
+    "PurposeZh": "安装 Android 开发命令行工具，用于管理 SDK 与 Android 开发环境。",
     "PurposeEn": "Install Android SDK command-line tools to manage the development environment.",
     "GroupZh": "安装",
     "GroupEn": "Install",
@@ -1876,7 +1880,7 @@
         "Value": true,
         "Kind": "Winget",
         "Names": [
-          "sdkmanager.bat"
+          "android.exe"
         ]
       }
     ],
@@ -1894,7 +1898,7 @@
         "Value": false,
         "Kind": "Winget",
         "Names": [
-          "sdkmanager.bat"
+          "android.exe"
         ]
       }
     ],
@@ -2306,7 +2310,13 @@
         "Name": "games",
         "Value": false,
         "Kind": "Apps",
-        "PackageSources": {}
+        "PackageSources": {
+          "Microsoft.MicrosoftSolitaireCollection": "9WZDNCRFHWD2",
+          "Microsoft.MinecraftUWP": "9NBLGGH2JHXJ",
+          "Microsoft.MicrosoftMinesweeper": "9WZDNCRFHWCN",
+          "Microsoft.MicrosoftMahjong": "9WZDNCRFHWCP",
+          "Microsoft.MicrosoftSudoku": "9WZDNCRFHV60"
+        }
       }
     ],
     "Probe": "",
@@ -2328,7 +2338,13 @@
         "Name": "games",
         "Value": true,
         "Kind": "Apps",
-        "PackageSources": {}
+        "PackageSources": {
+          "Microsoft.MicrosoftSolitaireCollection": "9WZDNCRFHWD2",
+          "Microsoft.MinecraftUWP": "9NBLGGH2JHXJ",
+          "Microsoft.MicrosoftMinesweeper": "9WZDNCRFHWCN",
+          "Microsoft.MicrosoftMahjong": "9WZDNCRFHWCP",
+          "Microsoft.MicrosoftSudoku": "9WZDNCRFHV60"
+        }
       }
     ],
     "RestoreSafe": false
@@ -3082,9 +3098,10 @@
         }
       },
       {
-        "Name": "Microsoft Copilot",
-        "Value": false,
-        "Kind": "CopilotDesktop"
+        "Kind": "Winget",
+        "Name": "Microsoft.Copilot",
+        "UninstallKey": "Microsoft Copilot",
+        "Value": false
       }
     ],
     "Probe": "",
@@ -3184,9 +3201,24 @@
     "GroupEn": "Remove",
     "Ops": [
       {
-        "Name": "OneDrive",
-        "Value": false,
-        "Kind": "OneDrive"
+        "Kind": "Winget",
+        "Name": "Microsoft.OneDrive",
+        "Source": "winget",
+        "UninstallKey": "OneDriveSetup.exe",
+        "Patterns": [
+          "Microsoft OneDrive"
+        ],
+        "Value": false
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "Name": "OneDrive"
+      },
+      {
+        "Kind": "RegistryDelete",
+        "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "Name": "OneDrive"
       }
     ],
     "Probe": "",
@@ -3198,9 +3230,14 @@
     "Refresh": "",
     "RestoreOps": [
       {
-        "Name": "OneDrive",
-        "Value": true,
-        "Kind": "OneDrive"
+        "Kind": "Winget",
+        "Name": "Microsoft.OneDrive",
+        "Source": "winget",
+        "UninstallKey": "OneDriveSetup.exe",
+        "Patterns": [
+          "Microsoft OneDrive"
+        ],
+        "Value": true
       }
     ],
     "RestoreSafe": false
@@ -7831,6 +7868,29 @@
       }
     ],
     "RestoreSafe": false
+  },
+  {
+    "Id": "winget-direct-download",
+    "Zh": "winget 直接下载",
+    "En": "Direct winget downloads",
+    "PurposeZh": "关闭 winget 安装包的传递优化下载，改为直接下载；商店应用保留系统下载。",
+    "PurposeEn": "Use direct downloads for winget installers; Store packages keep the system download path.",
+    "GroupZh": "更新与还原",
+    "GroupEn": "Updates & restore",
+    "Page": "System",
+    "Intent": "Enable",
+    "Ops": [
+      {
+        "Kind": "WingetDownloader",
+        "Value": "wininet"
+      }
+    ],
+    "RestoreOps": [
+      {
+        "Kind": "WingetDownloader",
+        "Value": null
+      }
+    ]
   },
   {
     "Id": "remote-desktop",

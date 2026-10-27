@@ -755,10 +755,7 @@ impl App {
                 if version == epoch
                     || version == self.active_epoch && self.active_indices.contains(&i) =>
             {
-                if self.states[i].state == Status::Queued
-                    && !self.active_indices.contains(&i)
-                    && matches!(state.state, Status::PendingCheck | Status::Checking)
-                {
+                if self.states[i].state == Status::Queued && !self.active_indices.contains(&i) {
                     return;
                 }
                 if state.state == Status::Running {
@@ -1438,6 +1435,7 @@ mod tests {
         assert!(app.busy);
         assert_eq!(app.selected(), Some(i));
         assert_eq!(app.states[i].state, Status::Queued);
+        app.receive(Message::Queued(vec![i], 0), 0);
         app.receive(Message::State(i, Check::new(Status::Ready), 0), 0);
         assert!(matches!(app.space_command(), Some(Command::One(n)) if n == i));
         app.states[i] = Check::new(Status::Failed);
@@ -1629,6 +1627,7 @@ mod tests {
         assert!(app.footer_message().is_empty());
         app.states[last] = Check::new(Status::Done);
         assert!(app.command(&Command::Restore(last)));
+        app.receive(Message::Queued(vec![last], 3), 3);
         app.receive(Message::State(last, Check::new(Status::Ready), 3), 3);
         assert_eq!(app.footer_message(), "执行中 1/1");
         Ok(())
@@ -1772,6 +1771,7 @@ mod tests {
         let mut app = App::new(catalog()?, true)?;
         app.states.fill(Check::new(Status::Ready));
         app.command(&Command::All);
+        app.receive(Message::Queued(app.batch_remaining.clone(), 0), 0);
         app.receive(Message::State(0, Check::new(Status::Running), 0), 0);
         app.receive(Message::State(1, Check::new(Status::Running), 0), 0);
         app.focus(1);
@@ -1826,8 +1826,18 @@ mod tests {
         let mut app = App::new(catalog()?, true)?;
         app.states.fill(Check::new(Status::Ready));
         app.command(&Command::One(0));
+        for state in [
+            Status::Checking,
+            Status::Ready,
+            Status::Failed,
+            Status::Unknown,
+        ] {
+            app.receive(Message::State(0, Check::new(state), 0), 0);
+            assert_eq!(app.states[0].state, Status::Queued);
+        }
         app.receive(Message::State(0, Check::new(Status::Checking), 0), 1);
         assert_eq!(app.states[0].state, Status::Queued);
+        app.receive(Message::Queued(vec![0], 1), 1);
         app.receive(Message::State(0, Check::new(Status::Running), 1), 1);
         assert_eq!(app.states[0].state, Status::Running);
         app.receive(Message::State(0, Check::new(Status::Ready), 0), 1);
@@ -1862,6 +1872,7 @@ mod tests {
         let offset = app.table.row_offset();
         assert!(offset > 0);
         app.command(&Command::One(i));
+        app.receive(Message::Queued(vec![i], 0), 0);
         for state in [Status::Running, Status::Done] {
             app.receive(Message::State(i, Check::new(state), 0), 0);
             terminal.draw(|frame| app.draw(frame))?;

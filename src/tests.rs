@@ -328,6 +328,7 @@ fn delivery_optimization_precedes_installation() -> anyhow::Result<()> {
     let order = order(&catalog);
     let position = |id: &str| order.iter().position(|i| catalog[*i].id == id).unwrap();
     assert!(position("delivery-optimization") < position("install-tencent.wetype"));
+    assert!(position("winget-direct-download") < position("install-microsoft.powershell"));
     Ok(())
 }
 
