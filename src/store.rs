@@ -6,7 +6,12 @@ use crate::{
 use anyhow::Result;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::json;
-use std::{collections::HashMap, fs, path::PathBuf, sync::Mutex};
+use std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
 pub fn root() -> PathBuf {
     if cfg!(test) {
@@ -20,6 +25,31 @@ pub fn user_root() -> PathBuf {
         return root().join("user");
     }
     PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap()).join("ZeroSecurityWindows")
+}
+pub fn recovery_root(source: &Path) -> PathBuf {
+    let root = root();
+    if source.components().next() == root.components().next() {
+        root.join("recovery")
+    } else {
+        source
+            .ancestors()
+            .last()
+            .unwrap()
+            .join("ZeroSecurityWindows")
+            .join("recovery")
+    }
+}
+pub fn file_operation(
+    kind: &str,
+    source: &Path,
+    target: &Path,
+    action: impl FnOnce() -> Result<()>,
+) -> Result<()> {
+    let started = std::time::Instant::now();
+    append("operations.jsonl", &json!({"Time":chrono::Local::now().to_rfc3339(),"Kind":kind,"Path":source,"Destination":target,"Phase":"Start"}).to_string())?;
+    let result = action();
+    append("operations.jsonl", &json!({"Time":chrono::Local::now().to_rfc3339(),"Kind":kind,"Path":source,"Destination":target,"Phase":"Finish","DurationMs":started.elapsed().as_millis(),"Error":result.as_ref().err().map(ToString::to_string)}).to_string())?;
+    result
 }
 pub fn append(name: &str, text: &str) -> Result<()> {
     use std::io::Write;
@@ -79,8 +109,9 @@ impl Store {
     }
     pub fn save(&self) -> Result<()> {
         let _saving = self.saving.lock().unwrap();
-        write("rust-results.json", &*self.results.lock().unwrap())?;
-        let pending = self.pending.lock().unwrap();
+        let results = self.results.lock().unwrap().clone();
+        let pending = self.pending.lock().unwrap().clone();
+        write("rust-results.json", &results)?;
         if let Some(p) = pending.as_ref() {
             write("rust-workflow.json", p)?
         } else {
@@ -90,6 +121,16 @@ impl Store {
     }
     pub fn log(&self, id: &str, op: &Operation, error: &str) -> Result<()> {
         append("operations.jsonl",&json!({"Time":chrono::Local::now().to_rfc3339(),"Id":id,"Kind":op.kind,"Path":op.path,"Name":op.name,"Error":error}).to_string())
+    }
+    pub fn timing(
+        &self,
+        id: &str,
+        op: &Operation,
+        phase: &str,
+        started: std::time::Instant,
+        error: &str,
+    ) -> Result<()> {
+        append("operations.jsonl", &json!({"Time":chrono::Local::now().to_rfc3339(),"Id":id,"Kind":op.kind,"Path":op.path,"Name":op.name,"Phase":phase,"DurationMs":started.elapsed().as_millis(),"Error":error}).to_string())
     }
     pub fn copy_executable(&self) -> Result<PathBuf> {
         let _saving = self.saving.lock().unwrap();

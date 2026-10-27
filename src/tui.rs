@@ -106,6 +106,12 @@ pub struct App {
     pub restart: bool,
     batch_remaining: Vec<usize>,
     batch_total: usize,
+    pending_batches: usize,
+    active_indices: Vec<usize>,
+    active_epoch: usize,
+    running_since: Vec<Option<Instant>>,
+    stages: Vec<String>,
+    restoring: Vec<usize>,
     categories: Vec<usize>,
     category: usize,
     tables: Vec<TableState<RowSelection>>,
@@ -145,6 +151,8 @@ impl App {
         });
         let mut app = Self {
             states: vec![Check::new(Status::PendingCheck); catalog.len()],
+            running_since: vec![None; catalog.len()],
+            stages: vec![String::new(); catalog.len()],
             catalog,
             visible: vec![],
             table: TableState::default(),
@@ -156,6 +164,10 @@ impl App {
             restart: false,
             batch_remaining: vec![],
             batch_total: 0,
+            pending_batches: 0,
+            active_indices: vec![],
+            active_epoch: 0,
+            restoring: vec![],
             tables: (0..categories.len())
                 .map(|_| {
                     let mut table = TableState::<RowSelection>::default();
@@ -264,10 +276,18 @@ impl App {
         }
     }
     fn key_command(&self, key: KeyCode) -> Option<Command> {
-        if self.actions_blocked() {
+        if !self.busy && self.checks_remaining() != 0 {
             return None;
         }
         match key {
+            KeyCode::Char(' ') => self.space_command(),
+            KeyCode::Char('r' | 'R') => self
+                .selected()
+                .filter(|i| {
+                    !self.batch_remaining.contains(i) && !self.catalog[*i].restore_ops.is_empty()
+                })
+                .map(Command::Restore),
+            _ if self.busy => None,
             KeyCode::Char('a' | 'A')
                 if self
                     .states
@@ -285,17 +305,15 @@ impl App {
             {
                 Some(self.category_command())
             }
-            KeyCode::Char(' ') => self.space_command(),
-            KeyCode::Char('r' | 'R') => self
-                .selected()
-                .filter(|i| !self.catalog[*i].restore_ops.is_empty())
-                .map(Command::Restore),
             KeyCode::F(10) if self.restart => Some(Command::Restart),
             _ => None,
         }
     }
     pub fn command(&mut self, command: &Command) -> bool {
-        if self.actions_blocked() {
+        if self.busy
+            && !matches!(command, Command::One(i) | Command::Restore(i) if !self.batch_remaining.contains(i))
+            || !self.busy && self.checks_remaining() != 0
+        {
             return false;
         }
         self.follow_top = false;
@@ -305,7 +323,7 @@ impl App {
             return true;
         }
         self.busy = true;
-        self.batch_remaining.clear();
+        self.pending_batches += 1;
         for i in 0..self.catalog.len() {
             let chosen = match command {
                 Command::All => !self.catalog[i].default_off,
@@ -316,12 +334,22 @@ impl App {
             };
             if chosen {
                 self.batch_remaining.push(i);
+                self.batch_total += 1;
+                if matches!(command, Command::Restore(_) | Command::RestoreItems(_)) {
+                    if !self.restoring.contains(&i) {
+                        self.restoring.push(i);
+                    }
+                } else {
+                    self.restoring.retain(|index| *index != i);
+                }
             }
-            if chosen && self.states[i].actionable() {
+            if chosen
+                && (self.states[i].actionable()
+                    || matches!(command, Command::Restore(_) | Command::RestoreItems(_)))
+            {
                 self.states[i] = Check::new(Status::Queued)
             }
         }
-        self.batch_total = self.batch_remaining.len();
         self.message.clear();
         if matches!(command, Command::Restart) {
             self.message = choose(self.zh, "正在重启", "Restarting").into();
@@ -330,25 +358,17 @@ impl App {
         true
     }
     fn space_command(&self) -> Option<Command> {
-        if self.actions_blocked() {
+        if !self.busy && self.checks_remaining() != 0 {
             return None;
         }
         let i = self.selected()?;
-        if self.states[i].state == Status::Failed
-            && self.engine.as_ref().is_some_and(|e| {
-                e.store
-                    .results
-                    .lock()
-                    .unwrap()
-                    .get(&self.catalog[i].id)
-                    .is_some_and(|r| r.restoring)
-            })
-        {
+        if self.batch_remaining.contains(&i) {
+            return None;
+        }
+        if self.states[i].state == Status::Failed && self.restoring.contains(&i) {
             return Some(Command::Restore(i));
         }
-        if self.states[i].recheckable() {
-            Some(Command::Scan(vec![i]))
-        } else if self.states[i].actionable() || self.catalog[i].toggle() {
+        if self.states[i].actionable() || self.catalog[i].toggle() {
             Some(Command::One(i))
         } else {
             None
@@ -384,6 +404,23 @@ impl App {
     fn description(&self) -> &str {
         self.selected()
             .map_or("", |i| self.catalog[i].purpose(self.zh))
+    }
+    fn activity(&self) -> String {
+        self.states
+            .iter()
+            .enumerate()
+            .filter(|(_, state)| state.state == Status::Running)
+            .map(|(i, _)| {
+                let seconds =
+                    self.running_since[i].map_or(0, |started| started.elapsed().as_secs());
+                format!(
+                    "{} · {} · {seconds}s",
+                    self.catalog[i].name(self.zh),
+                    self.stages[i]
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(" | ")
     }
     fn footer_message(&self) -> String {
         let mut message = self.message.clone();
@@ -483,13 +520,29 @@ impl App {
             );
         }
         self.draw_tabs(frame, layout[0], style);
+        let activity = self.activity();
+        let activity = if activity.is_empty() {
+            self.selected()
+                .map_or("", |i| self.states[i].detail.as_str())
+        } else {
+            activity.as_str()
+        };
+        frame.render_widget(Paragraph::new(activity).style(style.fg(p.blue)), layout[1]);
         let table_area = layout[2];
         let rows = self.visible.iter().map(|i| {
             let f = &self.catalog[*i];
             Row::new([
                 Cell::from(f.name(self.zh).to_owned()),
-                Cell::from(self.states[*i].label(f, self.zh))
-                    .style(Some(Style::default().fg(p.status(self.states[*i].state)))),
+                Cell::from(if let Some(started) = self.running_since[*i] {
+                    format!(
+                        "{} {}s",
+                        self.states[*i].label(f, self.zh),
+                        started.elapsed().as_secs()
+                    )
+                } else {
+                    self.states[*i].label(f, self.zh)
+                })
+                .style(Some(Style::default().fg(p.status(self.states[*i].state)))),
             ])
         });
         let status = if self.zh { 16 } else { 20 };
@@ -540,12 +593,7 @@ impl App {
     }
 
     fn button_specs(&self) -> Vec<(usize, KeyCode, String, bool)> {
-        let item = if self
-            .selected()
-            .is_some_and(|i| self.states[i].recheckable())
-        {
-            choose(self.zh, "检测", "Check")
-        } else if self.selected().is_some_and(|i| self.catalog[i].toggle()) {
+        let item = if self.selected().is_some_and(|i| self.catalog[i].toggle()) {
             choose(self.zh, "切换", "Switch")
         } else {
             choose(self.zh, "执行", "Run")
@@ -595,7 +643,9 @@ impl App {
                 i,
                 key,
                 label,
-                enabled && !self.busy && (i == 4 || self.checks_remaining() == 0),
+                enabled
+                    && (i != 4 && i != 5 || !self.busy)
+                    && (i == 4 || self.busy || self.checks_remaining() == 0),
             )
         })
         .collect()
@@ -676,11 +726,37 @@ impl App {
     }
     fn receive(&mut self, msg: Message, epoch: usize) {
         match msg {
-            Message::Ready(engine) => {
-                self.restart = crate::workflow::requires_restart(&engine);
-                self.engine = Some(engine)
+            Message::Ready(engine) => self.engine = Some(engine),
+            Message::Context {
+                restart,
+                safe_queued,
+                restoring,
+            } => {
+                self.restart = restart;
+                self.restoring = restoring;
+                for i in safe_queued {
+                    self.states[i] = Check::new(Status::SafeQueued);
+                }
             }
-            Message::State(i, state, version) if version == epoch => {
+            Message::Progress { index, stage } => {
+                self.stages[index] = stage;
+            }
+            Message::State(i, state, version)
+                if version == epoch
+                    || version == self.active_epoch && self.active_indices.contains(&i) =>
+            {
+                if self.states[i].state == Status::Queued
+                    && !self.active_indices.contains(&i)
+                    && matches!(state.state, Status::PendingCheck | Status::Checking)
+                {
+                    return;
+                }
+                if state.state == Status::Running {
+                    self.running_since[i].get_or_insert_with(Instant::now);
+                } else {
+                    self.running_since[i] = None;
+                    self.stages[i].clear();
+                }
                 if self.busy
                     && !matches!(
                         state.state,
@@ -690,14 +766,18 @@ impl App {
                     self.batch_remaining.retain(|index| *index != i);
                 }
                 self.states[i] = state;
-                self.reorder();
             }
             Message::State(..) => {}
-            Message::Queued(indices) => {
+            Message::Queued(indices, version) => {
                 self.busy = true;
                 self.countdown = None;
-                self.batch_total = indices.len();
-                self.batch_remaining = indices.clone();
+                self.active_indices = indices.clone();
+                self.active_epoch = version;
+                if self.pending_batches == 0 {
+                    self.pending_batches = 1;
+                    self.batch_total = indices.len();
+                    self.batch_remaining = indices.clone();
+                }
                 for i in indices {
                     if self.states[i].actionable()
                         || matches!(
@@ -710,35 +790,40 @@ impl App {
                 }
             }
             Message::Finished { restart, .. } => {
-                self.busy = false;
-                self.batch_remaining.clear();
-                self.batch_total = 0;
+                self.pending_batches = self.pending_batches.saturating_sub(1);
+                self.busy = self.pending_batches != 0;
+                self.active_indices.clear();
+                if !self.busy {
+                    self.batch_remaining.clear();
+                    self.batch_total = 0;
+                }
                 self.countdown = None;
                 self.restart = restart;
-                if let Some(engine) = &self.engine
-                    && let Some(pending) = engine.store.pending.lock().unwrap().as_ref()
-                {
-                    for (i, f) in self.catalog.iter().enumerate() {
-                        if pending.phase == crate::workflow::Phase::AwaitSafe
-                            && pending.safe_ids.contains(&f.id)
-                        {
-                            self.states[i] = Check::new(Status::SafeQueued)
-                        }
-                    }
-                }
                 self.message.clear();
-                if restart && self.engine.as_ref().is_some_and(|engine| engine.safe) {
+                if !self.busy && restart && self.engine.as_ref().is_some_and(|engine| engine.safe) {
                     self.countdown = Some(Instant::now() + Duration::from_secs(10))
                 }
                 self.reorder();
             }
             Message::Error(error) => {
-                self.busy = false;
-                self.batch_remaining.clear();
-                self.batch_total = 0;
+                self.pending_batches = self.pending_batches.saturating_sub(1);
+                self.busy = self.pending_batches != 0;
+                for i in self.active_indices.drain(..) {
+                    self.batch_remaining.retain(|index| *index != i);
+                    if matches!(self.states[i].state, Status::Queued | Status::Running) {
+                        self.states[i] = Check {
+                            state: Status::Failed,
+                            detail: error.clone(),
+                        };
+                        self.running_since[i] = None;
+                    }
+                }
+                if !self.busy {
+                    self.batch_remaining.clear();
+                    self.batch_total = 0;
+                }
                 self.countdown = None;
-                self.message = if let Some(e) = &self.engine {
-                    let _ = controller::failure_message(e, &error);
+                self.message = if self.engine.is_some() {
                     choose(self.zh, "执行失败", "Execution failed").into()
                 } else {
                     error
@@ -786,6 +871,7 @@ fn event_loop(
     let theme = crate::registry::Watch::new(THEME_KEY)?;
     let mut dirty = false;
     let mut last_second = None;
+    let mut pending_refresh = Vec::new();
     loop {
         if theme.changed()? {
             let palette = Palette::system()?;
@@ -798,15 +884,14 @@ fn event_loop(
                 dirty = true;
             }
         }
-        for msg in rx.try_iter() {
+        for msg in rx.try_iter().take(64) {
             let finished = matches!(&msg, Message::Finished { .. } | Message::Error(_));
-            let mut refresh = if let Message::Finished { refresh, .. } = &msg {
-                refresh.clone()
-            } else {
-                vec![]
-            };
+            if let Message::Finished { refresh, .. } = &msg {
+                pending_refresh.extend(refresh);
+            }
             app.receive(msg, epoch.load(Ordering::SeqCst));
-            if finished && app.engine.is_some() {
+            if finished && app.engine.is_some() && !app.busy {
+                let mut refresh = std::mem::take(&mut pending_refresh);
                 refresh.extend(
                     app.states
                         .iter()
@@ -831,6 +916,18 @@ fn event_loop(
                 }
             }
             dirty = true
+        }
+        if app.running_since.iter().any(Option::is_some) {
+            let seconds = app
+                .running_since
+                .iter()
+                .flatten()
+                .map(|started| started.elapsed().as_secs())
+                .max();
+            if last_second != seconds {
+                last_second = seconds;
+                dirty = true;
+            }
         }
         if let Some(deadline) = app.countdown {
             let remaining = deadline.saturating_duration_since(Instant::now());
@@ -1034,7 +1131,7 @@ mod tests {
         let mut terminal = Terminal::new(TestBackend::new(60, 24))?;
         terminal.draw(|f| app.draw(f))?;
         app.busy = true;
-        assert!(app.key_command(KeyCode::Char('r')).is_none());
+        assert!(matches!(app.key_command(KeyCode::Char('r')), Some(Command::Restore(n)) if n == i));
         app.busy = false;
         app.states.fill(Check::new(Status::Done));
         let child = app.catalog.iter().position(|f| f.default_off).unwrap();
@@ -1195,7 +1292,7 @@ mod tests {
         for zh in [true, false] {
             for width in [55, 120] {
                 let mut app = App::new(catalog()?, zh)?;
-                app.receive(Message::Queued(vec![0, 1, 2]), 0);
+                app.receive(Message::Queued(vec![0, 1, 2], 0), 0);
                 app.states[0] = Check::new(Status::Running);
                 app.states[1] = Check::new(Status::Running);
                 app.states[2] = Check::new(Status::Queued);
@@ -1280,7 +1377,7 @@ mod tests {
         Ok(())
     }
     #[test]
-    fn unavailable_states_recheck_without_executing_or_moving_selection() -> Result<()> {
+    fn unknown_state_executes_with_one_space_and_keeps_selection() -> Result<()> {
         let mut app = App::new(catalog()?, true)?;
         app.states.fill(Check::new(Status::Done));
         let i = app
@@ -1291,11 +1388,11 @@ mod tests {
         app.focus(i);
         app.states[i] = Check::new(Status::Unknown);
         let command = app.space_command().unwrap();
-        assert!(matches!(&command, Command::Scan(indices) if indices == &[i]));
+        assert!(matches!(&command, Command::One(n) if *n == i));
         app.command(&command);
-        assert!(!app.busy);
+        assert!(app.busy);
         assert_eq!(app.selected(), Some(i));
-        assert_eq!(app.states[i].state, Status::PendingCheck);
+        assert_eq!(app.states[i].state, Status::Queued);
         app.receive(Message::State(i, Check::new(Status::Ready), 0), 0);
         assert!(matches!(app.space_command(), Some(Command::One(n)) if n == i));
         app.states[i] = Check::new(Status::Failed);
@@ -1309,6 +1406,63 @@ mod tests {
             app.states[i] = Check::new(state);
             assert!(app.space_command().is_none());
         }
+        Ok(())
+    }
+    #[test]
+    fn another_item_can_be_queued_while_running_and_finishes_in_order() -> Result<()> {
+        let mut app = App::new(catalog()?, true)?;
+        app.states.fill(Check::new(Status::Ready));
+        let first = app
+            .catalog
+            .iter()
+            .position(|f| f.id == "install-9plm9xgg6vks")
+            .unwrap();
+        let second = app
+            .catalog
+            .iter()
+            .position(|f| f.id == "install-git.git")
+            .unwrap();
+        app.focus(first);
+        assert!(app.command(&app.space_command().unwrap()));
+        app.receive(Message::Queued(vec![first], 1), 1);
+        app.receive(Message::State(first, Check::new(Status::Running), 1), 1);
+        app.receive(
+            Message::Progress {
+                index: first,
+                stage: "下载并安装软件".into(),
+            },
+            1,
+        );
+        assert!(app.activity().contains("ChatGPT · 下载并安装软件 · 0s"));
+        app.focus(second);
+        assert!(app.command(&app.space_command().unwrap()));
+        assert!(app.space_command().is_none());
+        assert!(!app.command(&Command::One(second)));
+        app.receive(Message::State(first, Check::new(Status::Failed), 1), 2);
+        app.receive(
+            Message::Finished {
+                processed: 1,
+                restart: false,
+                refresh: vec![],
+            },
+            1,
+        );
+        assert!(app.busy);
+        assert_eq!(app.states[second].state, Status::Queued);
+        app.receive(Message::Queued(vec![second], 2), 2);
+        app.receive(Message::State(second, Check::new(Status::Running), 2), 2);
+        app.receive(Message::State(second, Check::new(Status::Done), 2), 2);
+        app.receive(
+            Message::Finished {
+                processed: 1,
+                restart: false,
+                refresh: vec![],
+            },
+            2,
+        );
+        assert!(!app.busy);
+        assert!(app.activity().is_empty());
+        assert_eq!(app.selected(), Some(second));
         Ok(())
     }
 
@@ -1387,7 +1541,10 @@ mod tests {
                 let buffer = terminal.backend().buffer();
                 let message: String = (1..end).map(|x| buffer[(x, 23)].symbol()).collect();
                 assert_eq!(
-                    message.chars().filter(|c| !c.is_whitespace()).collect::<String>(),
+                    message
+                        .chars()
+                        .filter(|c| !c.is_whitespace())
+                        .collect::<String>(),
                     choose(zh, "需要重启", "Restartrequired")
                 );
                 assert_eq!(app.states[0].state, state);
@@ -1404,7 +1561,7 @@ mod tests {
         app.states[0] = Check::new(Status::Ready);
         app.states[last] = Check::new(Status::Ready);
         assert!(app.command(&Command::Items(vec![0, last])));
-        app.receive(Message::Queued(vec![0, last]), 2);
+        app.receive(Message::Queued(vec![0, last], 2), 2);
         assert_eq!(app.footer_message(), "执行中 0/2");
         app.receive(Message::State(last, Check::new(Status::Running), 2), 2);
         app.receive(Message::State(1, Check::new(Status::Done), 2), 2);
@@ -1417,7 +1574,11 @@ mod tests {
         app.receive(Message::State(last, Check::new(Status::Failed), 2), 2);
         assert_eq!(app.footer_message(), "执行中 2/2");
         app.receive(
-            Message::Finished { processed: 2, restart: false, refresh: vec![] },
+            Message::Finished {
+                processed: 2,
+                restart: false,
+                refresh: vec![],
+            },
             2,
         );
         assert!(app.footer_message().is_empty());
@@ -1438,13 +1599,20 @@ mod tests {
                 let mut terminal = Terminal::new(TestBackend::new(width, 24))?;
                 terminal.draw(|frame| app.draw(frame))?;
                 let buttons = app.toolbar(Rect::new(1, 23, width - 2, 1));
-                assert!(buttons.iter().all(|(_, label, rect, _)| {
-                    label.contains(' ') && rect.right() < width
-                }));
+                assert!(
+                    buttons
+                        .iter()
+                        .all(|(_, label, rect, _)| { label.contains(' ') && rect.right() < width })
+                );
                 let first = buttons[0].2.x;
-                let message: String = (1..first).map(|x| terminal.backend().buffer()[(x, 23)].symbol()).collect();
+                let message: String = (1..first)
+                    .map(|x| terminal.backend().buffer()[(x, 23)].symbol())
+                    .collect();
                 assert_eq!(
-                    message.chars().filter(|c| !c.is_whitespace()).collect::<String>(),
+                    message
+                        .chars()
+                        .filter(|c| !c.is_whitespace())
+                        .collect::<String>(),
                     choose(zh, "需要重启", "Restartrequired")
                 );
             }

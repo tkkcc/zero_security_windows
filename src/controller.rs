@@ -18,14 +18,48 @@ pub enum Command {
 }
 pub enum Message {
     Ready(Arc<Engine>),
+    Context {
+        restart: bool,
+        safe_queued: Vec<usize>,
+        restoring: Vec<usize>,
+    },
+    Progress {
+        index: usize,
+        stage: String,
+    },
     State(usize, Check, usize),
-    Queued(Vec<usize>),
+    Queued(Vec<usize>, usize),
     Finished {
         processed: usize,
         restart: bool,
         refresh: Vec<usize>,
     },
     Error(String),
+}
+fn context(engine: &Engine, tx: &Sender<Message>) {
+    let pending = engine.store.pending.lock().unwrap().clone();
+    let results = engine.store.results.lock().unwrap().clone();
+    let _ = tx.send(Message::Context {
+        restart: workflow::requires_restart(engine),
+        safe_queued: engine
+            .catalog
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| {
+                pending.as_ref().is_some_and(|p| {
+                    p.phase == workflow::Phase::AwaitSafe && p.safe_ids.contains(&f.id)
+                })
+            })
+            .map(|(i, _)| i)
+            .collect(),
+        restoring: engine
+            .catalog
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| results.get(&f.id).is_some_and(|r| r.restoring))
+            .map(|(i, _)| i)
+            .collect(),
+    });
 }
 fn final_item(f: &Feature) -> bool {
     matches!(
@@ -76,7 +110,18 @@ pub fn launch(
     std::thread::spawn(move || {
         let result = (|| -> Result<()> {
             let engine = Arc::new(Engine::new()?);
+            let progress_tx = tx.clone();
+            let ids: Vec<_> = engine.catalog.iter().map(|f| f.id.clone()).collect();
+            *engine.on_progress.lock().unwrap() = Some(Box::new(move |id, stage| {
+                if let Some(index) = ids.iter().position(|candidate| candidate == id) {
+                    let _ = progress_tx.send(Message::Progress {
+                        index,
+                        stage: stage.into(),
+                    });
+                }
+            }));
             let _ = tx.send(Message::Ready(engine.clone()));
+            context(&engine, &tx);
             let automatic = !mode.is_empty();
             if mode == "--safe-resume" {
                 let version = epoch.fetch_add(1, Ordering::SeqCst) + 1;
@@ -127,12 +172,15 @@ pub fn launch(
                 }
                 if matches!(command, Command::Restart) {
                     if let Err(e) = workflow::restart() {
+                        failure_message(&engine, &format!("{e:#}"));
                         let _ = tx.send(Message::Error(format!("{e:#}")));
                     }
                     continue;
                 }
                 let version = epoch.fetch_add(1, Ordering::SeqCst) + 1;
                 if let Err(e) = batch(&engine, &tx, version, &command, false) {
+                    failure_message(&engine, &format!("{e:#}"));
+                    context(&engine, &tx);
                     let _ = tx.send(Message::Error(format!("{e:#}")));
                 }
             }
@@ -140,6 +188,7 @@ pub fn launch(
             Ok(())
         })();
         if let Err(e) = result {
+            let _ = store::append("errors.log", &format!("{e:#}"));
             let _ = tx.send(Message::Error(format!("{e:#}")));
         }
     });
@@ -227,6 +276,10 @@ fn affected(engine: &Engine, command: &Command) -> Vec<usize> {
         .collect()
 }
 fn publish(engine: &Engine, tx: &Sender<Message>, i: usize, version: usize) {
+    engine.progress(
+        &engine.catalog[i].id,
+        choose(engine.zh, "核对最终状态", "Checking final state"),
+    );
     let _ = tx.send(Message::State(i, engine.check(&engine.catalog[i]), version));
 }
 fn failure(
@@ -415,7 +468,7 @@ pub(crate) fn batch(
             .map(|i| engine.catalog[*i].id.clone())
             .collect()
     };
-    let _ = tx.send(Message::Queued(indices.clone()));
+    let _ = tx.send(Message::Queued(indices.clone(), version));
     let safe = std::sync::Mutex::new(Vec::new());
     let [local, installers, finalizers] = job_groups(
         &engine.catalog,
@@ -432,6 +485,11 @@ pub(crate) fn batch(
     // Start fast settings before slow removals; jobs from different categories overlap.
     let run_local = |i: usize| {
         let f = &engine.catalog[i];
+        let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
+        engine.progress(
+            &f.id,
+            choose(engine.zh, "检测执行条件", "Checking requirements"),
+        );
         if f.manual || f.default_off && matches!(command, Command::All) {
             publish(engine, tx, i, version);
             return Ok(false);
@@ -524,6 +582,11 @@ pub(crate) fn batch(
     }
     if !engine.safe && safe.is_empty() && !matches!(command, Command::One(_)) {
         let install = |i| {
+            let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
+            engine.progress(
+                &engine.catalog[i].id,
+                choose(engine.zh, "检测安装状态", "Checking installation"),
+            );
             let check = engine.check(&engine.catalog[i]);
             if !check.actionable() || auto && check.state == Status::Failed {
                 publish(engine, tx, i, version);
@@ -539,6 +602,11 @@ pub(crate) fn batch(
         }
         processed += parallel_jobs(&finalizers, |i| {
             let f = &engine.catalog[i];
+            let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
+            engine.progress(
+                &f.id,
+                choose(engine.zh, "检测执行条件", "Checking requirements"),
+            );
             let check = engine.check(f);
             if !check.actionable() || auto && check.state == Status::Failed {
                 publish(engine, tx, i, version);
@@ -580,6 +648,7 @@ pub(crate) fn batch(
             }
         }
     }
+    context(engine, tx);
     let _ = tx.send(Message::Finished {
         processed,
         restart: workflow::requires_restart(engine),
@@ -603,12 +672,17 @@ fn restore_batch(
         engine.store.initialize()?;
         workflow::cleanup(engine)?;
     }
-    let _ = tx.send(Message::Queued(indices.clone()));
+    let _ = tx.send(Message::Queued(indices.clone(), version));
     let mut safe_ids = vec![];
     let mut normal_ids = vec![];
     let mut processed = 0;
     for &i in &indices {
         let f = &engine.catalog[i];
+        let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
+        engine.progress(
+            &f.id,
+            choose(engine.zh, "检测恢复条件", "Checking restore requirements"),
+        );
         let target = f.restore_target();
         if auto && !engine.safe && engine.check(f).state == Status::Failed {
             publish(engine, tx, i, version);
@@ -723,6 +797,7 @@ fn restore_batch(
         p.restoring = true;
     }
     engine.store.save()?;
+    context(engine, tx);
     let _ = tx.send(Message::Finished {
         processed,
         restart: workflow::requires_restart(engine),

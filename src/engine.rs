@@ -14,6 +14,7 @@ use std::{
 };
 
 type Fact = Arc<OnceLock<std::result::Result<Value, String>>>;
+type Progress = Box<dyn Fn(&str, &str) + Send + Sync>;
 pub struct Engine {
     pub catalog: Vec<Feature>,
     pub store: Store,
@@ -22,6 +23,7 @@ pub struct Engine {
     pub zh: bool,
     pub boot_entry: Mutex<String>,
     pub attempted_safe: Mutex<Vec<String>>,
+    pub on_progress: Mutex<Option<Progress>>,
     facts: Mutex<HashMap<&'static str, Fact>>,
 }
 pub fn matches(text: &str, pattern: &str) -> bool {
@@ -49,8 +51,14 @@ impl Engine {
             zh: native::chinese(),
             boot_entry: Mutex::new(boot_entry),
             attempted_safe: Mutex::new(vec![]),
+            on_progress: Mutex::new(None),
             facts: Mutex::new(HashMap::new()),
         })
+    }
+    pub fn progress(&self, id: &str, stage: &str) {
+        if let Some(progress) = self.on_progress.lock().unwrap().as_ref() {
+            progress(id, stage);
+        }
     }
     pub fn fact(&self, key: &'static str, read: impl FnOnce() -> Result<Value>) -> Result<Value> {
         let cell = self.facts.lock().unwrap().entry(key).or_default().clone();
@@ -68,12 +76,8 @@ impl Engine {
             ) {
                 facts.remove("apps");
             }
-            if op.kind == "Apps" {
-                facts.remove("tools");
-            }
             facts.remove(match op.kind.as_str() {
                 "Apps" => "apps",
-                "OneDrive" => "tools",
                 "TaskGroup" => "tasks",
                 "Bcd" => "bcd",
                 "Mitigations" => "mitigations",
@@ -89,19 +93,6 @@ impl Engine {
         ) {
             facts.remove("dg");
         }
-    }
-    fn remember_tool(&self, name: &str, installed: bool) {
-        let mut facts = self.facts.lock().unwrap();
-        let Some(Ok(value)) = facts.get("tools").and_then(|cell| cell.get()) else {
-            facts.remove("tools");
-            return;
-        };
-        let mut tools = value.as_array().unwrap().clone();
-        tools.retain(|v| !v.as_str().unwrap().eq_ignore_ascii_case(name));
-        if installed {
-            tools.push(json!(name));
-        }
-        facts.insert("tools", Arc::new(OnceLock::from(Ok(json!(tools)))));
     }
     pub fn feature(&self, id: &str) -> Result<&Feature> {
         self.catalog
@@ -340,20 +331,11 @@ impl Engine {
             "Edge" => json!(crate::components::edge_state(bool_value(&op.value))?),
             "AppEntry" => json!(crate::components::app_entry(op)?),
             "RemoteDesktopClient" => json!(crate::recovery::remote_desktop_state(bool_value(&op.value))?),
-            "Winget" => {
-                if let Some(installed) = apps::registered_tool(op)? {
-                    return Ok(json!(installed));
-                }
-                let tools = self.fact("tools", apps::tools)?;
-                json!(tools.as_array().unwrap().iter().any(|v| v.as_str().is_some_and(|v| v.eq_ignore_ascii_case(&op.name))))
-            }
-            "OneDrive" => {
-                let tools = self.fact("tools", apps::tools)?;
-                json!(tools.as_array().unwrap().iter().any(|v| v.as_str() == Some("Microsoft.OneDrive"))
-                    || !reg::read(r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "OneDrive")?.is_null()
-                    || !reg::read(r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "OneDrive")?.is_null())
-            }
-            "CopilotDesktop" => json!(if bool_value(&op.value) { apps::registered_tool(&Operation { package_family: "Microsoft.Copilot_8wekyb3d8bbwe".into(), ..Default::default() })? == Some(true) } else { !apps::copilot_commands()?.is_empty() }),
+            "Winget" => json!(apps::registered_tool(op)?),
+            "OneDrive" => json!(apps::registered_tool(&Operation { name: "Microsoft.OneDrive".into(), patterns: vec!["Microsoft OneDrive".into()], ..Default::default() })?
+                || !reg::read(r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "OneDrive")?.is_null()
+                || !reg::read(r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "OneDrive")?.is_null()),
+            "CopilotDesktop" => json!(if bool_value(&op.value) { apps::registered_tool(&Operation { package_family: "Microsoft.Copilot_8wekyb3d8bbwe".into(), ..Default::default() })? } else { !apps::copilot_commands()?.is_empty() }),
             "CompatibilityDatabase" => json!(!reg::read(&format!(r"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\InstalledSDB\{}", op.name), "DatabasePath")?.is_null()),
             "InputMethods" => json!(if op.value == json!("WindowsDefault") && prefs::default_input_active()? { "WindowsDefault" } else if prefs::input_only()? { "WeTypeOnly" } else { "Other" }),
             "LanguageBar" => json!(if prefs::language_bar(None)? & 2063 == 8 && reg::number(r"HKCU:\Software\Microsoft\CTF\LangBar", "ShowStatus", 0)? == 3 { "Hidden" } else { "Visible" }),
@@ -399,7 +381,7 @@ impl Engine {
             _ => bail!("Unknown operation: {}", op.kind),
         })
     }
-    pub fn write(&self, op: &Operation) -> Result<bool> {
+    pub fn write(&self, op: &Operation, id: &str) -> Result<bool> {
         match op.kind.as_str() {
             "Registry" | "RegistryDelete" | "UserServiceStart" => reg::write(op)?,
             "ServiceRestore" => {
@@ -470,7 +452,7 @@ impl Engine {
                 return if bool_value(&op.value) {
                     apps::restore(op)
                 } else {
-                    apps::remove(op)
+                    apps::remove(op, |stage| self.progress(id, stage))
                 };
             }
             "Edge" => return crate::components::edge(bool_value(&op.value)),
@@ -480,16 +462,7 @@ impl Engine {
             }
             "Winget" => {
                 let installed = bool_value(&op.value);
-                match apps::install(op, !installed) {
-                    Ok(restart) => {
-                        self.remember_tool(&op.name, installed);
-                        return Ok(restart);
-                    }
-                    Err(error) => {
-                        self.facts.lock().unwrap().remove("tools");
-                        return Err(error);
-                    }
-                }
+                return apps::install(op, !installed);
             }
             "OneDrive" => {
                 if bool_value(&op.value) {
@@ -497,22 +470,14 @@ impl Engine {
                         &Operation {
                             kind: "Winget".into(),
                             name: "Microsoft.OneDrive".into(),
+                            patterns: vec!["Microsoft OneDrive".into()],
                             source: "winget".into(),
                             ..op.clone()
                         },
                         false,
                     );
                 }
-                let mut restart = false;
-                if apps::has_tool("Microsoft.OneDrive")? {
-                    restart = apps::install(
-                        &Operation {
-                            name: "Microsoft.OneDrive".into(),
-                            ..op.clone()
-                        },
-                        true,
-                    )?
-                }
+                let restart = apps::remove_onedrive()?;
                 for path in [
                     r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
                     r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
@@ -711,6 +676,41 @@ impl Engine {
         tasks_only: bool,
         settings_only: bool,
     ) -> Result<ResultRecord> {
+        let started = std::time::Instant::now();
+        self.store.timing(
+            &f.id,
+            &Operation {
+                kind: "Execute".into(),
+                ..Default::default()
+            },
+            "Start",
+            started,
+            "",
+        )?;
+        let result = self.execute_steps(f, win11, tasks_only, settings_only);
+        let error = match &result {
+            Ok(record) => record.errors.join("; "),
+            Err(error) => format!("{error:#}"),
+        };
+        self.store.timing(
+            &f.id,
+            &Operation {
+                kind: "Execute".into(),
+                ..Default::default()
+            },
+            "Finish",
+            started,
+            &error,
+        )?;
+        result
+    }
+    fn execute_steps(
+        &self,
+        f: &Feature,
+        win11: bool,
+        tasks_only: bool,
+        settings_only: bool,
+    ) -> Result<ResultRecord> {
         self.store.initialize()?;
         let restoring = f.intent == "Restore";
         let logon = native::logon()?;
@@ -757,7 +757,13 @@ impl Engine {
         for op in ops.into_iter().filter(|op| {
             (!tasks_only || op.kind == "Task") && (!settings_only || op.kind != "Task")
         }) {
+            let step = std::time::Instant::now();
+            self.store.timing(&f.id, &op, "Start", step, "")?;
             let applied = (|| -> Result<()> {
+                self.progress(
+                    &f.id,
+                    choose(self.zh, "检测当前状态", "Checking current state"),
+                );
                 let before = self.read(&op)?;
                 if op.kind == "OptionalFeature" && before.is_null() {
                     return Ok(());
@@ -772,7 +778,30 @@ impl Engine {
                 {
                     return Ok(());
                 }
-                let restart = self.write(&op)?;
+                let stage = match op.kind.as_str() {
+                    "Winget" if restoring => choose(self.zh, "卸载软件", "Uninstalling software"),
+                    "Winget" => choose(self.zh, "下载并安装软件", "Downloading and installing"),
+                    "Apps" if restoring => choose(self.zh, "恢复应用", "Restoring apps"),
+                    "Apps" => choose(
+                        self.zh,
+                        "保留恢复材料并卸载应用",
+                        "Saving recovery materials and removing apps",
+                    ),
+                    "Service" | "ServiceStart" | "ServiceRestore" | "UserServiceStart" => {
+                        choose(self.zh, "配置服务", "Configuring services")
+                    }
+                    "Task" => choose(self.zh, "配置计划任务", "Configuring tasks"),
+                    "OptionalFeature" | "ReservedStorage" => {
+                        choose(self.zh, "处理系统组件", "Updating Windows components")
+                    }
+                    "Edge" | "OneDrive" | "CopilotDesktop" => {
+                        choose(self.zh, "卸载应用并清理文件", "Removing apps and files")
+                    }
+                    "TaskbarPins" | "StartPins" => choose(self.zh, "处理固定项", "Updating pins"),
+                    _ => choose(self.zh, "应用设置", "Applying settings"),
+                };
+                self.progress(&f.id, stage);
+                let restart = self.write(&op, &f.id)?;
                 result.restart |= restart;
                 result.changed = true;
                 if op.kind == "UserServiceStart" && !f.restart {
@@ -780,6 +809,7 @@ impl Engine {
                 }
                 self.invalidate(f);
                 if !restart {
+                    self.progress(&f.id, choose(self.zh, "核对执行结果", "Verifying result"));
                     ensure!(
                         satisfied(&op, &self.read(&op)?),
                         "Setting did not match after writing: {} {}",
@@ -787,16 +817,29 @@ impl Engine {
                         op.name
                     )
                 }
-                self.store.log(&f.id, &op, "")?;
                 Ok(())
             })();
+            self.store.timing(
+                &f.id,
+                &op,
+                "Finish",
+                step,
+                &applied
+                    .as_ref()
+                    .err()
+                    .map(|e| format!("{e:#}"))
+                    .unwrap_or_default(),
+            )?;
             if let Err(e) = applied {
                 let error = format!("{e:#}");
-                self.store.log(&f.id, &op, &error)?;
                 result.errors.push(error)
             }
         }
         if !tasks_only {
+            self.progress(
+                &f.id,
+                choose(self.zh, "刷新系统设置", "Refreshing settings"),
+            );
             if let Err(e) = self.refresh(f) {
                 let error = format!("{e:#}");
                 self.store.log(
@@ -1085,33 +1128,6 @@ mod tests {
             assert!(!satisfied(&op, &json!({"scm": 2, "registry": value})));
             assert!(satisfied(&op, &json!({"scm": value, "registry": value})));
         }
-    }
-    #[test]
-    fn parallel_verified_installs_update_one_inventory_without_losing_entries() -> Result<()> {
-        let engine = Engine::new()?;
-        engine.fact("tools", || Ok(json!(["Existing.App"])))?;
-        std::thread::scope(|scope| {
-            for name in ["First.App", "Second.App"] {
-                let engine = &engine;
-                scope.spawn(move || engine.remember_tool(name, true));
-            }
-        });
-        let tools = engine.fact("tools", || anyhow::bail!("unexpected inventory refresh"))?;
-        let tools = tools.as_array().unwrap();
-        assert_eq!(tools.len(), 3);
-        for name in ["Existing.App", "First.App", "Second.App"] {
-            assert!(tools.contains(&json!(name)));
-        }
-        engine.remember_tool("First.App", false);
-        assert_eq!(
-            engine
-                .fact("tools", || anyhow::bail!("unexpected refresh"))?
-                .as_array()
-                .unwrap()
-                .len(),
-            2
-        );
-        Ok(())
     }
     #[test]
     fn power_restore_reads_platform_defaults_without_changing_active_values() -> Result<()> {

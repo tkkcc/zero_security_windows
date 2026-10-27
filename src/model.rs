@@ -208,10 +208,7 @@ impl Check {
         !f.manual
     }
     pub fn actionable(&self) -> bool {
-        matches!(self.state, Status::Ready | Status::Failed)
-    }
-    pub fn recheckable(&self) -> bool {
-        self.state == Status::Unknown
+        matches!(self.state, Status::Ready | Status::Failed | Status::Unknown)
     }
     pub fn label(&self, f: &Feature, zh: bool) -> String {
         match self.state {

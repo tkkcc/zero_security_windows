@@ -18,43 +18,15 @@ fn folder(name: &str) -> PathBuf {
         .join(name)
 }
 fn move_path(source: &Path, target: &Path, system: bool) -> Result<()> {
-    if system {
-        let _guard = native::trusted_installer()?;
+    store::file_operation("Move", source, target, || {
+        let _guard = if system {
+            Some(native::trusted_installer()?)
+        } else {
+            None
+        };
         fs::rename(source, target)?;
-        return Ok(());
-    }
-    let directory = source.is_dir();
-    let (from, to, filter) = if directory {
-        (source, target, "*")
-    } else {
-        (
-            source.parent().unwrap(),
-            target.parent().unwrap(),
-            source.file_name().unwrap().to_str().unwrap(),
-        )
-    };
-    let mut args = vec![
-        from.to_str().unwrap(),
-        to.to_str().unwrap(),
-        filter,
-        "/R:0",
-        "/W:0",
-        "/COPY:DAT",
-        "/SL",
-        "/SJ",
-    ];
-    if directory {
-        args.extend(["/E", "/MOVE"]);
-    } else {
-        args.push("/MOV");
-    }
-    let (code, output) = native::run("robocopy.exe", &args)?;
-    ensure!(
-        code < 8 && !source.exists() && target.exists(),
-        "File move did not complete: {}: {output}",
-        source.display()
-    );
-    Ok(())
+        Ok(())
+    })
 }
 fn move_files(name: &str, paths: &[PathBuf], system: bool) -> Result<()> {
     let root = folder(name);
@@ -66,7 +38,9 @@ fn move_files(name: &str, paths: &[PathBuf], system: bool) -> Result<()> {
         vec![]
     };
     for original in paths {
-        let saved = root
+        let saved = store::recovery_root(original)
+            .join(native::sid()?)
+            .join(name)
             .join(files.len().to_string())
             .join(original.file_name().unwrap());
         fs::create_dir_all(saved.parent().unwrap())?;

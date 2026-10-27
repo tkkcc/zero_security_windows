@@ -1256,7 +1256,10 @@
         "Name": "twpayne.chezmoi",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "chezmoi.exe"
+        ]
       }
     ],
     "Probe": "",
@@ -1271,7 +1274,10 @@
         "Name": "twpayne.chezmoi",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "chezmoi.exe"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1289,7 +1295,10 @@
         "Name": "Git.Git",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "Git"
+        ]
       }
     ],
     "Probe": "",
@@ -1304,7 +1313,10 @@
         "Name": "Git.Git",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "Git"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1322,7 +1334,10 @@
         "Name": "astral-sh.uv",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "uv.exe"
+        ]
       }
     ],
     "Probe": "",
@@ -1337,7 +1352,10 @@
         "Name": "astral-sh.uv",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "uv.exe"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1355,7 +1373,10 @@
         "Name": "AutoHotkey.AutoHotkey",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "AutoHotkey*"
+        ]
       }
     ],
     "Probe": "",
@@ -1370,7 +1391,10 @@
         "Name": "AutoHotkey.AutoHotkey",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "AutoHotkey*"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1424,7 +1448,10 @@
         "Name": "Microsoft.VisualStudioCode",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "Microsoft Visual Studio Code*"
+        ]
       }
     ],
     "Probe": "",
@@ -1439,7 +1466,10 @@
         "Name": "Microsoft.VisualStudioCode",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "Microsoft Visual Studio Code*"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1457,7 +1487,10 @@
         "Name": "GitHub.cli",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "GitHub CLI"
+        ]
       }
     ],
     "Probe": "",
@@ -1472,7 +1505,10 @@
         "Name": "GitHub.cli",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "GitHub CLI"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1525,7 +1561,10 @@
         "Name": "OpenJS.NodeJS",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "Node.js"
+        ]
       }
     ],
     "Probe": "",
@@ -1540,7 +1579,10 @@
         "Name": "OpenJS.NodeJS",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "Node.js"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1558,7 +1600,10 @@
         "Name": "Python.Python.3.14",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "Python 3.14*"
+        ]
       }
     ],
     "Probe": "",
@@ -1573,7 +1618,10 @@
         "Name": "Python.Python.3.14",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "Python 3.14*"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1591,7 +1639,10 @@
         "Name": "sharkdp.fd",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "fd.exe"
+        ]
       }
     ],
     "Probe": "",
@@ -1606,7 +1657,10 @@
         "Name": "sharkdp.fd",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "fd.exe"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1624,7 +1678,10 @@
         "Name": "sxyazi.yazi",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "yazi.exe"
+        ]
       }
     ],
     "Probe": "",
@@ -1639,7 +1696,10 @@
         "Name": "sxyazi.yazi",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "yazi.exe"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1658,7 +1718,10 @@
         "Source": "winget",
         "Value": true,
         "Kind": "Winget",
-        "RequiresDelivery": true
+        "RequiresDelivery": true,
+        "Patterns": [
+          "PowerShell 7*"
+        ]
       }
     ],
     "Probe": "",
@@ -1673,7 +1736,10 @@
         "Name": "Microsoft.PowerShell",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "PowerShell 7*"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1691,7 +1757,10 @@
         "Name": "junegunn.fzf",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "fzf.exe"
+        ]
       }
     ],
     "Probe": "",
@@ -1706,7 +1775,10 @@
         "Name": "junegunn.fzf",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "fzf.exe"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1724,7 +1796,10 @@
         "Name": "ajeetdsouza.zoxide",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "zoxide.exe"
+        ]
       }
     ],
     "Probe": "",
@@ -1739,7 +1814,10 @@
         "Name": "ajeetdsouza.zoxide",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "zoxide.exe"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1757,7 +1835,10 @@
         "Name": "Neovim.Neovim",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "Neovim"
+        ]
       }
     ],
     "Probe": "",
@@ -1772,7 +1853,10 @@
         "Name": "Neovim.Neovim",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Patterns": [
+          "Neovim"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1790,7 +1874,10 @@
         "Name": "Google.AndroidCLI",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "sdkmanager.bat"
+        ]
       }
     ],
     "Probe": "",
@@ -1805,7 +1892,10 @@
         "Name": "Google.AndroidCLI",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "sdkmanager.bat"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -1860,7 +1950,8 @@
         "Source": "winget",
         "Value": true,
         "Kind": "Winget",
-        "RequiresDelivery": true
+        "RequiresDelivery": true,
+        "PackageFamily": "Microsoft.WindowsTerminal_8wekyb3d8bbwe"
       }
     ],
     "Probe": "",
@@ -1875,7 +1966,8 @@
         "Name": "Microsoft.WindowsTerminal",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "PackageFamily": "Microsoft.WindowsTerminal_8wekyb3d8bbwe"
       }
     ],
     "RestoreSafe": false
@@ -1893,7 +1985,10 @@
         "Name": "Tailscale.tailcat",
         "Source": "winget",
         "Value": true,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "tailcat.exe"
+        ]
       }
     ],
     "Probe": "",
@@ -1908,7 +2003,10 @@
         "Name": "Tailscale.tailcat",
         "Source": "winget",
         "Value": false,
-        "Kind": "Winget"
+        "Kind": "Winget",
+        "Names": [
+          "tailcat.exe"
+        ]
       }
     ],
     "RestoreSafe": false
@@ -2666,11 +2764,6 @@
         "PackageSources": {
           "Microsoft.MicrosoftPCManager": "9PM860492SZD"
         }
-      },
-      {
-        "Name": "Microsoft.PCManager",
-        "Value": false,
-        "Kind": "Winget"
       }
     ],
     "Probe": "",

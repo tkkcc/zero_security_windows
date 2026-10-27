@@ -1,5 +1,5 @@
 use crate::{
-    model::{Operation, bool_value},
+    model::{Operation, bool_value, choose},
     native, registry as reg, store,
 };
 use anyhow::{Context, Result, ensure};
@@ -225,35 +225,56 @@ fn deployment(result: DeploymentResult) -> Result<()> {
     );
     Ok(())
 }
-fn copy_layout(from: &Path, to: &Path) -> Result<()> {
-    {
-        let _guard = native::system()?;
-        fs::create_dir_all(to)?;
+fn link_layout(from: &Path, to: &Path) -> Result<()> {
+    fs::create_dir_all(to)?;
+    for entry in fs::read_dir(from)? {
+        let entry = entry?;
+        let target = to.join(entry.file_name());
+        let kind = entry.file_type()?;
+        if kind.is_symlink() {
+            if !target.try_exists()? {
+                let link = fs::read_link(entry.path())?;
+                if entry.path().is_dir() {
+                    std::os::windows::fs::symlink_dir(link, target)?;
+                } else {
+                    std::os::windows::fs::symlink_file(link, target)?;
+                }
+            }
+        } else if kind.is_dir() {
+            link_layout(&entry.path(), &target)?;
+        } else if !target.try_exists()? {
+            fs::hard_link(entry.path(), target)?;
+        }
     }
-    let (code, output) = native::run(
-        "robocopy.exe",
-        &[
-            from.to_str().unwrap(),
-            to.to_str().unwrap(),
-            "/E",
-            "/B",
-            "/COPY:DATS",
-            "/SECFIX",
-            "/SL",
-            "/SJ",
-            "/R:0",
-            "/W:0",
-        ],
-    )?;
-    ensure!(
-        code < 8 && to.join("AppxManifest.xml").is_file(),
-        "Package recovery copy failed: {output}"
-    );
+    native::copy_directory_acl(from, to)?;
+    Ok(())
+}
+fn material_path(op: &Operation, material: &Material) -> PathBuf {
+    store::recovery_root(&material.original)
+        .join("apps")
+        .join(&op.name)
+        .join(&material.full)
+}
+fn move_layout(from: &Path, to: &Path) -> Result<()> {
+    if !to.try_exists()? {
+        fs::rename(from, to)?;
+    } else if from.try_exists()? {
+        for entry in fs::read_dir(from)? {
+            let entry = entry?;
+            let target = to.join(entry.file_name());
+            if entry.file_type()?.is_dir() {
+                move_layout(&entry.path(), &target)?;
+            } else if !target.try_exists()? {
+                fs::rename(entry.path(), target)?;
+            }
+        }
+        native::copy_directory_acl(from, to)?;
+    }
     Ok(())
 }
 fn save_layout(
     package: &Package,
-    root: &Path,
+    op: &Operation,
     out: &mut Vec<Material>,
     seen: &mut BTreeSet<String>,
 ) -> Result<()> {
@@ -262,18 +283,28 @@ fn save_layout(
         return Ok(());
     }
     for dependency in package.Dependencies()? {
-        save_layout(&dependency, root, out, seen)?;
+        save_layout(&dependency, op, out, seen)?;
     }
     let original = PathBuf::from(package.InstalledPath()?.to_string());
-    copy_layout(&original, &root.join(&full)).with_context(|| format!("Copy package {full}"))?;
-    out.push(Material { full, original });
+    let material = Material { full, original };
+    // The package manager still needs the installed layout while unregistering it.
+    // Same-volume hard links retain its data without copying or moving shared dependencies.
+    {
+        let _guard = native::trusted_installer()?;
+        let saved = material_path(op, &material);
+        store::file_operation("LinkLayout", &material.original, &saved, || {
+            link_layout(&material.original, &saved)
+        })
+        .with_context(|| format!("Retain package {}", material.full))?;
+    }
+    out.push(material);
     if !package.IsResourcePackage()? && !package.IsFramework()? {
         let manager = PackageManager::new()?;
         for resource in manager.FindPackagesByPackageFamilyName(&package.Id()?.FamilyName()?)? {
             if resource.IsResourcePackage()?
                 && resource.Id()?.Version()? == package.Id()?.Version()?
             {
-                save_layout(&resource, root, out, seen)?;
+                save_layout(&resource, op, out, seen)?;
             }
         }
     }
@@ -377,7 +408,9 @@ pub fn finish_removal(op: &Operation) -> Result<()> {
     );
     Ok(())
 }
-pub fn remove(op: &Operation) -> Result<bool> {
+pub fn remove(op: &Operation, progress: impl Fn(&str)) -> Result<bool> {
+    let zh = native::chinese();
+    progress(choose(zh, "读取已安装应用", "Reading installed apps"));
     native::com()?;
     let entries = inventory()?;
     let targets = matching(&entries, op);
@@ -408,10 +441,7 @@ pub fn remove(op: &Operation) -> Result<bool> {
         {
             continue;
         }
-        let mut source = source_for(op, &a.name).to_string();
-        if !source.is_empty() && !source_available(&source, install_source(op))? {
-            source.clear();
-        }
+        let source = source_for(op, &a.name).to_string();
         let protected = op.non_removable
             || non_removable(&a.family)?
             || saved
@@ -419,6 +449,11 @@ pub fn remove(op: &Operation) -> Result<bool> {
                 .any(|p| p.family == a.family && p.non_removable);
         let mut materials = vec![];
         if source.is_empty() {
+            progress(&format!(
+                "{}{}",
+                choose(zh, "保留恢复材料：", "Retaining recovery materials: "),
+                a.name
+            ));
             let package = manager
                 .FindPackages()?
                 .into_iter()
@@ -429,7 +464,7 @@ pub fn remove(op: &Operation) -> Result<bool> {
                         .is_ok_and(|full| full == a.full.as_str())
                 })
                 .ok_or_else(|| anyhow::anyhow!("Missing package layout: {}", a.full))?;
-            save_layout(&package, &root, &mut materials, &mut BTreeSet::new())?;
+            save_layout(&package, op, &mut materials, &mut BTreeSet::new())?;
         }
         let registrations: BTreeSet<_> = targets
             .iter()
@@ -464,6 +499,11 @@ pub fn remove(op: &Operation) -> Result<bool> {
     )
     .context("Save package recovery record")?;
     for a in &saved {
+        progress(&format!(
+            "{}{}",
+            choose(zh, "准备卸载：", "Preparing removal: "),
+            a.name
+        ));
         if a.non_removable {
             set_non_removable(&a.family, false).context("Allow package removal")?;
         }
@@ -486,6 +526,11 @@ pub fn remove(op: &Operation) -> Result<bool> {
     let mut families = BTreeSet::new();
     for a in &targets {
         if a.provisioned && families.insert(&a.family) {
+            progress(&format!(
+                "{}{}",
+                choose(zh, "清除预配：", "Deprovisioning: "),
+                a.name
+            ));
             deployment(
                 manager
                     .DeprovisionPackageForAllUsersAsync(&HSTRING::from(&a.family))?
@@ -497,6 +542,7 @@ pub fn remove(op: &Operation) -> Result<bool> {
     let after_deprovision = inventory()?;
     let mut removed_families = BTreeSet::new();
     for a in matching(&after_deprovision, op) {
+        progress(&format!("{}{}", choose(zh, "卸载：", "Removing: "), a.name));
         let system_location = PathBuf::from(std::env::var("SystemRoot")?).join("SystemApps");
         if op.non_removable || Path::new(&a.path).starts_with(&system_location) {
             let report = store::root().join(format!(
@@ -578,6 +624,11 @@ pub fn remove(op: &Operation) -> Result<bool> {
         }
     }
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(90);
+    progress(choose(
+        zh,
+        "清理残留并核对卸载结果",
+        "Cleaning files and verifying removal",
+    ));
     let remaining = loop {
         let remaining = inventory()?;
         let targets = matching(&remaining, op);
@@ -646,7 +697,6 @@ fn uri(path: &Path) -> Result<Uri> {
 pub fn restore(op: &Operation) -> Result<bool> {
     native::com()?;
     let manager = PackageManager::new()?;
-    let root = recovery_root(op);
     let saved = records(op)?;
     if saved.is_empty() {
         ensure!(
@@ -678,12 +728,18 @@ pub fn restore(op: &Operation) -> Result<bool> {
             &Operation {
                 name: id.into(),
                 source: install_source(op).into(),
+                pattern: op
+                    .package_sources
+                    .iter()
+                    .find(|(_, source)| source.as_str() == id)
+                    .map(|(name, _)| name.clone())
+                    .unwrap_or_default(),
                 ..Default::default()
             },
             false,
         )?;
     }
-    let mut copied = BTreeSet::new();
+    let mut moved = BTreeSet::new();
     for a in saved.iter().filter(|a| a.source.is_empty()) {
         ensure!(
             !a.materials.is_empty(),
@@ -691,10 +747,14 @@ pub fn restore(op: &Operation) -> Result<bool> {
             a.name
         );
         for material in &a.materials {
-            if !copied.insert(&material.full) {
+            if !moved.insert(&material.full) {
                 continue;
             }
-            copy_layout(&root.join(&material.full), &material.original)?;
+            let _guard = native::trusted_installer()?;
+            let saved = material_path(op, material);
+            store::file_operation("Move", &saved, &material.original, || {
+                move_layout(&saved, &material.original)
+            })?;
         }
         let main = a
             .materials
@@ -773,83 +833,12 @@ fn install_source(op: &Operation) -> &str {
         &op.source
     }
 }
-fn source_available(id: &str, source: &str) -> Result<bool> {
-    let (code, text) = native::run(
-        &winget()?,
-        &[
-            "show",
-            "--id",
-            id,
-            "--exact",
-            "--source",
-            source,
-            "--disable-interactivity",
-            "--accept-source-agreements",
-        ],
-    )?;
-    match code as u32 {
-        0 => Ok(true),
-        0x8a150014 => Ok(false),
-        _ => anyhow::bail!("Could not verify recovery source {id}: {text}"),
-    }
-}
-pub fn tools() -> Result<serde_json::Value> {
-    static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-    let file = std::env::temp_dir().join(format!(
-        "zsw-tools-{}-{}.json",
-        std::process::id(),
-        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-    ));
-    let result = (|| {
-        native::command(
-            &winget()?,
-            &[
-                "export",
-                "--output",
-                file.to_str().unwrap(),
-                "--include-versions",
-                "--disable-interactivity",
-                "--accept-source-agreements",
-            ],
-        )?;
-        let v: serde_json::Value = serde_json::from_slice(&std::fs::read(&file)?)?;
-        Ok(serde_json::json!(
-            v["Sources"]
-                .as_array()
-                .ok_or_else(|| anyhow::anyhow!("Invalid winget inventory"))?
-                .iter()
-                .flat_map(|s| s["Packages"].as_array().into_iter().flatten())
-                .filter_map(|p| p["PackageIdentifier"].as_str())
-                .collect::<Vec<_>>()
-        ))
-    })();
-    let _ = std::fs::remove_file(file);
-    result
-}
-pub fn has_tool(id: &str) -> Result<bool> {
-    let (c, t) = native::run(
-        &winget()?,
-        &[
-            "list",
-            "--id",
-            id,
-            "--exact",
-            "--disable-interactivity",
-            "--accept-source-agreements",
-        ],
-    )?;
-    match c {
-        0 => Ok(true),
-        -1978335212 => Ok(false),
-        _ => anyhow::bail!("winget ({c}): {t}"),
-    }
-}
-pub fn registered_tool(op: &Operation) -> Result<Option<bool>> {
+pub fn registered_tool(op: &Operation) -> Result<bool> {
     if op.name.eq_ignore_ascii_case("Tencent.WeType")
         && (wetype_root().try_exists()?
             || reg::exists(r"HKLM:\SYSTEM\CurrentControlSet\Services\WeType Management Service")?)
     {
-        return Ok(Some(true));
+        return Ok(true);
     }
     if !op.package_family.is_empty() {
         native::com()?;
@@ -859,26 +848,93 @@ pub fn registered_tool(op: &Operation) -> Result<Option<bool>> {
             &HSTRING::from(&op.package_family),
         )? {
             if std::path::PathBuf::from(package.InstalledPath()?.to_string()).try_exists()? {
-                return Ok(Some(true));
+                return Ok(true);
             }
         }
-        return Ok(Some(false));
+        return Ok(false);
+    }
+    if !op.pattern.is_empty() {
+        native::com()?;
+        for package in PackageManager::new()?.FindPackagesByUserSecurityId(&HSTRING::new())? {
+            if crate::engine::matches(&package.Id()?.Name()?.to_string(), &op.pattern)
+                && PathBuf::from(package.InstalledPath()?.to_string()).try_exists()?
+            {
+                return Ok(true);
+            }
+        }
+        return Ok(false);
     }
     if !op.uninstall_key.is_empty() {
         for branch in UNINSTALL_BRANCHES {
             if reg::exists(&format!(r"{branch}\{}", op.uninstall_key))? {
-                return Ok(Some(true));
+                return Ok(true);
             }
         }
-        return Ok(Some(false));
+        return Ok(false);
     }
-    Ok(None)
+    for branch in UNINSTALL_BRANCHES {
+        for key in reg::children(branch)? {
+            let path = format!(r"{branch}\{key}");
+            if reg::read(&path, "WinGetPackageIdentifier")
+                .with_context(|| format!("Read installed package {path}"))?
+                .as_str()
+                .is_some_and(|id| id.eq_ignore_ascii_case(&op.name))
+                || reg::read(&path, "DisplayName")?
+                    .as_str()
+                    .is_some_and(|name| {
+                        op.patterns
+                            .iter()
+                            .any(|pattern| crate::engine::matches(name, pattern))
+                    })
+            {
+                return Ok(true);
+            }
+        }
+    }
+    for executable in &op.names {
+        for root in [
+            r"%LOCALAPPDATA%\Microsoft\WinGet\Links",
+            r"%ProgramFiles%\WinGet\Links",
+        ] {
+            if PathBuf::from(native::expand(root))
+                .join(executable)
+                .try_exists()?
+            {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
 }
 const UNINSTALL_BRANCHES: [&str; 3] = [
     r"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
     r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
     r"HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
 ];
+pub fn remove_onedrive() -> Result<bool> {
+    let mut restart = false;
+    for branch in UNINSTALL_BRANCHES {
+        for key in reg::children(branch)? {
+            let path = format!(r"{branch}\{key}");
+            if reg::read(&path, "DisplayName")?.as_str() != Some("Microsoft OneDrive") {
+                continue;
+            }
+            let command = reg::read(&path, "UninstallString")?;
+            let mut args = native::uninstaller(
+                command
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("OneDrive uninstaller is missing"))?,
+            )?;
+            let exe = args.remove(0);
+            args.push("/silent".into());
+            let (code, output) =
+                native::run(&exe, &args.iter().map(String::as_str).collect::<Vec<_>>())?;
+            ensure!(matches!(code, 0 | 3010), "OneDrive ({code}): {output}");
+            restart |= code == 3010;
+        }
+    }
+    Ok(restart)
+}
 fn wetype_root() -> PathBuf {
     PathBuf::from(native::expand(r"%ProgramFiles%\Tencent\WeType"))
 }
@@ -999,7 +1055,8 @@ fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
     let wetype = uninstall && op.name.eq_ignore_ascii_case("Tencent.WeType");
     ensure!(
         matches!(c, 0 | 3010 | 1641) || already_installed || wetype && c as u32 == 0x8a150014,
-        "winget ({c}); {}",
+        "winget ({c}): {}; {}",
+        t.trim(),
         crate::store::root().join("install.log").display()
     );
     if wetype {
@@ -1007,10 +1064,7 @@ fn install_run(op: &Operation, uninstall: bool) -> Result<bool> {
     }
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(90);
     let installed = loop {
-        let installed = match registered_tool(op)? {
-            Some(installed) => installed,
-            None => has_tool(&op.name)?,
-        };
+        let installed = registered_tool(op)?;
         if installed != uninstall || std::time::Instant::now() >= deadline {
             break installed;
         }
@@ -1128,6 +1182,47 @@ mod tests {
         }
     }
     #[test]
+    fn local_install_detection_uses_registration_without_opening_package_sources() -> Result<()> {
+        native::privilege("SeBackupPrivilege")?;
+        native::privilege("SeRestorePrivilege")?;
+        let id = format!("Test.OfflineDetection{}", std::process::id());
+        let path = format!(r"{}\{id}", UNINSTALL_BRANCHES[0]);
+        let op = Operation {
+            name: id.clone(),
+            ..Default::default()
+        };
+        reg::set(&path, "DisplayName", "Offline test", "String")?;
+        reg::set(&path, "WinGetPackageIdentifier", id.as_str(), "String")?;
+        let detected = registered_tool(&op);
+        reg::key(&path, false)?;
+        assert!(detected?);
+        assert!(!registered_tool(&op)?);
+        Ok(())
+    }
+    #[test]
+    fn recovery_layout_keeps_file_data_without_copying_it() -> Result<()> {
+        let root = store::root().join("linked-layout-test");
+        let original = root.join("original");
+        let saved = root.join("saved");
+        fs::create_dir_all(original.join("sub"))?;
+        fs::write(original.join("sub/payload"), b"original data")?;
+        link_layout(&original, &saved)?;
+        fs::write(saved.join("sub/payload"), b"shared data")?;
+        assert_eq!(fs::read(original.join("sub/payload"))?, b"shared data");
+        fs::remove_dir_all(&original)?;
+        assert_eq!(fs::read(saved.join("sub/payload"))?, b"shared data");
+        move_layout(&saved, &original)?;
+        assert_eq!(fs::read(original.join("sub/payload"))?, b"shared data");
+        fs::write(original.join("sub/retained"), b"still in use")?;
+        link_layout(&original, &saved)?;
+        fs::remove_file(original.join("sub/payload"))?;
+        move_layout(&saved, &original)?;
+        assert_eq!(fs::read(original.join("sub/payload"))?, b"shared data");
+        assert_eq!(fs::read(original.join("sub/retained"))?, b"still in use");
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+    #[test]
     fn machine_32_bit_registration_is_visible_after_winget_tracking_is_removed() -> Result<()> {
         let name = format!("ZeroSecurityWindowsRegistrationTest{}", std::process::id());
         let path = format!(r"{}\{name}", UNINSTALL_BRANCHES[2]);
@@ -1138,9 +1233,9 @@ mod tests {
         };
         reg::key(&path, true)?;
         let result = (|| -> Result<()> {
-            assert_eq!(registered_tool(&op)?, Some(true));
+            assert!(registered_tool(&op)?);
             reg::key(&path, false)?;
-            assert_eq!(registered_tool(&op)?, Some(false));
+            assert!(!registered_tool(&op)?);
             Ok(())
         })();
         reg::key(&path, false)?;

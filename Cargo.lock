@@ -2576,7 +2576,7 @@ dependencies = [
 
 [[package]]
 name = "zero_security_windows"
-version = "0.10.2"
+version = "0.10.3"
 dependencies = [
  "anyhow",
  "chrono",

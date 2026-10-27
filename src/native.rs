@@ -1,5 +1,5 @@
 use anyhow::{Result, ensure};
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::{
     ffi::c_void,
     os::windows::process::CommandExt,
@@ -312,6 +312,13 @@ pub fn trusted_installer() -> Result<SystemGuard> {
     anyhow::bail!("TrustedInstaller did not start")
 }
 pub fn run_as_installer(program: &str, args: &[&str]) -> Result<u32> {
+    let started = std::time::Instant::now();
+    crate::store::append("commands.jsonl", &json!({"Time":chrono::Local::now().to_rfc3339(),"Program":program,"Args":args,"Phase":"Start"}).to_string())?;
+    let result = installer_process(program, args);
+    crate::store::append("commands.jsonl", &json!({"Time":chrono::Local::now().to_rfc3339(),"Program":program,"Args":args,"Phase":"Finish","DurationMs":started.elapsed().as_millis(),"ExitCode":result.as_ref().ok(),"Error":result.as_ref().err().map(ToString::to_string)}).to_string())?;
+    result
+}
+fn installer_process(program: &str, args: &[&str]) -> Result<u32> {
     use windows::Win32::{
         Foundation::HANDLE,
         System::Threading::{
@@ -773,10 +780,14 @@ pub fn reg_write(
     }
 }
 pub fn run(program: &str, args: &[&str]) -> Result<(i32, String)> {
+    let started = std::time::Instant::now();
+    crate::store::append("commands.jsonl", &json!({"Time":chrono::Local::now().to_rfc3339(),"Program":program,"Args":args,"Phase":"Start"}).to_string())?;
     let out = Command::new(program)
         .args(args)
         .creation_flags(0x08000000)
-        .output()?;
+        .output();
+    crate::store::append("commands.jsonl", &json!({"Time":chrono::Local::now().to_rfc3339(),"Program":program,"Args":args,"Phase":"Finish","DurationMs":started.elapsed().as_millis(),"ExitCode":out.as_ref().ok().and_then(|out| out.status.code()),"Error":out.as_ref().err().map(ToString::to_string)}).to_string())?;
+    let out = out?;
     let bytes = [out.stdout, out.stderr].concat();
     let text = if bytes.starts_with(&[255, 254]) {
         String::from_utf16_lossy(
@@ -1098,11 +1109,10 @@ pub fn modern_terminal(args: &[String]) -> Result<bool> {
     if !terminal.is_file() {
         return Ok(false);
     }
-    if crate::apps::registered_tool(&crate::model::Operation {
+    if !crate::apps::registered_tool(&crate::model::Operation {
         package_family: "Microsoft.WindowsTerminal_8wekyb3d8bbwe".into(),
         ..Default::default()
-    })? != Some(true)
-    {
+    })? {
         return Ok(false);
     }
     let local = PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap());
@@ -1439,6 +1449,40 @@ pub fn dism(args: &[&str]) -> Result<bool> {
 }
 pub fn block_execute(path: &Path) -> Result<()> {
     deny_file_access(path, 0x20)
+}
+pub fn copy_directory_acl(source: &Path, target: &Path) -> Result<()> {
+    use windows::Win32::{
+        Foundation::*,
+        Security::{Authorization::*, *},
+    };
+    unsafe {
+        let mut acl = std::ptr::null_mut();
+        let mut descriptor = PSECURITY_DESCRIPTOR::default();
+        GetNamedSecurityInfoW(
+            PCWSTR(wide(&source.to_string_lossy()).as_ptr()),
+            SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION,
+            None,
+            None,
+            Some(&mut acl),
+            None,
+            &mut descriptor,
+        )
+        .ok()?;
+        let result = SetNamedSecurityInfoW(
+            PCWSTR(wide(&target.to_string_lossy()).as_ptr()),
+            SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+            None,
+            None,
+            Some(acl),
+            None,
+        )
+        .ok();
+        LocalFree(Some(HLOCAL(descriptor.0)));
+        result?;
+    }
+    Ok(())
 }
 fn deny_file_access(path: &Path, mask: u32) -> Result<()> {
     use anyhow::bail;

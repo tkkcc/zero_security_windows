@@ -104,7 +104,7 @@ fn native_app_registration_and_current_state_resolve_an_old_install_error() -> a
     };
     let engine = Engine::new()?;
     let result = (|| -> anyhow::Result<()> {
-        assert_eq!(apps::registered_tool(&op)?, Some(false));
+        assert!(!apps::registered_tool(&op)?);
         engine.store.results.lock().unwrap().insert(
             f.id.clone(),
             ResultRecord {
@@ -114,7 +114,7 @@ fn native_app_registration_and_current_state_resolve_an_old_install_error() -> a
         );
         assert_eq!(engine.check(&f).state, Status::Failed);
         registry::set(&path, "DisplayName", "Test package", "String")?;
-        assert_eq!(apps::registered_tool(&op)?, Some(true));
+        assert!(apps::registered_tool(&op)?);
         assert_eq!(engine.check(&f).state, Status::Done);
         assert!(
             engine.store.results.lock().unwrap()[&f.id]
@@ -439,7 +439,7 @@ fn privacy_detection_does_not_reapply_disabled_settings() -> anyhow::Result<()> 
     }
     let result = (|| -> anyhow::Result<()> {
         for op in &feature.ops {
-            engine.write(op)?;
+            engine.write(op, &feature.id)?;
         }
         assert_eq!(engine.check(&feature).state, Status::Done);
         for op in feature.ops.iter().filter(|op| op.kind == "Registry") {
@@ -476,7 +476,7 @@ fn widgets_require_the_disable_policy_and_taskbar_preference() -> anyhow::Result
         registry::set(&preference, "TaskbarDa", 0, "DWord")?;
         assert_eq!(engine.check(&feature).state, Status::Ready);
         for op in &feature.ops {
-            engine.write(op)?;
+            engine.write(op, &feature.id)?;
         }
         assert_eq!(registry::read(&policy, "AllowNewsAndInterests")?, json!(0));
         assert_eq!(engine.check(&feature).state, Status::Done);
@@ -520,7 +520,7 @@ fn start_menu_disables_frequent_apps_and_tracking_together() -> anyhow::Result<(
     let result = (|| -> anyhow::Result<()> {
         registry::set(&tracking.path, &tracking.name, 0, "DWord")?;
         for op in &feature.ops {
-            engine.write(op)?;
+            engine.write(op, &feature.id)?;
         }
         assert_eq!(registry::read(&tracking.path, &tracking.name)?, json!(0));
         assert_eq!(registry::read(&frequent.path, &frequent.name)?, json!(0));

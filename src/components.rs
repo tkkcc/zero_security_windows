@@ -122,6 +122,7 @@ pub fn edge(installed: bool) -> Result<bool> {
         return apps::install(
             &Operation {
                 name: "Microsoft.Edge".into(),
+                patterns: vec!["Microsoft Edge".into()],
                 source: "winget".into(),
                 ..Default::default()
             },

@@ -29,6 +29,7 @@ fn check_error(error: &anyhow::Error) -> Check {
 
 impl Engine {
     pub fn check(&self, f: &Feature) -> Check {
+        let started = std::time::Instant::now();
         let restore_error = self
             .store
             .results
@@ -42,22 +43,24 @@ impl Engine {
                 .is_ok_and(|c| matches!(c.state, Status::Done | Status::Absent));
         let mut check = match self.check_inner(f) {
             Ok(v) => v,
-            Err(e) => {
-                let check = check_error(&e);
-                let _ = store::append(
-                    "checks.jsonl",
-                    &json!({"Time":chrono::Local::now().to_rfc3339(),"Id":f.id,"Error":check.detail}).to_string(),
-                );
-                check
+            Err(e) => check_error(&e),
+        };
+        let record = {
+            let mut results = self.store.results.lock().unwrap();
+            let result = results.get_mut(&f.id);
+            if let Some(result) = result {
+                if default_matches
+                    || !result.restoring && matches!(check.state, Status::Done | Status::Absent)
+                {
+                    result.errors.clear();
+                }
+                Some(result.clone())
+            } else {
+                None
             }
         };
-        if let Some(result) = self.store.results.lock().unwrap().get_mut(&f.id) {
-            if default_matches
-                || !result.restoring && matches!(check.state, Status::Done | Status::Absent)
-            {
-                result.errors.clear();
-            }
-            if !result.errors.is_empty() && check.state != Status::Restricted {
+        if let Some(result) = record {
+            if !result.errors.is_empty() {
                 check = Check {
                     state: Status::Failed,
                     detail: result.errors.join("; "),
@@ -95,11 +98,13 @@ impl Engine {
         if check.state == Status::Done {
             check.detail.clear();
         }
+        let _ = store::append("checks.jsonl", &json!({"Time":chrono::Local::now().to_rfc3339(),"Id":f.id,"DurationMs":started.elapsed().as_millis(),"State":check.state,"Error":check.detail}).to_string());
         check
     }
     pub fn default_check(&self, f: &Feature) -> Result<Check> {
         let mut check = self.check_inner(&f.restore_target())?;
-        if let Some(result) = self.store.results.lock().unwrap().get(&f.id) {
+        let record = self.store.results.lock().unwrap().get(&f.id).cloned();
+        if let Some(result) = record {
             if result.restart && result.boot == self.boot {
                 check.state = Status::Restart;
             } else if result.boot == self.boot
@@ -434,7 +439,14 @@ mod tests {
                     },
                 );
                 assert_eq!(engine.check(&feature).state, Status::Restart);
-                engine.store.results.lock().unwrap().get_mut(&feature.id).unwrap().boot = 0;
+                engine
+                    .store
+                    .results
+                    .lock()
+                    .unwrap()
+                    .get_mut(&feature.id)
+                    .unwrap()
+                    .boot = 0;
                 assert_eq!(engine.check(&feature).state, Status::Done);
             }
         }
@@ -538,7 +550,6 @@ mod tests {
             let done = engine.check(&f);
             assert_eq!(done.state, Status::Done);
             assert!(!done.actionable());
-            assert!(!done.recheckable());
             assert!(done.detail.is_empty());
             assert!(
                 engine.store.results.lock().unwrap()[&f.id]
@@ -575,15 +586,13 @@ mod tests {
         ] {
             let check = check_error(&error);
             assert_eq!(check.state, Status::Restricted);
-            assert!(!check.recheckable());
             assert!(!check.actionable());
             assert!(!check.detail.is_empty());
         }
         let error = anyhow::anyhow!("invalid state returned by Windows");
         let check = check_error(&error);
         assert_eq!(check.state, Status::Unknown);
-        assert!(check.recheckable());
-        assert!(!check.actionable());
+        assert!(check.actionable());
     }
 
     #[test]
