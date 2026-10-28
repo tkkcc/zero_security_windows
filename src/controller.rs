@@ -444,7 +444,7 @@ pub(crate) fn batch(
         _ => order(&engine.catalog),
     };
     if matches!(command, Command::All) {
-        indices.retain(|i| !engine.catalog[*i].default_off);
+        indices.retain(|i| !engine.catalog[*i].default_off && !engine.catalog[*i].manual);
     }
     if !auto {
         let mut results = engine.store.results.lock().unwrap();
@@ -459,6 +459,12 @@ pub(crate) fn batch(
                 result.errors.clear();
             }
         }
+    }
+    if all {
+        indices.retain(|i| {
+            let check = engine.check(&engine.catalog[*i]);
+            check.actionable() || check.state == Status::SafeQueued
+        });
     }
     let resume_ids = if all {
         vec![]
@@ -485,11 +491,6 @@ pub(crate) fn batch(
     // Start fast settings before slow removals; jobs from different categories overlap.
     let run_local = |i: usize| {
         let f = &engine.catalog[i];
-        let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
-        engine.progress(
-            &f.id,
-            choose(engine.zh, "检测执行条件", "Checking requirements"),
-        );
         if f.manual || f.default_off && matches!(command, Command::All) {
             publish(engine, tx, i, version);
             return Ok(false);
@@ -540,6 +541,11 @@ pub(crate) fn batch(
             publish(engine, tx, i, version);
             return Ok(false);
         }
+        let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
+        engine.progress(
+            &f.id,
+            choose(engine.zh, "检测执行条件", "Checking requirements"),
+        );
         let needs_safe = match needs_safe(engine, f, auto) {
             Ok(needs_safe) => needs_safe,
             Err(error) => {
@@ -582,11 +588,6 @@ pub(crate) fn batch(
     }
     if !engine.safe && safe.is_empty() && !matches!(command, Command::One(_)) {
         let install = |i| {
-            let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
-            engine.progress(
-                &engine.catalog[i].id,
-                choose(engine.zh, "检测安装状态", "Checking installation"),
-            );
             let check = engine.check(&engine.catalog[i]);
             if !check.actionable() || auto && check.state == Status::Failed {
                 publish(engine, tx, i, version);
@@ -602,16 +603,16 @@ pub(crate) fn batch(
         }
         processed += parallel_jobs(&finalizers, |i| {
             let f = &engine.catalog[i];
-            let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
-            engine.progress(
-                &f.id,
-                choose(engine.zh, "检测执行条件", "Checking requirements"),
-            );
             let check = engine.check(f);
             if !check.actionable() || auto && check.state == Status::Failed {
                 publish(engine, tx, i, version);
                 return Ok(false);
             }
+            let _ = tx.send(Message::State(i, Check::new(Status::Running), version));
+            engine.progress(
+                &f.id,
+                choose(engine.zh, "检测执行条件", "Checking requirements"),
+            );
             // Failure of an installation only blocks the setting that depends on it.
             if let Err(error) = prerequisite(engine, tx, f, version) {
                 failure(engine, tx, i, version, error)?;
@@ -818,6 +819,73 @@ pub fn failure_message(engine: &Engine, error: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn all_queues_only_actionable_items_and_leaves_completed_items_alone() -> Result<()> {
+        use winreg::{RegKey, enums::HKEY_CURRENT_USER};
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let name = format!(
+            r"Software\ZeroSecurityWindowsBulkTest{}",
+            std::process::id()
+        );
+        let (key, _) = root.create_subkey(&name)?;
+        let result = (|| -> Result<()> {
+            let mut engine = Engine::new()?;
+            engine.safe = false;
+            engine.catalog = (0..5)
+                .map(|i| Feature {
+                    id: format!("test-bulk-{i}"),
+                    ops: vec![Operation::reg(
+                        format!(r"HKCU:\{name}"),
+                        format!("Item{i}"),
+                        1,
+                    )],
+                    manual: i == 3,
+                    default_off: i == 4,
+                    ..Default::default()
+                })
+                .collect();
+            *engine.store.pending.lock().unwrap() = None;
+            engine.store.results.lock().unwrap().clear();
+            for i in 0..5 {
+                key.set_value(format!("Item{i}"), &u32::from(i == 1 || i == 2))?;
+            }
+            let (tx, rx) = std::sync::mpsc::channel();
+            batch(&engine, &tx, 1, &Command::All, false)?;
+            let messages: Vec<_> = rx.try_iter().collect();
+            assert!(
+                messages
+                    .iter()
+                    .any(|m| matches!(m, Message::Queued(indices, 1) if indices == &[0]))
+            );
+            assert!(messages.iter().any(|m| matches!(
+                m,
+                Message::State(
+                    0,
+                    Check {
+                        state: Status::Running,
+                        ..
+                    },
+                    1
+                )
+            )));
+            assert!(
+                !messages
+                    .iter()
+                    .any(|m| matches!(m, Message::State(i, _, _) if *i != 0))
+            );
+            assert!(
+                messages
+                    .iter()
+                    .any(|m| matches!(m, Message::Finished { processed: 1, .. }))
+            );
+            assert_eq!(key.get_value::<u32, _>("Item0")?, 1);
+            assert_eq!(key.get_value::<u32, _>("Item3")?, 0);
+            assert_eq!(key.get_value::<u32, _>("Item4")?, 0);
+            Ok(())
+        })();
+        root.delete_subkey_all(&name)?;
+        result
+    }
     #[test]
     fn applying_after_restore_replaces_the_old_wait_state() -> Result<()> {
         use winreg::{RegKey, enums::HKEY_CURRENT_USER};

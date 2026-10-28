@@ -257,9 +257,12 @@ impl App {
             self.visible
                 .iter()
                 .copied()
-                .filter(|i| !self.catalog[*i].default_off)
+                .filter(|i| self.can_apply(*i))
                 .collect(),
         )
+    }
+    fn can_apply(&self, i: usize) -> bool {
+        !self.catalog[i].manual && !self.catalog[i].default_off && self.states[i].actionable()
     }
     fn checks_remaining(&self) -> usize {
         self.states
@@ -293,16 +296,16 @@ impl App {
                     .states
                     .iter()
                     .enumerate()
-                    .any(|(i, s)| !self.catalog[i].default_off && s.actionable()) =>
+                    .any(|(i, _)| self.can_apply(i)) =>
             {
-                Some(Command::All)
+                Some(Command::Items(
+                    controller::order(&self.catalog)
+                        .into_iter()
+                        .filter(|i| self.can_apply(*i))
+                        .collect(),
+                ))
             }
-            KeyCode::Char('c' | 'C')
-                if self
-                    .visible
-                    .iter()
-                    .any(|i| !self.catalog[*i].default_off && self.states[*i].actionable()) =>
-            {
+            KeyCode::Char('c' | 'C') if self.visible.iter().any(|i| self.can_apply(*i)) => {
                 Some(self.category_command())
             }
             KeyCode::F(10) if self.restart => Some(Command::Restart),
@@ -326,9 +329,9 @@ impl App {
         self.pending_batches += 1;
         for i in 0..self.catalog.len() {
             let chosen = match command {
-                Command::All => !self.catalog[i].default_off,
+                Command::All => self.can_apply(i),
                 Command::One(n) | Command::Restore(n) => i == *n,
-                Command::Items(indices) => !self.catalog[i].default_off && indices.contains(&i),
+                Command::Items(indices) => self.can_apply(i) && indices.contains(&i),
                 Command::RestoreItems(indices) => indices.contains(&i),
                 _ => false,
             };
@@ -1203,16 +1206,17 @@ mod tests {
                 }
             );
         }
-        app.busy = false;
+        let mut app = App::new(catalog()?, true)?;
+        app.states.fill(Check::new(Status::Ready));
         for key in ['a', 'A'] {
             assert!(matches!(
                 app.key_command(KeyCode::Char(key)),
-                Some(Command::All)
+                Some(Command::Items(indices)) if indices.len() > app.visible.len()
             ));
         }
         app.command(&Command::All);
         for (state, feature) in app.states.iter().zip(&app.catalog) {
-            if feature.default_off {
+            if feature.default_off || feature.manual {
                 assert_eq!(state.state, Status::Ready);
             } else {
                 assert!(matches!(state.state, Status::Queued | Status::Done));
@@ -1630,6 +1634,38 @@ mod tests {
         app.receive(Message::Queued(vec![last], 3), 3);
         app.receive(Message::State(last, Check::new(Status::Ready), 3), 3);
         assert_eq!(app.footer_message(), "执行中 1/1");
+        Ok(())
+    }
+    #[test]
+    fn bulk_execution_counts_only_the_single_actionable_item() -> Result<()> {
+        for key in ['a', 'A', 'c', 'C'] {
+            for state in [Status::Ready, Status::Failed, Status::Unknown] {
+                let mut app = App::new(catalog()?, true)?;
+                app.states.fill(Check::new(Status::Done));
+                let location = app.catalog.iter().position(|f| f.id == "location").unwrap();
+                let child = app.catalog.iter().position(|f| f.default_off).unwrap();
+                app.states[child] = Check::new(Status::Ready);
+                app.states[location] = Check::new(state);
+                app.focus(location);
+                let command = app.key_command(KeyCode::Char(key)).unwrap();
+                assert!(matches!(&command, Command::Items(indices) if indices == &[location]));
+                assert!(app.command(&command));
+                assert_eq!(app.batch_remaining, [location]);
+                assert_eq!(app.footer_message(), "执行中 0/1");
+                app.receive(Message::Queued(vec![location], 1), 1);
+                app.receive(Message::State(location, Check::new(Status::Running), 1), 1);
+                assert!(app.footer_message().starts_with("执行中 0/1 · 位置服务"));
+                assert_eq!(
+                    app.states
+                        .iter()
+                        .filter(|s| s.state == Status::Running)
+                        .count(),
+                    1
+                );
+                app.receive(Message::State(location, Check::new(Status::Done), 1), 1);
+                assert_eq!(app.footer_message(), "执行中 1/1");
+            }
+        }
         Ok(())
     }
     #[test]
