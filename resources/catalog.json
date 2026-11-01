@@ -1436,6 +1436,174 @@
     "RestoreSafe": false
   },
   {
+    "Id": "install-golang.go",
+    "Zh": "Go",
+    "En": "Go",
+    "PurposeZh": "安装 Go 编程语言与工具链。",
+    "PurposeEn": "Install the Go programming language and toolchain.",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
+    "Ops": [
+      {
+        "Name": "GoLang.Go",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget",
+        "Names": [
+          "go.exe"
+        ],
+        "Patterns": [
+          "Go Programming Language*"
+        ]
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": "",
+    "RestoreOps": [
+      {
+        "Name": "GoLang.Go",
+        "Source": "winget",
+        "Value": false,
+        "Kind": "Winget",
+        "Names": [
+          "go.exe"
+        ],
+        "Patterns": [
+          "Go Programming Language*"
+        ]
+      }
+    ],
+    "RestoreSafe": false
+  },
+  {
+    "Id": "install-zig.zig",
+    "Zh": "Zig",
+    "En": "Zig",
+    "PurposeZh": "安装 Zig 编译器与交叉编译工具链。",
+    "PurposeEn": "Install the Zig compiler and cross-compilation toolchain.",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
+    "Ops": [
+      {
+        "Name": "zig.zig",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget",
+        "Names": [
+          "zig.exe"
+        ]
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": "",
+    "RestoreOps": [
+      {
+        "Name": "zig.zig",
+        "Source": "winget",
+        "Value": false,
+        "Kind": "Winget",
+        "Names": [
+          "zig.exe"
+        ]
+      }
+    ],
+    "RestoreSafe": false
+  },
+  {
+    "Id": "install-kitware.cmake",
+    "Zh": "CMake",
+    "En": "CMake",
+    "PurposeZh": "安装 CMake，用于配置和生成原生项目构建文件。",
+    "PurposeEn": "Install CMake to configure and generate native project build files.",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
+    "Ops": [
+      {
+        "Name": "Kitware.CMake",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget",
+        "Names": [
+          "cmake.exe"
+        ],
+        "Patterns": [
+          "CMake"
+        ]
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": "",
+    "RestoreOps": [
+      {
+        "Name": "Kitware.CMake",
+        "Source": "winget",
+        "Value": false,
+        "Kind": "Winget",
+        "Names": [
+          "cmake.exe"
+        ],
+        "Patterns": [
+          "CMake"
+        ]
+      }
+    ],
+    "RestoreSafe": false
+  },
+  {
+    "Id": "install-ninja-build.ninja",
+    "Zh": "Ninja",
+    "En": "Ninja",
+    "PurposeZh": "安装 Ninja，用于快速构建原生项目。",
+    "PurposeEn": "Install Ninja for fast native project builds.",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
+    "Ops": [
+      {
+        "Name": "Ninja-build.Ninja",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget",
+        "Names": [
+          "ninja.exe"
+        ]
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": "",
+    "RestoreOps": [
+      {
+        "Name": "Ninja-build.Ninja",
+        "Source": "winget",
+        "Value": false,
+        "Kind": "Winget",
+        "Names": [
+          "ninja.exe"
+        ]
+      }
+    ],
+    "RestoreSafe": false
+  },
+  {
     "Id": "install-microsoft.visualstudiocode",
     "Zh": "VS Code",
     "En": "VS Code",
@@ -1662,6 +1830,45 @@
         "Kind": "Winget",
         "Names": [
           "fd.exe"
+        ]
+      }
+    ],
+    "RestoreSafe": false
+  },
+  {
+    "Id": "install-burntsushi.ripgrep.msvc",
+    "Zh": "ripgrep",
+    "En": "ripgrep",
+    "PurposeZh": "安装 ripgrep，用于快速搜索代码和文本。",
+    "PurposeEn": "Install ripgrep for fast code and text searching.",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
+    "Ops": [
+      {
+        "Name": "BurntSushi.ripgrep.MSVC",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget",
+        "Names": [
+          "rg.exe"
+        ]
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": "",
+    "RestoreOps": [
+      {
+        "Name": "BurntSushi.ripgrep.MSVC",
+        "Source": "winget",
+        "Value": false,
+        "Kind": "Winget",
+        "Names": [
+          "rg.exe"
         ]
       }
     ],
