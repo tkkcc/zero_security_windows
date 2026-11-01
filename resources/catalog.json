@@ -2073,6 +2073,47 @@
     "RestoreSafe": false
   },
   {
+    "Id": "install-google.platformtools",
+    "Zh": "ADB / fastboot",
+    "En": "ADB / fastboot",
+    "PurposeZh": "安装 Android 平台工具，提供 adb 和 fastboot，用于设备调试与管理。",
+    "PurposeEn": "Install Android Platform-Tools, including adb and fastboot, for device debugging and management.",
+    "GroupZh": "安装",
+    "GroupEn": "Install",
+    "Ops": [
+      {
+        "Name": "Google.PlatformTools",
+        "Source": "winget",
+        "Value": true,
+        "Kind": "Winget",
+        "Names": [
+          "adb.exe",
+          "fastboot.exe"
+        ]
+      }
+    ],
+    "Probe": "",
+    "Safe": false,
+    "Manual": false,
+    "Restart": false,
+    "Page": "Install",
+    "Intent": "Install",
+    "Refresh": "",
+    "RestoreOps": [
+      {
+        "Name": "Google.PlatformTools",
+        "Source": "winget",
+        "Value": false,
+        "Kind": "Winget",
+        "Names": [
+          "adb.exe",
+          "fastboot.exe"
+        ]
+      }
+    ],
+    "RestoreSafe": false
+  },
+  {
     "Id": "install-google.androidcli",
     "Zh": "Android CLI",
     "En": "Android SDK CLI",
